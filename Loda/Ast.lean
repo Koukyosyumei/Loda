@@ -89,6 +89,9 @@ inductive Value where
 /-- Valuation (environment). -/
 def Env := String -> Value
 
+/-- Global circuit definitions; populate this map with your circuits. -/
+def CircuitEnv := String -> Circuit
+
 /-- Evaluate a binary relation. -/
 def evalRelOp : RelOp → Value → Value → Option Bool
   | RelOp.eq,  Value.vInt i, Value.vInt j => pure (i = j)
@@ -100,7 +103,7 @@ def set (σ: Env) (x : String) (v: Value) : Env :=
   fun y => if y = x then v else σ y
 
 /-- Evaluate an expression in a given environment. -/
-partial def eval (σ : Env) : Expr → Option (Value)
+partial def eval (σ : Env) (δ : CircuitEnv) : Expr → Option (Value)
   -- E-VALUE
   | Expr.constF _ v      => pure (Value.vF _ v)
   | Expr.constInt i      => pure (Value.vInt i)
@@ -108,75 +111,81 @@ partial def eval (σ : Env) : Expr → Option (Value)
   -- E-VAR
   | Expr.var x           => pure (σ x)
   | Expr.letIn x e₁ e₂   => do
-    let v₁ ← eval σ e₁
+    let v₁ ← eval σ δ e₁
     let σ' := set σ x v₁
-    eval σ' e₂
+    eval σ' δ e₂
   -- E-LAM
   | Expr.lam x _ e       => pure (Value.vClosure x e σ)
   -- E-APP
   | Expr.app f e         => do
-      let vf ← eval σ f
-      let va ← eval σ e
+      let vf ← eval σ δ f
+      let va ← eval σ δ e
       match vf with
       | Value.vClosure x body σ' =>
         let σ'' := set σ' x va
-        eval σ'' body
+        eval σ'' δ body
       | _ => none
   -- E-FBINOP
   | Expr.binRel e₁ op e₂ => do
-      let v₁ ← eval σ e₁
-      let v₂ ← eval σ e₂
+      let v₁ ← eval σ δ e₁
+      let v₂ ← eval σ δ e₂
       let b ← evalRelOp op v₁ v₂
       pure (Value.vBool b)
   -- E-PRODCONS
   | Expr.prodCons es     => do
-      let vs ← es.mapM (eval σ)
+      let vs ← es.mapM (eval σ δ)
       pure (Value.vProd vs)
   | Expr.prodIdx e i     => do
-      let v ← eval σ e
+      let v ← eval σ δ e
       match v with
       | Value.vProd vs => vs[i]?
       | _              => none
   | Expr.arrCons h t     => do
-      let vh ← eval σ h
-      let vt ← eval σ t
+      let vh ← eval σ δ h
+      let vt ← eval σ δ t
       match vt with
       | Value.vArr vs => pure (Value.vArr (vh :: vs))
       | _             => none
   | Expr.arrLen e        => do
-      let v ← eval σ e
+      let v ← eval σ δ e
       match v with
       | Value.vArr vs => pure (Value.vInt vs.length)
       | _             => none
   | Expr.arrIdx a i      => do
-      let va ← eval σ a
-      let vi ← eval σ i
+      let va ← eval σ δ a
+      let vi ← eval σ δ i
       match va, vi with
       | Value.vArr vs, Value.vInt j => vs[j.toNat]?
       | _, _                        => none
   -- E-ITER
   | Expr.iter idx sExpr eExpr fExpr accExpr => do
-      let sVal ← eval σ sExpr
-      let eVal ← eval σ eExpr
+      let sVal ← eval σ δ sExpr
+      let eVal ← eval σ δ eExpr
       match sVal, eVal with
       | Value.vInt s, Value.vInt e => do
-          let fVal ← eval σ fExpr
-          let aVal ← eval σ accExpr
+          let fVal ← eval σ δ fExpr
+          let aVal ← eval σ δ accExpr
           let rec loop (i : ℤ) (acc : Value) : Option Value :=
             if i ≥ e then pure acc else
             match fVal with
             | Value.vClosure x body σ' => do
                 -- apply f to index i
                 let σ1 := set σ' x (Value.vInt i)
-                let fInner ← eval σ1 body
+                let fInner ← eval σ1 δ body
                 match fInner with
                 | Value.vClosure y accBody σ2 => do
                     -- apply resulting closure to accumulator
                     let σ3 := set σ2 y acc
-                    let newAcc ← eval σ3 accBody
+                    let newAcc ← eval σ3 δ accBody
                     loop (i+1) newAcc
                 | _ => none
             | _ => none
           loop s aVal
       | _, _ => none
+  -- E-CREF
+  | Expr.circRef name args => do
+      let vs ← args.mapM (eval σ δ )
+      let c := δ name
+      let σ' := (c.inputs.zip vs).foldl (fun env (⟨x,_⟩,v) => set env x v) σ
+      eval σ' δ c.body
   | _ => none
