@@ -223,12 +223,10 @@ inductive SubtypeJudgment : Env -> TyEnv → Option Ty → Option Ty → Prop wh
       -- SubtypeJudgment (set (set σ x z) y z) Γ τr τs →
       SubtypeJudgment σ Γ (pure τr) (pure τs) →
       SubtypeJudgment σ Γ (pure (Ty.func x τx τr)) (pure (Ty.func y τy τs))
-
   /-- TSUB-ARR: Array subtyping -/
   | TSub_Arr {σ : Env} {Γ : TyEnv} {T₁ T₂ : Ty} :
       SubtypeJudgment σ Γ (pure T₁) (pure T₂) →
       SubtypeJudgment σ Γ (pure (Ty.arr T₁)) (pure (Ty.arr T₂))
-
   /-- TSUB-PRODUCT: Product subtyping -/
   | TSub_Product {σ : Env} {Γ : TyEnv} {Ts₁ Ts₂ : List Ty} :
       Ts₁.length = Ts₂.length →
@@ -240,6 +238,10 @@ inductive TypeJudgment: Env -> CircuitEnv -> TyEnv -> Expr -> Ty -> Prop where
   | T_Var {σ δ Γ x v T φ}:
       Γ x = (Ty.refin v T φ) →
     TypeJudgment σ δ Γ (Expr.var x) (Ty.refin v T (v = eval σ δ (Expr.var x)))
+
+  | T_VarFunc {σ δ Γ f x τ₁ τ₂}:
+      Γ f = (Ty.func x τ₁ τ₂) →
+      TypeJudgment σ δ Γ (Expr.var f) (Ty.func x τ₁ τ₂)
 
   | T_Nondet {σ δ Γ p v} :
     TypeJudgment σ δ Γ Expr.wildcard (Ty.refin v (Ty.field p) True)
