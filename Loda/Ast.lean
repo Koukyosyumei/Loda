@@ -66,7 +66,8 @@ mutual
     | bool     : Ty                 -- Bool
     | prod     : List Ty → Ty       -- T₁ × ... × Tₙ (unit is prod [])
     | arr      : Ty → Ty            -- [T]
-    | refin    : String → Ty → Formula → Ty  -- {ν : T | ϕ}
+    | refin    : String → Ty → Prop → Ty  -- {ν : T | ϕ}
+    | func     : String → Ty → Ty → Ty       -- x: τ₁ → τ₂
     --deriving DecidableEq, Repr
 end
 
@@ -89,6 +90,9 @@ inductive Value where
 /-- Valuation (environment). -/
 def Env := String -> Value
 
+def set (σ: Env) (x : String) (v: Value) : Env :=
+  fun y => if y = x then v else σ y
+
 /-- Global circuit definitions; populate this map with your circuits. -/
 def CircuitEnv := String -> Circuit
 
@@ -98,9 +102,6 @@ def evalRelOp : RelOp → Value → Value → Option Bool
   | RelOp.lt,  Value.vInt i, Value.vInt j => pure (i < j)
   | RelOp.le,  Value.vInt i, Value.vInt j => pure (i ≤ j)
   | _,         _,            _            => none
-
-def set (σ: Env) (x : String) (v: Value) : Env :=
-  fun y => if y = x then v else σ y
 
 /-- Evaluate an expression in a given environment. -/
 partial def eval (σ : Env) (δ : CircuitEnv) : Expr → Option (Value)
@@ -189,3 +190,84 @@ partial def eval (σ : Env) (δ : CircuitEnv) : Expr → Option (Value)
       let σ' := (c.inputs.zip vs).foldl (fun env (⟨x,_⟩,v) => set env x v) σ
       eval σ' δ c.body
   | _ => none
+
+/-- Type Environment. -/
+def TyEnv := String -> Ty
+
+def setTy (Γ : TyEnv) (x : String) (v: Ty) : TyEnv :=
+  fun y => if y = x then v else Γ y
+
+inductive PairwiseProd (R : Ty → Ty → Prop) : List (Ty × Ty) → Prop
+| nil : PairwiseProd R []
+| cons {ty1 ty2 : Ty} {rest : List (Ty × Ty)} :
+    R ty1 ty2 →
+    PairwiseProd R rest →
+    PairwiseProd R ((ty1, ty2) :: rest)
+
+/-- Subtyping judgment for CODA types -/
+inductive SubtypeJudgment : TyEnv → Ty → Ty → Prop where
+  /-- TSUB-REFL: Reflexivity -/
+  | TSub_Refl {Γ : TyEnv} {τ : Ty} :
+      SubtypeJudgment Γ τ τ
+  /-- TSUB-TRANS: Transitivity -/
+  | TSub_Trans {Γ : TyEnv} {τ₁ τ₂ τ₃ : Ty} :
+      SubtypeJudgment Γ τ₁ τ₂ →
+      SubtypeJudgment Γ τ₂ τ₃ →
+      SubtypeJudgment Γ τ₁ τ₃
+  /-- TSUB-REFINE: Refinement subtyping -/
+  | TSub_Refine {Γ : TyEnv} {T₁ T₂ : Ty} {φ₁ φ₂ : Prop} :
+      SubtypeJudgment Γ T₁ T₂ →
+      (φ₁ → φ₂) →
+      SubtypeJudgment Γ (Ty.refin "ν" T₁ φ₁) (Ty.refin "ν" T₂ φ₂)
+
+  /-- TSUB-FUN: Function subtyping -/
+  | TSub_Fun {Γ : TyEnv} {x y : String} {τx τy τr τs : Ty} :
+      SubtypeJudgment Γ τy τx →
+      -- Using a fresh variable z to avoid capture
+      --let z := "fresh"; -- In real code, generate a truly fresh variable
+      --SubtypeJudgment (setTy Γ z τx) (subst τr x (Expr.var z)) (subst τs y (Expr.var z)) →
+      SubtypeJudgment Γ (Ty.func x τx τr) (Ty.func y τy τs)
+
+  /-- TSUB-ARR: Array subtyping -/
+  | TSub_Arr {Γ : TyEnv} {T₁ T₂ : Ty} :
+      SubtypeJudgment Γ T₁ T₂ →
+      SubtypeJudgment Γ (Ty.arr T₁) (Ty.arr T₂)
+
+  /-- TSUB-PRODUCT: Product subtyping -/
+  | TSub_Product {Γ : TyEnv} {Ts₁ Ts₂ : List Ty} :
+      Ts₁.length = Ts₂.length →
+      PairwiseProd (SubtypeJudgment Γ) (List.zip Ts₁ Ts₂) →
+      SubtypeJudgment Γ (Ty.prod Ts₁) (Ty.prod Ts₂)
+
+inductive TypeJudgment: TyEnv -> Expr -> Ty -> Prop where
+  | T_Var {Γ x T φ}:
+      Γ x = (Ty.refin "v" T φ) →
+    TypeJudgment Γ (Expr.var x) (Ty.refin "v" T (Formula.rel (Expr.var "v") RelOp.eq (Expr.var x)))
+
+  | T_Nondet {Γ p} :
+    TypeJudgment Γ Expr.wildcard (Ty.field p)
+
+  | T_ConstF {Γ p f} :
+    TypeJudgment Γ (Expr.constF p f) (Ty.field p)
+
+  | T_Assert {Γ e1 e2 p} :
+    TypeJudgment Γ e1 (Ty.field p) →
+    TypeJudgment Γ e2 (Ty.field p) →
+    TypeJudgment Γ (Expr.assertE e1 e2) (Ty.refin "v" (Ty.field p) (Formula.rel e1 RelOp.eq e2))
+
+  | T_BinOpField {Γ e1 e2 p} :
+    TypeJudgment Γ e1 (Ty.field p) →
+    TypeJudgment Γ e2 (Ty.field p) →
+    TypeJudgment Γ (Expr.binRel e1 RelOp.eq e2) (Ty.refin "v" (Ty.field p) (Formula.rel (Expr.var "v") RelOp.eq (Expr.binRel e1 RelOp.eq e2)))
+
+  | T_Abs {Γ x τ₁ e τ₂} :
+    TypeJudgment (setTy Γ x τ₁) e τ₂ →
+    TypeJudgment Γ (Expr.lam x τ₁ e) (Ty.func "_" τ₁ τ₂)
+
+  | T_App {Γ x₁ x₂ s τ₁ τ₂} :
+      -- x₁ : (x₁ : τ₁ → τ₂)
+      TypeJudgment Γ x₁ (Ty.func s τ₁ τ₂) →
+      -- x₂ : τ1
+      TypeJudgment Γ x₂ τ₁ →
+      -- result: τ2 with s ↦ x₂
+      TypeJudgment Γ (Expr.app x₁ x₂) τ₂
