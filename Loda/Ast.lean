@@ -209,39 +209,39 @@ inductive PairwiseProd (R : Ty → Ty → Prop) : List (Ty × Ty) → Prop
     PairwiseProd R ((ty1, ty2) :: rest)
 
 /-- Subtyping judgment for CODA types -/
-inductive SubtypeJudgment : TyEnv → Ty → Ty → Prop where
+inductive SubtypeJudgment : Env -> TyEnv → Ty → Ty → Prop where
   /-- TSUB-REFL: Reflexivity -/
-  | TSub_Refl {Γ : TyEnv} {τ : Ty} :
-      SubtypeJudgment Γ τ τ
+  | TSub_Refl {σ : Env} {Γ : TyEnv} {τ : Ty} :
+      SubtypeJudgment σ Γ τ τ
   /-- TSUB-TRANS: Transitivity -/
-  | TSub_Trans {Γ : TyEnv} {τ₁ τ₂ τ₃ : Ty} :
-      SubtypeJudgment Γ τ₁ τ₂ →
-      SubtypeJudgment Γ τ₂ τ₃ →
-      SubtypeJudgment Γ τ₁ τ₃
+  | TSub_Trans {σ : Env} {Γ : TyEnv} {τ₁ τ₂ τ₃ : Ty} :
+      SubtypeJudgment σ Γ τ₁ τ₂ →
+      SubtypeJudgment σ Γ τ₂ τ₃ →
+      SubtypeJudgment σ Γ τ₁ τ₃
   /-- TSUB-REFINE: Refinement subtyping -/
-  | TSub_Refine {Γ : TyEnv} {T₁ T₂ : Ty} {φ₁ φ₂ : Prop} {v: Value} :
-      SubtypeJudgment Γ T₁ T₂ →
+  | TSub_Refine {σ : Env} {Γ : TyEnv} {T₁ T₂ : Ty} {φ₁ φ₂ : Prop} {v: Value} :
+      SubtypeJudgment σ Γ T₁ T₂ →
       (φ₁ → φ₂) →
-      SubtypeJudgment Γ (Ty.refin v T₁ φ₁) (Ty.refin v T₂ φ₂)
+      SubtypeJudgment σ Γ (Ty.refin v T₁ φ₁) (Ty.refin v T₂ φ₂)
 
   /-- TSUB-FUN: Function subtyping -/
-  | TSub_Fun {Γ : TyEnv} {x y : String} {τx τy τr τs : Ty} :
-      SubtypeJudgment Γ τy τx →
+  | TSub_Fun {σ : Env} {Γ : TyEnv} {x y : String} {τx τy τr τs : Ty} :
+      SubtypeJudgment σ Γ τy τx →
       -- Using a fresh variable z to avoid capture
-      --let z := "fresh"; -- In real code, generate a truly fresh variable
-      --SubtypeJudgment (setTy Γ z τx) (subst τr x (Expr.var z)) (subst τs y (Expr.var z)) →
-      SubtypeJudgment Γ (Ty.func x τx τr) (Ty.func y τy τs)
+      -- let z := "fresh"; -- In real code, generate a truly fresh variable
+      SubtypeJudgment σ Γ τr τs →
+      SubtypeJudgment σ Γ (Ty.func x τx τr) (Ty.func y τy τs)
 
   /-- TSUB-ARR: Array subtyping -/
-  | TSub_Arr {Γ : TyEnv} {T₁ T₂ : Ty} :
-      SubtypeJudgment Γ T₁ T₂ →
-      SubtypeJudgment Γ (Ty.arr T₁) (Ty.arr T₂)
+  | TSub_Arr {σ : Env} {Γ : TyEnv} {T₁ T₂ : Ty} :
+      SubtypeJudgment σ Γ T₁ T₂ →
+      SubtypeJudgment σ Γ (Ty.arr T₁) (Ty.arr T₂)
 
   /-- TSUB-PRODUCT: Product subtyping -/
-  | TSub_Product {Γ : TyEnv} {Ts₁ Ts₂ : List Ty} :
+  | TSub_Product {σ : Env} {Γ : TyEnv} {Ts₁ Ts₂ : List Ty} :
       Ts₁.length = Ts₂.length →
-      PairwiseProd (SubtypeJudgment Γ) (List.zip Ts₁ Ts₂) →
-      SubtypeJudgment Γ (Ty.prod Ts₁) (Ty.prod Ts₂)
+      PairwiseProd (SubtypeJudgment σ Γ) (List.zip Ts₁ Ts₂) →
+      SubtypeJudgment σ Γ (Ty.prod Ts₁) (Ty.prod Ts₂)
 
 inductive TypeJudgment: Env -> CircuitEnv -> TyEnv -> Expr -> Ty -> Prop where
   | T_Var {σ δ Γ x v T φ}:
