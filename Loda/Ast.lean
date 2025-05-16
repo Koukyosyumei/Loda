@@ -83,8 +83,8 @@ def beq : Value → Value → Bool
   | Value.vStar, Value.vF _ _           => true
   | Value.vInt i₁, Value.vInt i₂        => i₁ = i₂
   | Value.vBool b₁, Value.vBool b₂      => b₁ = b₂
-  | Value.vProd xs, Value.vProd ys      => false
-  | Value.vArr xs, Value.vArr ys        => false
+  | Value.vProd _, Value.vProd _        => false --(xs.zip ys).all (fun (x, y) => (x = y))
+  | Value.vArr _, Value.vArr _          => false
   | Value.vClosure _ _ _, Value.vClosure _ _ _ => false -- closures not comparable
   | _, _                    => false
 
@@ -163,7 +163,7 @@ partial def eval (σ : Env) (δ : CircuitEnv) : Expr → Option (Value)
       | Value.vArr vs, Value.vInt j => vs[j.toNat]?
       | _, _                        => none
   -- E-ITER
-  | Expr.iter idx sExpr eExpr fExpr accExpr => do
+  | Expr.iter _ sExpr eExpr fExpr accExpr => do
       let sVal ← eval σ δ sExpr
       let eVal ← eval σ δ eExpr
       match sVal, eVal with
