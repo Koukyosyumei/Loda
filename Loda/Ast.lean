@@ -300,6 +300,7 @@ structure R1CSConstraint where
 structure CompState where
   nextVar : Nat                     -- Counter for fresh variables
   constraints : List R1CSConstraint -- Generated constraints
+deriving Nonempty
 
 /-- Empty compilation state. -/
 def emptyState : CompState := { nextVar := 0, constraints := [] }
@@ -336,7 +337,7 @@ def mkEqualityConstraint (u₁: CompValue) (u₂: CompValue) : R1CSConstraint :=
   }
 
 /-- Compile an expression to R1CS constraints and a compilation value. -/
-partial def compile (σ: CompEnv) (s: CompState) (e: Expr) : (CompState × CompValue) :=
+unsafe def compile (σ: CompEnv) (s: CompState) (e: Expr) : (CompState × CompValue) :=
   match e with
   -- C-VALUE (constants) just return the value with no constraints
   | Expr.constF p v => (s, CompValue.constF p v)
