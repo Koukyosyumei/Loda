@@ -10,6 +10,7 @@ instance (p : ℕ) [Fact p.Prime] : Fintype (F p) := ZMod.fintype p
 instance (p : ℕ) [Fact p.Prime] : Inhabited (F p) := ⟨0⟩
 instance (p : ℕ) : CommRing (F p) := ZMod.commRing p
 
+
 /-- Binary relations =⊘. -/
 inductive RelOp where
   | eq   -- =
@@ -46,18 +47,16 @@ mutual
                     Expr      -- iteration body result
     --deriving Repr
 
-  /-- Logical qualifiers/formulae for refinement types. -/
-  inductive Formula where
-    | top      : Formula
-    | bot      : Formula
-    | ff       : Formula  -- false
-    | tt       : Formula  -- true
-    | rel      : Expr → RelOp → Expr → Formula
-    | not      : Formula → Formula
-    | and      : Formula → Formula → Formula
-    | or       : Formula → Formula → Formula
-    | forallB  : String → Nat → Formula → Formula -- ∀ i ∈ [0, k). φ
-    --deriving Repr
+  /-- Values of CODA. -/
+  inductive Value where
+    | vF       : ∀ p, F p → Value
+    | vStar    : Value
+    | vInt     : Int → Value
+    | vBool    : Bool → Value
+    | vProd    : List Value → Value
+    | vArr     : List Value → Value
+    | vClosure : String → Expr → (String → Value) → Value
+
 
   /-- Basic Types in CODA. -/
   inductive Ty where
@@ -66,7 +65,7 @@ mutual
     | bool     : Ty                 -- Bool
     | prod     : List Ty → Ty       -- T₁ × ... × Tₙ (unit is prod [])
     | arr      : Ty → Ty            -- [T]
-    | refin    : String → Ty → Prop → Ty  -- {ν : T | ϕ}
+    | refin    : Value → Ty → Prop → Ty  -- {ν : T | ϕ}
     | func     : String → Ty → Ty → Ty       -- x: τ₁ → τ₂
     --deriving DecidableEq, Repr
 end
@@ -78,14 +77,19 @@ structure Circuit where
   output  : Ty
   body    : Expr
 
-/-- Values of CODA. -/
-inductive Value where
-  | vF       : ∀ p, F p → Value
-  | vInt     : Int → Value
-  | vBool    : Bool → Value
-  | vProd    : List Value → Value
-  | vArr     : List Value → Value
-  | vClosure : String → Expr → (String → Value) → Value
+def beq : Value → Value → Bool
+  | Value.vF p₁ x, Value.vF p₂ y        => p₁ = p₂ ∧ x.val % p₁ = y.val % p₁
+  | Value.vF _ _, Value.vStar           => true
+  | Value.vStar, Value.vF _ _           => true
+  | Value.vInt i₁, Value.vInt i₂        => i₁ = i₂
+  | Value.vBool b₁, Value.vBool b₂      => b₁ = b₂
+  | Value.vProd xs, Value.vProd ys      => false
+  | Value.vArr xs, Value.vArr ys        => false
+  | Value.vClosure _ _ _, Value.vClosure _ _ _ => false -- closures not comparable
+  | _, _                    => false
+
+instance : BEq Value where
+  beq := beq
 
 /-- Valuation (environment). -/
 def Env := String -> Value
@@ -215,10 +219,10 @@ inductive SubtypeJudgment : TyEnv → Ty → Ty → Prop where
       SubtypeJudgment Γ τ₂ τ₃ →
       SubtypeJudgment Γ τ₁ τ₃
   /-- TSUB-REFINE: Refinement subtyping -/
-  | TSub_Refine {Γ : TyEnv} {T₁ T₂ : Ty} {φ₁ φ₂ : Prop} :
+  | TSub_Refine {Γ : TyEnv} {T₁ T₂ : Ty} {φ₁ φ₂ : Prop} {v: Value} :
       SubtypeJudgment Γ T₁ T₂ →
       (φ₁ → φ₂) →
-      SubtypeJudgment Γ (Ty.refin "ν" T₁ φ₁) (Ty.refin "ν" T₂ φ₂)
+      SubtypeJudgment Γ (Ty.refin v T₁ φ₁) (Ty.refin v T₂ φ₂)
 
   /-- TSUB-FUN: Function subtyping -/
   | TSub_Fun {Γ : TyEnv} {x y : String} {τx τy τr τs : Ty} :
@@ -239,35 +243,35 @@ inductive SubtypeJudgment : TyEnv → Ty → Ty → Prop where
       PairwiseProd (SubtypeJudgment Γ) (List.zip Ts₁ Ts₂) →
       SubtypeJudgment Γ (Ty.prod Ts₁) (Ty.prod Ts₂)
 
-inductive TypeJudgment: TyEnv -> Expr -> Ty -> Prop where
-  | T_Var {Γ x T φ}:
-      Γ x = (Ty.refin "v" T φ) →
-    TypeJudgment Γ (Expr.var x) (Ty.refin "v" T (Formula.rel (Expr.var "v") RelOp.eq (Expr.var x)))
+inductive TypeJudgment: Env -> CircuitEnv -> TyEnv -> Expr -> Ty -> Prop where
+  | T_Var {σ δ Γ x v T φ}:
+      Γ x = (Ty.refin v T φ) →
+    TypeJudgment σ δ Γ (Expr.var x) (Ty.refin v T (v = eval σ δ (Expr.var x)))
 
-  | T_Nondet {Γ p} :
-    TypeJudgment Γ Expr.wildcard (Ty.field p)
+  | T_Nondet {σ δ Γ p v} :
+    TypeJudgment σ δ Γ Expr.wildcard (Ty.refin v (Ty.field p) True)
 
-  | T_ConstF {Γ p f} :
-    TypeJudgment Γ (Expr.constF p f) (Ty.field p)
+  | T_ConstF {σ δ Γ p f} :
+    TypeJudgment σ δ Γ (Expr.constF p f) (Ty.field p)
 
-  | T_Assert {Γ e1 e2 p} :
-    TypeJudgment Γ e1 (Ty.field p) →
-    TypeJudgment Γ e2 (Ty.field p) →
-    TypeJudgment Γ (Expr.assertE e1 e2) (Ty.refin "v" (Ty.field p) (Formula.rel e1 RelOp.eq e2))
+  | T_Assert {σ δ Γ e1 e2 p v} :
+    TypeJudgment σ δ Γ e1 (Ty.field p) →
+    TypeJudgment σ δ Γ e2 (Ty.field p) →
+    TypeJudgment σ δ Γ (Expr.assertE e1 e2) (Ty.refin v (Ty.field p) (eval σ δ e1 = eval σ δ e2))
 
-  | T_BinOpField {Γ e1 e2 p} :
-    TypeJudgment Γ e1 (Ty.field p) →
-    TypeJudgment Γ e2 (Ty.field p) →
-    TypeJudgment Γ (Expr.binRel e1 RelOp.eq e2) (Ty.refin "v" (Ty.field p) (Formula.rel (Expr.var "v") RelOp.eq (Expr.binRel e1 RelOp.eq e2)))
+  | T_BinOpField {σ δ Γ e1 e2 p v} :
+    TypeJudgment σ δ Γ e1 (Ty.field p) →
+    TypeJudgment σ δ Γ e2 (Ty.field p) →
+    TypeJudgment σ δ Γ (Expr.binRel e1 RelOp.eq e2) (Ty.refin v (Ty.field p) (v = eval σ δ (Expr.binRel e1 RelOp.eq e2)))
 
-  | T_Abs {Γ x τ₁ e τ₂} :
-    TypeJudgment (setTy Γ x τ₁) e τ₂ →
-    TypeJudgment Γ (Expr.lam x τ₁ e) (Ty.func "_" τ₁ τ₂)
+  | T_Abs {σ δ Γ x τ₁ e τ₂} :
+    TypeJudgment σ δ (setTy Γ x τ₁) e τ₂ →
+    TypeJudgment σ δ Γ (Expr.lam x τ₁ e) (Ty.func "_" τ₁ τ₂)
 
-  | T_App {Γ x₁ x₂ s τ₁ τ₂} :
+  | T_App {σ δ Γ x₁ x₂ s τ₁ τ₂} :
       -- x₁ : (x₁ : τ₁ → τ₂)
-      TypeJudgment Γ x₁ (Ty.func s τ₁ τ₂) →
+      TypeJudgment σ δ Γ x₁ (Ty.func s τ₁ τ₂) →
       -- x₂ : τ1
-      TypeJudgment Γ x₂ τ₁ →
+      TypeJudgment σ δ Γ x₂ τ₁ →
       -- result: τ2 with s ↦ x₂
-      TypeJudgment Γ (Expr.app x₁ x₂) τ₂
+      TypeJudgment σ δ Γ (Expr.app x₁ x₂) τ₂
