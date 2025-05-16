@@ -201,18 +201,11 @@ def TyEnv := String -> Ty
 def setTy (Γ : TyEnv) (x : String) (v: Ty) : TyEnv :=
   fun y => if y = x then v else Γ y
 
-inductive PairwiseProd (R : Ty → Ty → Prop) : List (Ty × Ty) → Prop
-| nil : PairwiseProd R []
-| cons {ty1 ty2 : Ty} {rest : List (Ty × Ty)} :
-    R ty1 ty2 →
-    PairwiseProd R rest →
-    PairwiseProd R ((ty1, ty2) :: rest)
-
 /-- Subtyping judgment for CODA types -/
-inductive SubtypeJudgment : Env -> TyEnv → Ty → Ty → Prop where
+inductive SubtypeJudgment : Env -> TyEnv → Option Ty → Option Ty → Prop where
   /-- TSUB-REFL: Reflexivity -/
   | TSub_Refl {σ : Env} {Γ : TyEnv} {τ : Ty} :
-      SubtypeJudgment σ Γ τ τ
+      SubtypeJudgment σ Γ (pure τ) (pure τ)
   /-- TSUB-TRANS: Transitivity -/
   | TSub_Trans {σ : Env} {Γ : TyEnv} {τ₁ τ₂ τ₃ : Ty} :
       SubtypeJudgment σ Γ τ₁ τ₂ →
@@ -225,11 +218,11 @@ inductive SubtypeJudgment : Env -> TyEnv → Ty → Ty → Prop where
       SubtypeJudgment σ Γ (Ty.refin v T₁ φ₁) (Ty.refin v T₂ φ₂)
 
   /-- TSUB-FUN: Function subtyping -/
-  | TSub_Fun {σ : Env} {Γ : TyEnv} {x y : String} {τx τy τr τs : Ty} :
+  | TSub_Fun {σ : Env} {Γ : TyEnv} {x y : String} {z : Value} {τx τy τr τs : Ty} :
       SubtypeJudgment σ Γ τy τx →
       -- Using a fresh variable z to avoid capture
       -- let z := "fresh"; -- In real code, generate a truly fresh variable
-      SubtypeJudgment σ Γ τr τs →
+      SubtypeJudgment (set (set σ x z) y z) Γ τr τs →
       SubtypeJudgment σ Γ (Ty.func x τx τr) (Ty.func y τy τs)
 
   /-- TSUB-ARR: Array subtyping -/
@@ -240,7 +233,8 @@ inductive SubtypeJudgment : Env -> TyEnv → Ty → Ty → Prop where
   /-- TSUB-PRODUCT: Product subtyping -/
   | TSub_Product {σ : Env} {Γ : TyEnv} {Ts₁ Ts₂ : List Ty} :
       Ts₁.length = Ts₂.length →
-      PairwiseProd (SubtypeJudgment σ Γ) (List.zip Ts₁ Ts₂) →
+      --PairwiseProd (SubtypeJudgment σ Γ) (List.zip Ts₁ Ts₂) →
+      (∀ i, i < Ts₁.length → SubtypeJudgment σ Γ Ts₁[i]? Ts₂[i]?) →
       SubtypeJudgment σ Γ (Ty.prod Ts₁) (Ty.prod Ts₂)
 
 inductive TypeJudgment: Env -> CircuitEnv -> TyEnv -> Expr -> Ty -> Prop where
