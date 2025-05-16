@@ -9,6 +9,26 @@ instance (p : ℕ) [Fact p.Prime] : Fintype (F p) := ZMod.fintype p
 instance (p : ℕ) [Fact p.Prime] : Inhabited (F p) := ⟨0⟩
 instance (p : ℕ) : CommRing (F p) := ZMod.commRing p
 
+/-- Field operators =⊙. -/
+inductive BooleanOp where
+  | and   -- ∧
+  | or   -- ∨
+  deriving DecidableEq, Repr
+
+/-- Field operators =⊕. -/
+inductive IntegerOp where
+  | add   -- +
+  | sub   -- -
+  | mul   -- *
+  deriving DecidableEq, Repr
+
+/-- Field operators =⊗. -/
+inductive FieldOp where
+  | add   -- +
+  | sub   -- -
+  | mul   -- *
+  | div   -- /
+  deriving DecidableEq, Repr
 
 /-- Binary relations =⊘. -/
 inductive RelOp where
@@ -20,31 +40,33 @@ inductive RelOp where
 mutual
   /-- AST of CODA expressions. -/
   inductive Expr where
-    | constF      : ∀ p, F p → Expr         -- field constant
-    | constInt    : Int → Expr               -- integer constant
-    | constBool   : Bool → Expr              -- boolean constant
-    | var         : String → Expr            -- variable x
-    | wildcard    : Expr                     -- ⋆
-    | assertE     : Expr → Expr → Expr       -- assert e₁ = e₂
-    | binRel      : Expr → RelOp → Expr → Expr -- e₁ ⊘ e₂
-    | circRef     : String → List Expr → Expr -- #C e₁ ... eₙ
-    | arrCons     : Expr → Expr → Expr       -- e₁ :: e₂
-    | arrMap      : Expr → Expr → Expr       -- map e₁ e₂
-    | arrLen      : Expr → Expr              -- length e
-    | arrIdx      : Expr → Expr → Expr       -- e₁[e₂]
-    | prodCons    : List Expr → Expr         -- (e₁, ..., eₙ)
+    | constF      : ∀ p, F p → Expr                  -- field constant
+    | constInt    : Int → Expr                       -- integer constant
+    | constBool   : Bool → Expr                      -- boolean constant
+    | var         : String → Expr                    -- variable x
+    | wildcard    : Expr                             -- ⋆
+    | assertE     : Expr → Expr → Expr               -- assert e₁ = e₂
+    | boolExpr    : Expr → BooleanOp → Expr
+    | intExpr     : Expr → IntegerOp → Expr
+    | fieldExpr   : Expr → FieldOp → Expr
+    | binRel      : Expr → RelOp → Expr → Expr       -- e₁ ⊘ e₂
+    | circRef     : String → List Expr → Expr        -- #C e₁ ... eₙ
+    | arrCons     : Expr → Expr → Expr               -- e₁ :: e₂
+    | arrMap      : Expr → Expr → Expr               -- map e₁ e₂
+    | arrLen      : Expr → Expr                      -- length e
+    | arrIdx      : Expr → Expr → Expr               -- e₁[e₂]
+    | prodCons    : List Expr → Expr                 -- (e₁, ..., eₙ)
     | prodMatch   : Expr → List String → Expr → Expr -- match e with (x₁,...,xₙ)→e
-    | prodIdx     : Expr → Nat → Expr        -- e.i
-    | lam         : String → Ty → Expr → Expr -- λx : τ. e
-    | app         : Expr → Expr → Expr       -- e₁ e₂
-    | letIn       : String → Expr → Expr → Expr -- let x = e₁ in e₂
+    | prodIdx     : Expr → Nat → Expr                -- e.i
+    | lam         : String → Ty → Expr → Expr        -- λx : τ. e
+    | app         : Expr → Expr → Expr               -- e₁ e₂
+    | letIn       : String → Expr → Expr → Expr      -- let x = e₁ in e₂
     | iter        : String → -- index binder
                     Expr → -- start s
                     Expr → -- end e
                     Expr → -- step f
                     Expr → -- acc a
                     Expr      -- iteration body result
-    --deriving Repr
 
   /-- Values of CODA. -/
   inductive Value where
@@ -56,16 +78,15 @@ mutual
     | vArr     : List Value → Value
     | vClosure : String → Expr → (String → Value) → Value
 
-
   /-- Basic Types in CODA. -/
   inductive Ty where
-    | field    : ℕ → Ty             -- F p
-    | int      : Ty                 -- Int
-    | bool     : Ty                 -- Bool
-    | prod     : List Ty → Ty       -- T₁ × ... × Tₙ (unit is prod [])
-    | arr      : Ty → Ty            -- [T]
-    | refin    : Value → Ty → Prop → Ty  -- {ν : T | ϕ}
-    | func     : String → Ty → Ty → Ty       -- x: τ₁ → τ₂
+    | field    : ℕ → Ty                   -- F p
+    | int      : Ty                       -- Int
+    | bool     : Ty                       -- Bool
+    | prod     : List Ty → Ty             -- T₁ × ... × Tₙ (unit is prod [])
+    | arr      : Ty → Ty                  -- [T]
+    | refin    : Value → Ty → Prop → Ty   -- {ν : T | ϕ}
+    | func     : String → Ty → Ty → Ty    -- x: τ₁ → τ₂
     --deriving DecidableEq, Repr
 end
 
