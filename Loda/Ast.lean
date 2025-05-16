@@ -270,3 +270,154 @@ inductive TypeJudgment: Env -> CircuitEnv -> TyEnv -> Expr -> Ty -> Prop where
       TypeJudgment σ δ Γ x₂ τ₁ →
       -- result: τ2 with s ↦ x₂
       TypeJudgment σ δ Γ (Expr.app x₁ x₂) τ₂
+
+/-- Compilation values representing partially evaluated expressions. -/
+inductive CompValue where
+  | constF      : ∀ p, F p → CompValue         -- field constant
+  | constInt    : Int → CompValue              -- integer constant
+  | constBool   : Bool → CompValue             -- boolean constant
+  | prodValue   : List CompValue → CompValue   -- (u₁, ..., uₙ)
+  | arrValue    : List CompValue → CompValue   -- array value
+  | closure     : String → Expr → (String → CompValue) → CompValue -- Closure(λx : τ. e, σ)
+  | r1csVar     : Nat → CompValue              -- R1CS variable r
+  | binOp       : CompValue → CompValue → CompValue -- Irreducible expression (u₁ ⊗ u₂)
+  | unit        : CompValue                    -- unit value
+
+/-- Symbolic environment mapping variables to compilation values. -/
+def CompEnv := String → CompValue
+
+/-- Set a variable in the symbolic environment. -/
+def setCompValue (σ: CompEnv) (x: String) (v: CompValue) : CompEnv :=
+  fun y => if y = x then v else σ y
+
+/-- R1CS constraint in the form A * B + C = 0. -/
+structure R1CSConstraint where
+  A : CompValue
+  B : CompValue
+  C : CompValue
+
+/-- Compilation state tracking fresh variables and constraints. -/
+structure CompState where
+  nextVar : Nat                     -- Counter for fresh variables
+  constraints : List R1CSConstraint -- Generated constraints
+
+/-- Empty compilation state. -/
+def emptyState : CompState := { nextVar := 0, constraints := [] }
+
+/-- Generate a fresh R1CS variable. -/
+def freshVar (s: CompState) : (CompState × CompValue) :=
+  let varId := s.nextVar
+  let var := CompValue.r1csVar varId
+  let s' := { s with nextVar := varId + 1 }
+  (s', var)
+
+/-- Add a constraint to the compilation state. -/
+def addConstraint (s: CompState) (c: R1CSConstraint) : CompState :=
+  { s with constraints := c :: s.constraints }
+
+/-- Check if a CompValue is a field constant. -/
+def isField : CompValue → Bool
+  | CompValue.constF _ _ => true
+  | _ => false
+
+/-- Evaluate a binary field operation if both operands are constants. -/
+def evalFieldBinOp (u₁: CompValue) (u₂: CompValue) : Option CompValue :=
+  match u₁, u₂ with
+  | CompValue.constF p v₁, CompValue.constF _ v₂ => some (CompValue.constF p (v₁.val * v₂.val % p))
+  | _, _ => none
+
+/-- Create an equality constraint (u₁ = u₂) as an R1CS constraint. -/
+def mkEqualityConstraint (u₁: CompValue) (u₂: CompValue) : R1CSConstraint :=
+  -- Equality u₁ = u₂ becomes u₁ - u₂ = 0, or 1*u₁ + (-1)*u₂ + 0 = 0
+  {
+    A := CompValue.constInt 1,
+    B := u₁,
+    C := CompValue.binOp (CompValue.constInt (-1)) u₂
+  }
+
+/-- Compile an expression to R1CS constraints and a compilation value. -/
+partial def compile (σ: CompEnv) (s: CompState) (e: Expr) : (CompState × CompValue) :=
+  match e with
+  -- C-VALUE (constants) just return the value with no constraints
+  | Expr.constF p v => (s, CompValue.constF p v)
+  | Expr.constInt i => (s, CompValue.constInt i)
+  | Expr.constBool b => (s, CompValue.constBool b)
+
+  -- C-VAR (variables) lookup in the environment
+  | Expr.var x => (s, σ x)
+
+  -- C-NONDET (wildcard) generates a fresh R1CS variable
+  | Expr.wildcard => freshVar s
+
+  -- C-ASSERT (assert e₁ = e₂) adds an equality constraint
+  | Expr.assertE e₁ e₂ =>
+      let (s₁, u₁) := compile σ s e₁
+      let (s₂, u₂) := compile σ s₁ e₂
+      let constraint := mkEqualityConstraint u₁ u₂
+      let s₃ := addConstraint s₂ constraint
+      (s₃, CompValue.unit)
+
+  -- C-RED and C-IRRED for binary operations
+  | Expr.binRel e₁ _ e₂ =>
+      let (s₁, u₁) := compile σ s e₁
+      let (s₂, u₂) := compile σ s₁ e₂
+
+      -- C-RED: If both operands are field constants, try to reduce
+      if isField u₁ && isField u₂ then
+        match evalFieldBinOp u₁ u₂ with
+        | some result => (s₂, result)
+        | none => (s₂, CompValue.binOp u₁ u₂)
+      -- C-IRRED: Otherwise, create an irreducible expression
+      else
+        (s₂, CompValue.binOp u₁ u₂)
+
+  -- Lambda abstraction
+  | Expr.lam x τ body =>
+      (s, CompValue.closure x body σ)
+
+  -- Function application
+  | Expr.app e₁ e₂ =>
+      let (s₁, u₁) := compile σ s e₁
+      let (s₂, u₂) := compile σ s₁ e₂
+      match u₁ with
+      | CompValue.closure x body σ' =>
+          let σ'' := setCompValue σ' x u₂
+          compile σ'' s₂ body
+      | _ => (s₂, CompValue.unit) -- Error case
+
+  -- Let binding
+  | Expr.letIn x e₁ e₂ =>
+      let (s₁, u₁) := compile σ s e₁
+      let σ' := setCompValue σ x u₁
+      compile σ' s₁ e₂
+
+  -- Product construction
+  | Expr.prodCons es =>
+      let folder := fun (acc : CompState × List CompValue) e =>
+        let (s', vs) := acc
+        let (s'', v) := compile σ s' e
+        (s'', vs ++ [v])
+      let (s', vs) := List.foldl folder (s, []) es
+      (s', CompValue.prodValue vs)
+
+  -- Array construction
+  | Expr.arrCons h t =>
+      let (s₁, u₁) := compile σ s h
+      let (s₂, u₂) := compile σ s₁ t
+      match u₂ with
+      | CompValue.arrValue vs => (s₂, CompValue.arrValue (u₁ :: vs))
+      | _ => (s₂, CompValue.arrValue [u₁]) -- Assume empty array if not an array
+
+  -- Iterator (would need to be unrolled during compilation)
+  | Expr.iter idx start ed step acc =>
+      -- Simplified implementation - in practice, we'd unroll the loop
+      -- during compilation based on concrete values of start and end
+      (s, CompValue.unit)
+
+  -- Circuit reference
+  | Expr.circRef name args =>
+      -- Simplified implementation - would need to handle circuit instantiation
+      (s, CompValue.unit)
+
+  -- Default for other expressions
+  | _ => (s, CompValue.unit)
