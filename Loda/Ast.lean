@@ -208,34 +208,33 @@ inductive SubtypeJudgment : Env -> TyEnv → Option Ty → Option Ty → Prop wh
       SubtypeJudgment σ Γ (pure τ) (pure τ)
   /-- TSUB-TRANS: Transitivity -/
   | TSub_Trans {σ : Env} {Γ : TyEnv} {τ₁ τ₂ τ₃ : Ty} :
-      SubtypeJudgment σ Γ τ₁ τ₂ →
-      SubtypeJudgment σ Γ τ₂ τ₃ →
-      SubtypeJudgment σ Γ τ₁ τ₃
+      SubtypeJudgment σ Γ (pure τ₁) (pure τ₂) →
+      SubtypeJudgment σ Γ (pure τ₂) (pure τ₃) →
+      SubtypeJudgment σ Γ (pure τ₁) (pure τ₃)
   /-- TSUB-REFINE: Refinement subtyping -/
   | TSub_Refine {σ : Env} {Γ : TyEnv} {T₁ T₂ : Ty} {φ₁ φ₂ : Prop} {v: Value} :
-      SubtypeJudgment σ Γ T₁ T₂ →
+      SubtypeJudgment σ Γ (pure T₁) (pure T₂) →
       (φ₁ → φ₂) →
-      SubtypeJudgment σ Γ (Ty.refin v T₁ φ₁) (Ty.refin v T₂ φ₂)
-
+      SubtypeJudgment σ Γ (pure (Ty.refin v T₁ φ₁)) (pure (Ty.refin v T₂ φ₂))
   /-- TSUB-FUN: Function subtyping -/
   | TSub_Fun {σ : Env} {Γ : TyEnv} {x y : String} {z : Value} {τx τy τr τs : Ty} :
-      SubtypeJudgment σ Γ τy τx →
+      SubtypeJudgment σ Γ (pure τy) (pure τx) →
       -- Using a fresh variable z to avoid capture
-      -- let z := "fresh"; -- In real code, generate a truly fresh variable
-      SubtypeJudgment (set (set σ x z) y z) Γ τr τs →
-      SubtypeJudgment σ Γ (Ty.func x τx τr) (Ty.func y τy τs)
+      -- SubtypeJudgment (set (set σ x z) y z) Γ τr τs →
+      SubtypeJudgment σ Γ (pure τr) (pure τs) →
+      SubtypeJudgment σ Γ (pure (Ty.func x τx τr)) (pure (Ty.func y τy τs))
 
   /-- TSUB-ARR: Array subtyping -/
   | TSub_Arr {σ : Env} {Γ : TyEnv} {T₁ T₂ : Ty} :
-      SubtypeJudgment σ Γ T₁ T₂ →
-      SubtypeJudgment σ Γ (Ty.arr T₁) (Ty.arr T₂)
+      SubtypeJudgment σ Γ (pure T₁) (pure T₂) →
+      SubtypeJudgment σ Γ (pure (Ty.arr T₁)) (pure (Ty.arr T₂))
 
   /-- TSUB-PRODUCT: Product subtyping -/
   | TSub_Product {σ : Env} {Γ : TyEnv} {Ts₁ Ts₂ : List Ty} :
       Ts₁.length = Ts₂.length →
       --PairwiseProd (SubtypeJudgment σ Γ) (List.zip Ts₁ Ts₂) →
       (∀ i, i < Ts₁.length → SubtypeJudgment σ Γ Ts₁[i]? Ts₂[i]?) →
-      SubtypeJudgment σ Γ (Ty.prod Ts₁) (Ty.prod Ts₂)
+      SubtypeJudgment σ Γ (pure (Ty.prod Ts₁)) (pure (Ty.prod Ts₂))
 
 inductive TypeJudgment: Env -> CircuitEnv -> TyEnv -> Expr -> Ty -> Prop where
   | T_Var {σ δ Γ x v T φ}:
