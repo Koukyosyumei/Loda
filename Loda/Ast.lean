@@ -320,3 +320,10 @@ example : Ast.evalRelOp Ast.RelOp.lt (Ast.Value.vBool true) (Ast.Value.vBool fal
 -- --------------------------------------------------
 example : Ast.eval σ0 δ0 123 (Ast.Expr.constInt 42) = some (Ast.Value.vInt 42) := by simp [Ast.eval]
 example : Ast.eval σ0 δ0 123 (Ast.Expr.constBool false) = some (Ast.Value.vBool false) := by simp [Ast.eval]
+
+def σ₁ := Ast.set σ0 "y" (Ast.Value.vInt 99)
+example : Ast.eval σ₁ δ0 123 (Ast.Expr.var "y") = some (Ast.Value.vInt 99) := by
+   simp [Ast.eval]
+   simp [σ₁]
+   unfold Ast.set
+   simp_all
