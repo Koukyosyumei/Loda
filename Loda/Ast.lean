@@ -372,8 +372,6 @@ example : Ast.eval σ₁ δ0 123 (Ast.Expr.var "y") = some (Ast.Value.vInt 99) :
    unfold Ast.set
    simp_all
 
-#eval Ast.eval σ0 δ0 123 (Ast.Expr.letIn "z" (Ast.Expr.constInt 7) (Ast.Expr.intExpr (Ast.Expr.var "z") Ast.IntegerOp.mul (Ast.Expr.constInt 3)))
-
 example :
   Ast.eval σ0 δ0 123 (Ast.Expr.letIn "z" (Ast.Expr.constInt 7) (Ast.Expr.intExpr (Ast.Expr.var "z") Ast.IntegerOp.mul (Ast.Expr.constInt 3)))
   = some (Ast.Value.vInt 21) := by
