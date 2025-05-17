@@ -3,15 +3,15 @@ import Loda.Typing
 
 /-- Compilation values representing partially evaluated expressions. -/
 inductive CompValue where
-  | constF      : ∀ p, F p → CompValue         -- field constant
-  | constInt    : Int → CompValue              -- integer constant
-  | constBool   : Bool → CompValue             -- boolean constant
-  | prodValue   : List CompValue → CompValue   -- (u₁, ..., uₙ)
-  | arrValue    : List CompValue → CompValue   -- array value
+  | constF      : ∀ p, F p → CompValue                             -- field constant
+  | constInt    : Int → CompValue                                  -- integer constant
+  | constBool   : Bool → CompValue                                 -- boolean constant
+  | prodValue   : List CompValue → CompValue                       -- (u₁, ..., uₙ)
+  | arrValue    : List CompValue → CompValue                       -- array value
   | closure     : String → Expr → (String → CompValue) → CompValue -- Closure(λx : τ. e, σ)
-  | r1csVar     : Nat → CompValue              -- R1CS variable r
-  | binOp       : CompValue → CompValue → CompValue -- Irreducible expression (u₁ ⊗ u₂)
-  | unit        : CompValue                    -- unit value
+  | r1csVar     : Nat → CompValue                                  -- R1CS variable r
+  | binOp       : CompValue → CompValue → CompValue                -- Irreducible expression (u₁ ⊗ u₂)
+  | unit        : CompValue                                        -- unit value
 
 /-- Symbolic environment mapping variables to compilation values. -/
 def CompEnv := String → CompValue
