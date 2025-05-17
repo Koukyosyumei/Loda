@@ -151,7 +151,7 @@ def evalFieldOp : FieldOp → Value → Value → Option Value
       none
   | FieldOp.div,  Value.vF p₁ x, Value.vF p₂ y =>
     if h : p₁ = p₂ then
-      some (Value.vF p₁ (x * ((Eq.mp (by rw [h]) y) ^ (p₁ - 2))))
+      some (Value.vF p₁ (x * ((Eq.mp (by rw [h]) y.inv))))
     else
       none
   | _,         _,            _            => none
