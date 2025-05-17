@@ -2,6 +2,7 @@ import Loda.Ast
 import Loda.Typing
 
 open Ast
+
 -- dummy environments
 def σ0 : Env := fun _ => Value.vBool true
 def Γ0 : TyEnv := fun _ => (Ty.refin (Value.vBool true) Ty.bool (True))

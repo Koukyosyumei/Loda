@@ -77,7 +77,7 @@ example :
 -- --------------------------------------------------
 -- let f i = λacc, acc + i
 def sumIter : Ast.Expr :=
-  Ast.Expr.iter "i"
+  Ast.Expr.iter
     (Ast.Expr.constInt 0)  -- start
     (Ast.Expr.constInt 4)  -- end (exclusive)
     -- f = λi. λacc. acc + i

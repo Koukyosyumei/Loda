@@ -60,8 +60,7 @@ mutual
     | lam         : String → Ty → Expr → Expr        -- λx : τ. e
     | app         : Expr → Expr → Expr               -- e₁ e₂
     | letIn       : String → Expr → Expr → Expr      -- let x = e₁ in e₂
-    | iter        : String → -- index binder
-                    Expr → -- start s
+    | iter        : Expr → -- start s
                     Expr → -- end e
                     Expr → -- step f
                     Expr → -- acc a
@@ -275,7 +274,7 @@ def eval (σ : Env) (δ : CircuitEnv) (ctr: ℕ) : Expr → Option (Value)
         none
 
   -- E-ITER
-  | Expr.iter _ sExpr eExpr fExpr accExpr => do
+  | Expr.iter sExpr eExpr fExpr accExpr => do
       if ctr > 0 then
         let sVal ← eval σ δ (ctr - 1) sExpr
         let eVal ← eval σ δ (ctr - 1) eExpr

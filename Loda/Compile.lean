@@ -124,7 +124,7 @@ unsafe def compile (σ: CompEnv) (δ: Ast.CircuitEnv) (s: CompState) (e: Ast.Exp
         (s₂, CompValue.binOp u₁ u₂)
 
   -- Lambda abstraction
-  | Ast.Expr.lam x τ body =>
+  | Ast.Expr.lam x _ body =>
       (s, CompValue.closure x body σ)
 
   -- Function application
@@ -161,7 +161,7 @@ unsafe def compile (σ: CompEnv) (δ: Ast.CircuitEnv) (s: CompState) (e: Ast.Exp
       | _ => (s₂, CompValue.arrValue [u₁]) -- Assume empty array if not an array
 
   -- Iterator (would need to be unrolled during compilation)
-  | Ast.Expr.iter idx start ed step acc =>
+  | Ast.Expr.iter start ed step acc =>
       -- Compile start and end expressions
       let (s₁, startVal) := compile σ δ s start
       let (s₂, endVal) := compile σ δ s₁ ed
