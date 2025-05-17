@@ -13,10 +13,10 @@ inductive CompValue where
   | binOp       : CompValue → CompValue → CompValue                -- Irreducible expression (u₁ ⊗ u₂)
   | unit        : CompValue                                        -- unit value
 
-/-- Symbolic environment mapping variables to compilation values. -/
+/-- Valuation environment mapping variables to compilation values. -/
 def CompEnv := String → CompValue
 
-/-- Set a variable in the symbolic environment. -/
+/-- Set a variable in the valudation environment. -/
 def setCompValue (σ: CompEnv) (x: String) (v: CompValue) : CompEnv :=
   fun y => if y = x then v else σ y
 
@@ -52,10 +52,12 @@ def isField : CompValue → Bool
   | _ => false
 
 /-- Evaluate a binary field operation if both operands are constants. -/
-def evalFieldBinOp (u₁: CompValue) (u₂: CompValue) : Option CompValue :=
-  match u₁, u₂ with
-  | CompValue.constF p v₁, CompValue.constF _ v₂ => some (CompValue.constF p (v₁.val * v₂.val % p))
-  | _, _ => none
+def evalFieldBinOp (u₁: CompValue) (op: FieldOp) (u₂: CompValue) : Option CompValue :=
+  match u₁, op, u₂ with
+  | CompValue.constF p v₁, FieldOp.add, CompValue.constF _ v₂ => some (CompValue.constF p ((v₁.val + v₂.val) % p))
+  | CompValue.constF p v₁, FieldOp.sub, CompValue.constF _ v₂ => some (CompValue.constF p ((v₁.val - v₂.val) % p))
+  | CompValue.constF p v₁, FieldOp.mul, CompValue.constF _ v₂ => some (CompValue.constF p ((v₁.val * v₂.val) % p))
+  | _, _, _ => none
 
 /-- Create an equality constraint (u₁ = u₂) as an R1CS constraint. -/
 def mkEqualityConstraint (u₁: CompValue) (u₂: CompValue) : R1CSConstraint :=
