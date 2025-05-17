@@ -8,6 +8,8 @@ instance (p : ℕ) [Fact p.Prime]: Field (F p) := ZMod.instField p
 instance (p : ℕ) [Fact p.Prime] : Fintype (F p) := ZMod.fintype p
 instance (p : ℕ) [Fact p.Prime] : Inhabited (F p) := ⟨0⟩
 instance (p : ℕ) : CommRing (F p) := ZMod.commRing p
+instance (p : ℕ) [Fact p.Prime] : Repr (F p) where
+  reprPrec x _ := "F" ++ toString p ++ ".mk " ++ toString x.val
 
 namespace Ast
 
@@ -93,6 +95,18 @@ mutual
     --deriving DecidableEq, Repr
 end
 
+
+open Std (Format)
+instance : Repr Value where
+  reprPrec
+    | Value.vF p x, _ => Format.text s!"F{p}.mk {x.val}"
+    | Value.vStar, _    => Format.text "*"
+    | Value.vInt i, _   => Format.text (toString i)
+    | Value.vBool b, _  => Format.text (toString b)
+    | Value.vProd vs, _ => Format.text "Prod"
+    | Value.vArr vs, _  => Format.text "Arr"
+    | Value.vClosure name _ _, _ => Format.text s!"<closure {name}>"
+
 /-- Circuit Declaration. -/
 structure Circuit where
   name    : String
@@ -131,32 +145,41 @@ def evalRelOp : RelOp → Value → Value → Option Bool
   | _,         _,            _            => none
 
 /-- Evaluate an expression in a given environment. -/
-partial def eval (σ : Env) (δ : CircuitEnv) : Expr → Option (Value)
+@[simp]
+def eval (σ : Env) (δ : CircuitEnv) (ctr: ℕ) : Expr → Option (Value)
   -- E-VALUE
-  | Expr.constF _ v      => pure (Value.vF _ v)
+  | Expr.constF p v      => pure (Value.vF p v)
   | Expr.constInt i      => pure (Value.vInt i)
   | Expr.constBool b     => pure (Value.vBool b)
 
   -- E-VAR
   | Expr.var x           => pure (σ x)
+
   | Expr.letIn x e₁ e₂   => do
-    let v₁ ← eval σ δ e₁
-    let σ' := set σ x v₁
-    eval σ' δ e₂
+    if ctr > 0 then
+      let v₁ ← eval σ δ (ctr -1) e₁
+      let σ' := set σ x v₁
+      eval σ' δ (ctr -1) e₂
+    else
+      none
 
   -- E-LAM
   | Expr.lam x _ e       => pure (Value.vClosure x e σ)
 
   -- E-APP
   | Expr.app f e         => do
-      let vf ← eval σ δ f
-      let va ← eval σ δ e
-      match vf with
-      | Value.vClosure x body σ' =>
-        let σ'' := set σ' x va
-        eval σ'' δ body
-      | _ => none
+      if ctr > 0 then
+        let vf ← eval σ δ (ctr -1) f
+        let va ← eval σ δ (ctr -1) e
+        match vf with
+        | Value.vClosure x body σ' =>
+          let σ'' := set σ' x va
+          eval σ'' δ (ctr -1) body
+        | _ => none
+      else
+        none
 
+  /-
   -- E-FBINOP
   | Expr.binRel e₁ op e₂ => do
       let v₁ ← eval σ δ e₁
@@ -191,7 +214,9 @@ partial def eval (σ : Env) (δ : CircuitEnv) : Expr → Option (Value)
       match va, vi with
       | Value.vArr vs, Value.vInt j => vs[j.toNat]?
       | _, _                        => none
+  -/
 
+  /-
   -- E-ITER
   | Expr.iter _ sExpr eExpr fExpr accExpr => do
       let sVal ← eval σ δ sExpr
@@ -217,13 +242,54 @@ partial def eval (σ : Env) (δ : CircuitEnv) : Expr → Option (Value)
             | _ => none
           loop s aVal
       | _, _ => none
+  -/
 
+  /-
   -- E-CREF
   | Expr.circRef name args => do
       let vs ← args.mapM (eval σ δ )
       let c := δ name
       let σ' := (c.inputs.zip vs).foldl (fun env (⟨x,_⟩,v) => set env x v) σ
       eval σ' δ c.body
-  | _ => none
+  -/
 
+  | _ => none
+  termination_by ctr
 end Ast
+
+
+-- tests
+
+def σ0 : Ast.Env := fun _ => Ast.Value.vStar
+
+-- A helper circuit env with a single identity circuit
+def δ0 : Ast.CircuitEnv :=
+  fun _ => { name := "idInt", inputs := [("x", Ast.Ty.int)], output := Ast.Ty.int,
+                 body := Ast.Expr.var "x" }
+-- --------------------------------------------------
+-- beq tests
+-- --------------------------------------------------
+example : Ast.beq (Ast.Value.vInt 3) (Ast.Value.vInt 3) = true := rfl
+example : Ast.beq (Ast.Value.vInt 3) (Ast.Value.vInt 4) = false := rfl
+example : Ast.beq (Ast.Value.vStar) (Ast.Value.vF 7 5) = true := rfl
+example : Ast.beq (Ast.Value.vF 7 4) (Ast.Value.vStar) = true := rfl
+example : Ast.beq (Ast.Value.vBool true) (Ast.Value.vBool false) = false := rfl
+
+-- --------------------------------------------------
+-- evalRelOp tests
+-- --------------------------------------------------
+example : Ast.evalRelOp Ast.RelOp.eq (Ast.Value.vInt 2) (Ast.Value.vInt 2) = some true := rfl
+example : Ast.evalRelOp Ast.RelOp.lt (Ast.Value.vInt 2) (Ast.Value.vInt 5) = some true := rfl
+example : Ast.evalRelOp Ast.RelOp.le (Ast.Value.vInt 5) (Ast.Value.vInt 5) = some true := rfl
+example : Ast.evalRelOp Ast.RelOp.lt (Ast.Value.vBool true) (Ast.Value.vBool false) = none := rfl
+
+#print Ast.eval
+#check Ast.eval
+
+#eval Ast.eval σ0 δ0 123 (Ast.Expr.constInt 42)
+
+-- --------------------------------------------------
+-- eval on basic constants & var/let
+-- --------------------------------------------------
+example : Ast.eval σ0 δ0 123 (Ast.Expr.constInt 42) = some (Ast.Value.vInt 42) := by simp [Ast.eval]
+example : Ast.eval σ0 δ0 123 (Ast.Expr.constBool false) = some (Ast.Value.vBool false) := by simp [Ast.eval]
