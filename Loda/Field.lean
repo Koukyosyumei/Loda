@@ -38,9 +38,9 @@ instance : One (F p) where
   one := one
 
 /-- Addition in `Fp p`. -/
-def add (a b : F p) : F p := (a.val + b.val) % p
+def mod_add (a b : F p) : F p := (a.val + b.val) % p
 instance : Add (F p) where
-  add := add
+  add := mod_add
 
 /-- Negation in `Fp p`. -/
 def neg (a : F p) : F p := (p - a.val) % p
@@ -48,9 +48,10 @@ instance : Neg (F p) where
   neg := neg
 
 /-- Multiplication in `Fp p`. -/
-def mul (a b : F p) : F p := (a.val * b.val) % p
+@[simp]
+def mod_mul (a b : F p) : F p := (a.val * b.val) % p
 instance : Mul (F p) where
-  mul := mul
+  mul := mod_mul
 
 /-- Exponentiation by natural number in `Fp p`. -/
 instance : Pow (F p) ℕ where

@@ -1,15 +1,7 @@
 import Mathlib.Algebra.Field.ZMod
 import Mathlib.Algebra.Field.Basic
 import Mathlib.Data.ZMod.Basic
-
--- main field definition
-def F p := ZMod p
-instance (p : ℕ) [Fact p.Prime]: Field (F p) := ZMod.instField p
-instance (p : ℕ) [Fact p.Prime] : Fintype (F p) := ZMod.fintype p
-instance (p : ℕ) [Fact p.Prime] : Inhabited (F p) := ⟨0⟩
-instance (p : ℕ) : CommRing (F p) := ZMod.commRing p
-instance (p : ℕ) [Fact p.Prime] : Repr (F p) where
-  reprPrec x _ := "F" ++ toString p ++ ".mk " ++ toString x.val
+import Loda.Field
 
 namespace Ast
 
@@ -155,6 +147,11 @@ def evalFieldOp : FieldOp → Value → Value → Option Value
   | FieldOp.mul,  Value.vF p₁ x, Value.vF p₂ y =>
     if h : p₁ = p₂ then
       some (Value.vF p₁ (x * (Eq.mp (by rw [h]) y)))
+    else
+      none
+  | FieldOp.div,  Value.vF p₁ x, Value.vF p₂ y =>
+    if h : p₁ = p₂ then
+      some (Value.vF p₁ (x * ((Eq.mp (by rw [h]) y) ^ (p₁ - 2))))
     else
       none
   | _,         _,            _            => none
@@ -380,10 +377,4 @@ example :
     unfold Ast.set
     simp_all
 
-example :
-  Ast.eval σ0 δ0 123 (Ast.Expr.letIn "z" (Ast.Expr.constF 5 7) (Ast.Expr.fieldExpr (Ast.Expr.var "z") Ast.FieldOp.mul (Ast.Expr.constF 5 3)))
-  = some (Ast.Value.vF 5 1) := by
-    simp [Ast.eval]
-    simp [Ast.evalFieldOp]
-    unfold Ast.set
-    simp_all
+#eval Ast.eval σ0 δ0 123 (Ast.Expr.letIn "z" (Ast.Expr.constF 5 7) (Ast.Expr.fieldExpr (Ast.Expr.var "z") Ast.FieldOp.mul (Ast.Expr.constF 5 3)))
