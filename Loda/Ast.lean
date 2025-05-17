@@ -13,6 +13,9 @@ instance (p : ℕ) [Fact p.Prime] : Repr (F p) where
 
 namespace Ast
 
+variable {p : ℕ} [Fact p.Prime]
+
+
 /-- Field operators =⊙. -/
 inductive BooleanOp where
   | and   -- ∧
@@ -138,6 +141,31 @@ def set (σ: Env) (x : String) (v: Value) : Env :=
 def CircuitEnv := String -> Circuit
 
 /-- Evaluate a binary relation. -/
+def evalFieldOp : FieldOp → Value → Value → Option Value
+  | FieldOp.add,  Value.vF p₁ x, Value.vF p₂ y =>
+    if h : p₁ = p₂ then
+      some (Value.vF p₁ (x + (Eq.mp (by rw [h]) y)))
+    else
+      none
+  | FieldOp.sub,  Value.vF p₁ x, Value.vF p₂ y =>
+    if h : p₁ = p₂ then
+      some (Value.vF p₁ (x - (Eq.mp (by rw [h]) y)))
+    else
+      none
+  | FieldOp.mul,  Value.vF p₁ x, Value.vF p₂ y =>
+    if h : p₁ = p₂ then
+      some (Value.vF p₁ (x * (Eq.mp (by rw [h]) y)))
+    else
+      none
+  | _,         _,            _            => none
+
+def evalIntegerOp: IntegerOp → Value → Value → Option Value
+  | IntegerOp.add, Value.vInt x, Value.vInt y => some (Value.vInt (x + y))
+  | IntegerOp.sub, Value.vInt x, Value.vInt y => some (Value.vInt (x - y))
+  | IntegerOp.mul, Value.vInt x, Value.vInt y => some (Value.vInt (x * y))
+  | _, _, _ => none
+
+/-- Evaluate a binary relation. -/
 def evalRelOp : RelOp → Value → Value → Option Bool
   | RelOp.eq,  Value.vInt i, Value.vInt j => pure (i = j)
   | RelOp.lt,  Value.vInt i, Value.vInt j => pure (i < j)
@@ -180,6 +208,22 @@ def eval (σ : Env) (δ : CircuitEnv) (ctr: ℕ) : Expr → Option (Value)
         none
 
   -- E-FBINOP
+  | Expr.fieldExpr e₁ op e₂ => do
+      if ctr > 0 then
+        let v₁ ← eval σ δ (ctr - 1) e₁
+        let v₂ ← eval σ δ (ctr - 1) e₂
+        evalFieldOp op v₁ v₂
+      else
+        none
+
+  | Expr.intExpr e₁ op e₂ => do
+      if ctr > 0 then
+        let v₁ ← eval σ δ (ctr - 1) e₁
+        let v₂ ← eval σ δ (ctr - 1) e₂
+        evalIntegerOp op v₁ v₂
+      else
+        none
+
   | Expr.binRel e₁ op e₂ => do
       if ctr > 0 then
         let v₁ ← eval σ δ (ctr - 1) e₁
@@ -327,3 +371,13 @@ example : Ast.eval σ₁ δ0 123 (Ast.Expr.var "y") = some (Ast.Value.vInt 99) :
    simp [σ₁]
    unfold Ast.set
    simp_all
+
+#eval Ast.eval σ0 δ0 123 (Ast.Expr.letIn "z" (Ast.Expr.constInt 7) (Ast.Expr.intExpr (Ast.Expr.var "z") Ast.IntegerOp.mul (Ast.Expr.constInt 3)))
+
+example :
+  Ast.eval σ0 δ0 123 (Ast.Expr.letIn "z" (Ast.Expr.constInt 7) (Ast.Expr.intExpr (Ast.Expr.var "z") Ast.IntegerOp.mul (Ast.Expr.constInt 3)))
+  = some (Ast.Value.vInt 21) := by
+    simp [Ast.eval]
+    simp [Ast.evalIntegerOp]
+    unfold Ast.set
+    simp_all
