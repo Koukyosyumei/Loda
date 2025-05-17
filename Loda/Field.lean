@@ -3,6 +3,7 @@ import Mathlib.Algebra.Field.Basic
 import Mathlib.Data.ZMod.Basic
 import Mathlib.Data.Nat.Prime.Basic  -- for `Nat.Prime`
 import Init.Prelude
+import Mathlib.Tactic.NormNum.Core
 
 /-!
 # Finite field Fp implementation in Lean4
@@ -13,7 +14,7 @@ and exponentiation.
 -/
 
 /-- `Fp p` is the prime field of order `p`, assuming `p` is prime. -/
-def F p := ZMod p
+abbrev F p := ZMod p
 instance (p : ℕ) [Fact p.Prime]: Field (F p) := ZMod.instField p
 instance (p : ℕ) [Fact p.Prime] : Fintype (F p) := ZMod.fintype p
 instance (p : ℕ) [Fact p.Prime] : Inhabited (F p) := ⟨0⟩
@@ -52,6 +53,10 @@ instance : Neg (F p) where
 def mod_mul (a b : F p) : F p := (a.val * b.val) % p
 instance : Mul (F p) where
   mul := mod_mul
+instance : HMul (F p) (F p) (F p) where
+  hMul := fun a b => mod_mul a b
+
+@[simp] lemma mod_mul_eq_mul (a b : F p) : mod_mul a b = a * b := rfl
 
 /-- Exponentiation by natural number in `Fp p`. -/
 instance : Pow (F p) ℕ where
