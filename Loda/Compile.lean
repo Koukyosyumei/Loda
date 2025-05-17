@@ -89,7 +89,7 @@ def mkConnectionConstraint (input: CompValue) (output: CompValue) : R1CSConstrai
   }
 
 /-- Compile an expression to R1CS constraints and a compilation value. -/
-unsafe def compile (σ: CompEnv) (s: CompState) (e: Expr) : (CompState × CompValue) :=
+unsafe def compile (σ: CompEnv) (δ: CircuitEnv) (s: CompState) (e: Expr) : (CompState × CompValue) :=
   match e with
   -- C-VALUE (constants) just return the value with no constraints
   | Expr.constF p v => (s, CompValue.constF p v)
@@ -104,16 +104,16 @@ unsafe def compile (σ: CompEnv) (s: CompState) (e: Expr) : (CompState × CompVa
 
   -- C-ASSERT (assert e₁ = e₂) adds an equality constraint
   | Expr.assertE e₁ e₂ =>
-      let (s₁, u₁) := compile σ s e₁
-      let (s₂, u₂) := compile σ s₁ e₂
+      let (s₁, u₁) := compile σ δ s e₁
+      let (s₂, u₂) := compile σ δ s₁ e₂
       let constraint := mkEqualityConstraint u₁ u₂
       let s₃ := addConstraint s₂ constraint
       (s₃, CompValue.unit)
 
   -- C-RED and C-IRRED for field operations
   | Expr.fieldExpr e₁ op e₂ =>
-      let (s₁, u₁) := compile σ s e₁
-      let (s₂, u₂) := compile σ s₁ e₂
+      let (s₁, u₁) := compile σ δ s e₁
+      let (s₂, u₂) := compile σ δ s₁ e₂
       -- C-RED: If both operands are field constants, try to reduce
       if isField u₁ && isField u₂ then
         match evalFieldBinOp u₁ op u₂ with
@@ -129,33 +129,33 @@ unsafe def compile (σ: CompEnv) (s: CompState) (e: Expr) : (CompState × CompVa
 
   -- Function application
   | Expr.app e₁ e₂ =>
-      let (s₁, u₁) := compile σ s e₁
-      let (s₂, u₂) := compile σ s₁ e₂
+      let (s₁, u₁) := compile σ δ s e₁
+      let (s₂, u₂) := compile σ δ s₁ e₂
       match u₁ with
       | CompValue.closure x body σ' =>
           let σ'' := setCompValue σ' x u₂
-          compile σ'' s₂ body
+          compile σ'' δ s₂ body
       | _ => (s₂, CompValue.unit) -- Error case
 
   -- Let binding
   | Expr.letIn x e₁ e₂ =>
-      let (s₁, u₁) := compile σ s e₁
+      let (s₁, u₁) := compile σ δ s e₁
       let σ' := setCompValue σ x u₁
-      compile σ' s₁ e₂
+      compile σ' δ s₁ e₂
 
   -- Product construction
   | Expr.prodCons es =>
       let folder := fun (acc : CompState × List CompValue) e =>
         let (s', vs) := acc
-        let (s'', v) := compile σ s' e
+        let (s'', v) := compile σ δ s' e
         (s'', vs ++ [v])
       let (s', vs) := List.foldl folder (s, []) es
       (s', CompValue.prodValue vs)
 
   -- Array construction
   | Expr.arrCons h t =>
-      let (s₁, u₁) := compile σ s h
-      let (s₂, u₂) := compile σ s₁ t
+      let (s₁, u₁) := compile σ δ s h
+      let (s₂, u₂) := compile σ δ s₁ t
       match u₂ with
       | CompValue.arrValue vs => (s₂, CompValue.arrValue (u₁ :: vs))
       | _ => (s₂, CompValue.arrValue [u₁]) -- Assume empty array if not an array
@@ -163,27 +163,27 @@ unsafe def compile (σ: CompEnv) (s: CompState) (e: Expr) : (CompState × CompVa
   -- Iterator (would need to be unrolled during compilation)
   | Expr.iter idx start ed step acc =>
       -- Compile start and end expressions
-      let (s₁, startVal) := compile σ s start
-      let (s₂, endVal) := compile σ s₁ ed
+      let (s₁, startVal) := compile σ δ s start
+      let (s₂, endVal) := compile σ δ s₁ ed
 
       -- Extract concrete integer values (needed for unrolling)
       match startVal, endVal with
       | CompValue.constInt startInt, CompValue.constInt endInt =>
           -- Initialize result with accumulator value
-          let (s₃, accVal) := compile σ s₂ acc
+          let (s₃, accVal) := compile σ δ s₂ acc
 
           -- Recursively unroll the loop from startInt to endInt-1
           let rec unroll (i: Int) (state: CompState) (accValue: CompValue) : (CompState × CompValue) :=
               if i >= endInt then
                   (state, accValue)  -- Base case: return final accumulator
               else
-                  let (state', stepVal) := compile σ state step
+                  let (state', stepVal) := compile σ δ state step
                   -- Compile step function application to current index and accumulator
                   match stepVal with
                   | CompValue.closure idx_var body σ' =>
                       -- Bind index variable to current value i
                       let σ_idx := setCompValue σ' idx_var (CompValue.constInt i)
-                      let (state'', stepFn) := compile σ_idx state body
+                      let (state'', stepFn) := compile σ_idx δ state body
 
                       -- Evaluate to get function from accumulator to next value
                       match stepFn with
@@ -191,13 +191,13 @@ unsafe def compile (σ: CompEnv) (s: CompState) (e: Expr) : (CompState × CompVa
                             -- Bind accumulator variable
                             let σ_acc := setCompValue σ'' acc_var accValue
                             -- Compute next accumulator value
-                            let (state''', newAccVal) := compile σ_acc state'' innerBody
+                            let (state''', newAccVal) := compile σ_acc δ state'' innerBody
                             -- Continue unrolling with updated accumulator
                             unroll (i+1) state''' newAccVal
                         | _ => (state'', CompValue.unit) -- Error: not a function
                   | _ =>
                       -- Directly apply step to index and accumulator if not a closure
-                      let (state', fnVal) := compile σ state step
+                      let (state', fnVal) := compile σ δ state step
                       let idxVal := CompValue.constInt i
                       -- Create application constraints
                       let (state'', appVal) :=
@@ -229,52 +229,39 @@ unsafe def compile (σ: CompEnv) (s: CompState) (e: Expr) : (CompState × CompVa
       -- Compile all arguments
       let compileArgs := fun (acc : CompState × List CompValue) arg =>
           let (state, values) := acc
-          let (state', value) := compile σ state arg
+          let (state', value) := compile σ δ state arg
           (state', values ++ [value])
-
       let (s', argVals) := List.foldl compileArgs (s, []) args
 
       -- 1. Look up the circuit from a global environment
-      match δ name with  -- δ is the CircuitEnv passed to the compile function
-      | some circuit =>
-          -- 2. Create fresh variables for circuit inputs
-          let genInputVars := fun (acc : CompState × List (String × CompValue)) (input : String × Ty) =>
-              let (state, vars) := acc
-              let (state', v) := freshVar state
-              (state', vars ++ [(input.fst, v)])
+      let circuit := δ name
 
-          let (stateWithInputs, inputVars) := List.foldl genInputVars (s', []) circuit.inputs
+      -- 2. Create fresh variables for circuit inputs
+      let genInputVars := fun (acc : CompState × List (String × CompValue)) (input : String × Ty) =>
+          let (state, vars) := acc
+          let (state', v) := freshVar state
+          (state', vars ++ [(input.fst, v)])
+      let (stateWithInputs, inputVars) := List.foldl genInputVars (s', []) circuit.inputs
 
-          -- 3. Create symbolic environment mapping input names to fresh variables
-          let σCircuit := List.foldl (fun env (x, v) => setSymbolic env x v) emptySymbolicEnv inputVars
+      -- 3. Create symbolic environment mapping input names to fresh variables
+      let σCircuit := List.foldl (fun env (x, v) => setCompValue env x v) σ inputVars
+      -- Add constraints binding argument values to input variables
+      let addInputConstraints := fun (state : CompState) (idx : Nat) =>
+          match inputVars[idx]?, argVals[idx]? with
+          | some (inputName, inputVar), some argVal => addConstraint state (mkEqualityConstraint inputVar argVal)
+          | _, _ => state
+      let stateWithBindings := List.range (min inputVars.length argVals.length)
+                              |>.foldl addInputConstraints stateWithInputs
 
-          -- Add constraints binding argument values to input variables
-          let addInputConstraints := fun (state : CompState) (idx : Nat) =>
-              if idx < inputVars.length && idx < argVals.length then
-                let (inputName, inputVar) := inputVars[idx]
-                let argVal := argVals[idx]
-                let constraint := mkEqualityConstraint inputVar argVal
-                addConstraint state constraint
-              else
-                state
+      -- 4. Compile the circuit body with the new symbolic environment
+      let (stateWithBody, bodyValue) := compile σCircuit δ stateWithBindings circuit.body
 
-          let stateWithBindings := List.range (min inputVars.length argVals.length)
-                                  |>.foldl addInputConstraints stateWithInputs
+      -- 5. Create fresh variable for the circuit output and bind the body result to it
+      let (stateWithOutput, outputVar) := freshVar stateWithBody
+      let outputConstraint := mkEqualityConstraint outputVar bodyValue
+      let finalState := addConstraint stateWithOutput outputConstraint
 
-          -- 4. Compile the circuit body with the new symbolic environment
-          let (stateWithBody, bodyValue) := compile σCircuit δ circuit.body
-
-          -- 5. Create fresh variable for the circuit output and bind the body result to it
-          let (stateWithOutput, outputVar) := freshVar stateWithBody
-          let outputConstraint := mkEqualityConstraint outputVar bodyValue
-          let finalState := addConstraint stateWithOutput outputConstraint
-
-          (finalState, outputVar)
-
-      | none =>
-          -- If circuit is not found, create a fresh variable for the output (error case)
-          let (s'', outputVar) := freshVar s'
-          (s'', outputVar)
+      (finalState, outputVar)
 
   -- Default for other expressions
   | _ => (s, CompValue.unit)
