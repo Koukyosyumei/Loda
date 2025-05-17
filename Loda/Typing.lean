@@ -40,24 +40,25 @@ inductive SubtypeJudgment : Env -> TyEnv → Option Ty → Option Ty → Prop wh
       SubtypeJudgment σ Γ (pure (Ty.prod Ts₁)) (pure (Ty.prod Ts₂))
 
 inductive TypeJudgment: Env -> CircuitEnv -> TyEnv -> Expr -> Ty -> Prop where
-  | T_Var {σ δ Γ x v T φ}:
+  -- TE-VAR
+  | TE_Var {σ: Env} {δ: CircuitEnv} {Γ: TyEnv} {x : String} {v: Value} {T: Ty} {φ: Prop}:
       Γ x = (Ty.refin v T φ) →
     TypeJudgment σ δ Γ (Expr.var x) (Ty.refin v T (v = eval σ δ (Expr.var x)))
-
-  | T_VarFunc {σ δ Γ f x τ₁ τ₂}:
+  -- TE-VAR-FUNC
+  | T_VarFunc {σ: Env} {δ: CircuitEnv} {Γ: TyEnv} {f x : String} {τ₁ τ₂: Ty}:
       Γ f = (Ty.func x τ₁ τ₂) →
       TypeJudgment σ δ Γ (Expr.var f) (Ty.func x τ₁ τ₂)
-
-  | T_Nondet {σ δ Γ p v} :
+  -- TE-NONDET
+  | T_Nondet {σ: Env} {δ: CircuitEnv} {Γ: TyEnv} {p: ℕ} {v: Value}:
     TypeJudgment σ δ Γ Expr.wildcard (Ty.refin v (Ty.field p) True)
-
-  | T_ConstF {σ δ Γ p f} :
-    TypeJudgment σ δ Γ (Expr.constF p f) (Ty.field p)
-
-  | T_Assert {σ δ Γ e1 e2 p v} :
-    TypeJudgment σ δ Γ e1 (Ty.field p) →
-    TypeJudgment σ δ Γ e2 (Ty.field p) →
-    TypeJudgment σ δ Γ (Expr.assertE e1 e2) (Ty.refin v (Ty.field p) (eval σ δ e1 = eval σ δ e2))
+  -- TE-CONSTF
+  | T_ConstF {σ: Env} {δ: CircuitEnv} {Γ: TyEnv} {p: ℕ} {v: Value} {f: F p} :
+    TypeJudgment σ δ Γ (Expr.constF p f) (Ty.refin v (Ty.field p) (v = Value.vF p f))
+  -- TE-ASSERT
+  | T_Assert {σ: Env} {δ: CircuitEnv} {Γ: TyEnv} {e₁ e₂: Expr} {p: ℕ} {v: Value} :
+    TypeJudgment σ δ Γ e₁ (Ty.field p) →
+    TypeJudgment σ δ Γ e₂ (Ty.field p) →
+    TypeJudgment σ δ Γ (Expr.assertE e₁ e₂) (Ty.refin v Ty.unit (eval σ δ e₁ = eval σ δ e₂))
 
   | T_BinOpField {σ δ Γ e1 e2 p v} :
     TypeJudgment σ δ Γ e1 (Ty.field p) →

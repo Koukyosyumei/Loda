@@ -80,6 +80,7 @@ mutual
 
   /-- Basic Types in CODA. -/
   inductive Ty where
+    | unit     : Ty
     | field    : ℕ → Ty                   -- F p
     | int      : Ty                       -- Int
     | bool     : Ty                       -- Bool
