@@ -39,40 +39,37 @@ inductive SubtypeJudgment : Env -> TyEnv → Option Ty → Option Ty → Prop wh
       (∀ i, i < Ts₁.length → SubtypeJudgment σ Γ Ts₁[i]? Ts₂[i]?) →
       SubtypeJudgment σ Γ (pure (Ty.prod Ts₁)) (pure (Ty.prod Ts₂))
 
-inductive TypeJudgment: Env -> CircuitEnv -> TyEnv -> Expr -> Ty -> Prop where
+inductive TypeJudgment: Env -> CircuitEnv -> TyEnv -> Expr -> (Ty × Env) -> Prop where
   -- TE-VAR
   | TE_Var {σ: Env} {δ: CircuitEnv} {Γ: TyEnv} {x : String} {v: Value} {T: Ty} {φ: Prop}:
       Γ x = (Ty.refin v T φ) →
-    TypeJudgment σ δ Γ (Expr.var x) (Ty.refin v T (v = eval σ δ (Expr.var x)))
+    TypeJudgment σ δ Γ (Expr.var x) ((Ty.refin v T (v = eval σ δ (Expr.var x))), σ)
   -- TE-VAR-FUNC
   | T_VarFunc {σ: Env} {δ: CircuitEnv} {Γ: TyEnv} {f x : String} {τ₁ τ₂: Ty}:
       Γ f = (Ty.func x τ₁ τ₂) →
-      TypeJudgment σ δ Γ (Expr.var f) (Ty.func x τ₁ τ₂)
+      TypeJudgment σ δ Γ (Expr.var f) ((Ty.func x τ₁ τ₂), σ)
   -- TE-NONDET
   | T_Nondet {σ: Env} {δ: CircuitEnv} {Γ: TyEnv} {p: ℕ} {v: Value}:
-    TypeJudgment σ δ Γ Expr.wildcard (Ty.refin v (Ty.field p) True)
+    TypeJudgment σ δ Γ Expr.wildcard ((Ty.refin v (Ty.field p) True), σ)
   -- TE-CONSTF
   | T_ConstF {σ: Env} {δ: CircuitEnv} {Γ: TyEnv} {p: ℕ} {v: Value} {f: F p} :
-    TypeJudgment σ δ Γ (Expr.constF p f) (Ty.refin v (Ty.field p) (v = Value.vF p f))
+    TypeJudgment σ δ Γ (Expr.constF p f) ((Ty.refin v (Ty.field p) (v = Value.vF p f)), σ)
   -- TE-ASSERT
   | T_Assert {σ: Env} {δ: CircuitEnv} {Γ: TyEnv} {e₁ e₂: Expr} {p: ℕ} {v: Value} :
-    TypeJudgment σ δ Γ e₁ (Ty.field p) →
-    TypeJudgment σ δ Γ e₂ (Ty.field p) →
-    TypeJudgment σ δ Γ (Expr.assertE e₁ e₂) (Ty.refin v Ty.unit (eval σ δ e₁ = eval σ δ e₂))
+    TypeJudgment σ δ Γ e₁ ((Ty.field p), σ) →
+    TypeJudgment σ δ Γ e₂ ((Ty.field p), σ) →
+    TypeJudgment σ δ Γ (Expr.assertE e₁ e₂) ((Ty.refin v Ty.unit (eval σ δ e₁ = eval σ δ e₂)), σ)
   -- TE-BINOPFIELD
   | T_BinOpField {σ: Env} {δ: CircuitEnv} {Γ: TyEnv} {e₁ e₂: Expr} {op: FieldOp} {p: ℕ} {v: Value}:
-    TypeJudgment σ δ Γ e₁ (Ty.field p) →
-    TypeJudgment σ δ Γ e₂ (Ty.field p) →
-    TypeJudgment σ δ Γ (Expr.fieldExpr e₁ op e₂) (Ty.refin v (Ty.field p) (v = eval σ δ (Expr.fieldExpr e₁ op e₂)))
+    TypeJudgment σ δ Γ e₁ ((Ty.field p), σ) →
+    TypeJudgment σ δ Γ e₂ ((Ty.field p), σ) →
+    TypeJudgment σ δ Γ (Expr.fieldExpr e₁ op e₂) ((Ty.refin v (Ty.field p) (v = eval σ δ (Expr.fieldExpr e₁ op e₂))), σ)
   -- TE-ABS (function abstraction)
   | T_Abs {σ: Env} {δ: CircuitEnv} {Γ: TyEnv} {x: String} {τ₁ τ₂: Ty} {e: Expr}:
-    TypeJudgment σ δ (setTy Γ x τ₁) e τ₂ →
-    TypeJudgment σ δ Γ (Expr.lam x τ₁ e) (Ty.func x τ₁ τ₂)
+    TypeJudgment σ δ (setTy Γ x τ₁) e (τ₂, σ) →
+    TypeJudgment σ δ Γ (Expr.lam x τ₁ e) ((Ty.func x τ₁ τ₂), σ)
   -- TE-APP
-  | T_App {σ δ Γ x₁ x₂ s τ₁ τ₂} :
-      -- x₁ : (x₁ : τ₁ → τ₂)
-      TypeJudgment σ δ Γ x₁ (Ty.func s τ₁ τ₂) →
-      -- x₂ : τ1
-      TypeJudgment σ δ Γ x₂ τ₁ →
-      -- result: τ2 with s ↦ x₂
-      TypeJudgment σ δ Γ (Expr.app x₁ x₂) τ₂
+  | T_App {σ: Env} {δ: CircuitEnv} {Γ: TyEnv} {x₁ x₂: Expr} {s: String} {τ₁ τ₂: Ty} {v: Value}:
+    TypeJudgment σ δ Γ x₁ ((Ty.func s τ₁ τ₂), σ) →
+    eval σ δ x₂ = some v →
+    TypeJudgment σ δ Γ x₂ (τ₁, σ) → TypeJudgment σ δ Γ (Expr.app x₁ x₂) (τ₂, (set σ s v))
