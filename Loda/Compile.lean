@@ -8,7 +8,7 @@ inductive CompValue where
   | constBool   : Bool → CompValue                                 -- boolean constant
   | prodValue   : List CompValue → CompValue                       -- (u₁, ..., uₙ)
   | arrValue    : List CompValue → CompValue                       -- array value
-  | closure     : String → Expr → (String → CompValue) → CompValue -- Closure(λx : τ. e, σ)
+  | closure     : String → Ast.Expr → (String → CompValue) → CompValue -- Closure(λx : τ. e, σ)
   | r1csVar     : Nat → CompValue                                  -- R1CS variable r
   | binOp       : CompValue → CompValue → CompValue                -- Irreducible expression (u₁ ⊗ u₂)
   | unit        : CompValue                                        -- unit value
@@ -52,11 +52,11 @@ def isField : CompValue → Bool
   | _ => false
 
 /-- Evaluate a binary field operation if both operands are constants. -/
-def evalFieldBinOp (u₁: CompValue) (op: FieldOp) (u₂: CompValue) : Option CompValue :=
+def evalFieldBinOp (u₁: CompValue) (op: Ast.FieldOp) (u₂: CompValue) : Option CompValue :=
   match u₁, op, u₂ with
-  | CompValue.constF p v₁, FieldOp.add, CompValue.constF _ v₂ => some (CompValue.constF p ((v₁.val + v₂.val) % p))
-  | CompValue.constF p v₁, FieldOp.sub, CompValue.constF _ v₂ => some (CompValue.constF p ((v₁.val - v₂.val) % p))
-  | CompValue.constF p v₁, FieldOp.mul, CompValue.constF _ v₂ => some (CompValue.constF p ((v₁.val * v₂.val) % p))
+  | CompValue.constF p v₁, Ast.FieldOp.add, CompValue.constF _ v₂ => some (CompValue.constF p ((v₁.val + v₂.val) % p))
+  | CompValue.constF p v₁, Ast.FieldOp.sub, CompValue.constF _ v₂ => some (CompValue.constF p ((v₁.val - v₂.val) % p))
+  | CompValue.constF p v₁, Ast.FieldOp.mul, CompValue.constF _ v₂ => some (CompValue.constF p ((v₁.val * v₂.val) % p))
   | _, _, _ => none
 
 /-- Create an equality constraint (u₁ = u₂) as an R1CS constraint. -/
@@ -89,21 +89,21 @@ def mkConnectionConstraint (input: CompValue) (output: CompValue) : R1CSConstrai
   }
 
 /-- Compile an expression to R1CS constraints and a compilation value. -/
-unsafe def compile (σ: CompEnv) (δ: CircuitEnv) (s: CompState) (e: Expr) : (CompState × CompValue) :=
+unsafe def compile (σ: CompEnv) (δ: Ast.CircuitEnv) (s: CompState) (e: Ast.Expr) : (CompState × CompValue) :=
   match e with
   -- C-VALUE (constants) just return the value with no constraints
-  | Expr.constF p v => (s, CompValue.constF p v)
-  | Expr.constInt i => (s, CompValue.constInt i)
-  | Expr.constBool b => (s, CompValue.constBool b)
+  | Ast.Expr.constF p v => (s, CompValue.constF p v)
+  | Ast.Expr.constInt i => (s, CompValue.constInt i)
+  | Ast.Expr.constBool b => (s, CompValue.constBool b)
 
   -- C-VAR (variables) lookup in the environment
-  | Expr.var x => (s, σ x)
+  | Ast.Expr.var x => (s, σ x)
 
   -- C-NONDET (wildcard) generates a fresh R1CS variable
-  | Expr.wildcard => freshVar s
+  | Ast.Expr.wildcard => freshVar s
 
   -- C-ASSERT (assert e₁ = e₂) adds an equality constraint
-  | Expr.assertE e₁ e₂ =>
+  | Ast.Expr.assertE e₁ e₂ =>
       let (s₁, u₁) := compile σ δ s e₁
       let (s₂, u₂) := compile σ δ s₁ e₂
       let constraint := mkEqualityConstraint u₁ u₂
@@ -111,7 +111,7 @@ unsafe def compile (σ: CompEnv) (δ: CircuitEnv) (s: CompState) (e: Expr) : (Co
       (s₃, CompValue.unit)
 
   -- C-RED and C-IRRED for field operations
-  | Expr.fieldExpr e₁ op e₂ =>
+  | Ast.Expr.fieldExpr e₁ op e₂ =>
       let (s₁, u₁) := compile σ δ s e₁
       let (s₂, u₂) := compile σ δ s₁ e₂
       -- C-RED: If both operands are field constants, try to reduce
@@ -124,11 +124,11 @@ unsafe def compile (σ: CompEnv) (δ: CircuitEnv) (s: CompState) (e: Expr) : (Co
         (s₂, CompValue.binOp u₁ u₂)
 
   -- Lambda abstraction
-  | Expr.lam x τ body =>
+  | Ast.Expr.lam x τ body =>
       (s, CompValue.closure x body σ)
 
   -- Function application
-  | Expr.app e₁ e₂ =>
+  | Ast.Expr.app e₁ e₂ =>
       let (s₁, u₁) := compile σ δ s e₁
       let (s₂, u₂) := compile σ δ s₁ e₂
       match u₁ with
@@ -138,13 +138,13 @@ unsafe def compile (σ: CompEnv) (δ: CircuitEnv) (s: CompState) (e: Expr) : (Co
       | _ => (s₂, CompValue.unit) -- Error case
 
   -- Let binding
-  | Expr.letIn x e₁ e₂ =>
+  | Ast.Expr.letIn x e₁ e₂ =>
       let (s₁, u₁) := compile σ δ s e₁
       let σ' := setCompValue σ x u₁
       compile σ' δ s₁ e₂
 
   -- Product construction
-  | Expr.prodCons es =>
+  | Ast.Expr.prodCons es =>
       let folder := fun (acc : CompState × List CompValue) e =>
         let (s', vs) := acc
         let (s'', v) := compile σ δ s' e
@@ -153,7 +153,7 @@ unsafe def compile (σ: CompEnv) (δ: CircuitEnv) (s: CompState) (e: Expr) : (Co
       (s', CompValue.prodValue vs)
 
   -- Array construction
-  | Expr.arrCons h t =>
+  | Ast.Expr.arrCons h t =>
       let (s₁, u₁) := compile σ δ s h
       let (s₂, u₂) := compile σ δ s₁ t
       match u₂ with
@@ -161,7 +161,7 @@ unsafe def compile (σ: CompEnv) (δ: CircuitEnv) (s: CompState) (e: Expr) : (Co
       | _ => (s₂, CompValue.arrValue [u₁]) -- Assume empty array if not an array
 
   -- Iterator (would need to be unrolled during compilation)
-  | Expr.iter idx start ed step acc =>
+  | Ast.Expr.iter idx start ed step acc =>
       -- Compile start and end expressions
       let (s₁, startVal) := compile σ δ s start
       let (s₂, endVal) := compile σ δ s₁ ed
@@ -225,7 +225,7 @@ unsafe def compile (σ: CompEnv) (δ: CircuitEnv) (s: CompState) (e: Expr) : (Co
           (s₃, resultVar)
 
   -- Circuit reference
-  | Expr.circRef name args =>
+  | Ast.Expr.circRef name args =>
       -- Compile all arguments
       let compileArgs := fun (acc : CompState × List CompValue) arg =>
           let (state, values) := acc
@@ -237,7 +237,7 @@ unsafe def compile (σ: CompEnv) (δ: CircuitEnv) (s: CompState) (e: Expr) : (Co
       let circuit := δ name
 
       -- 2. Create fresh variables for circuit inputs
-      let genInputVars := fun (acc : CompState × List (String × CompValue)) (input : String × Ty) =>
+      let genInputVars := fun (acc : CompState × List (String × CompValue)) (input : String × Ast.Ty) =>
           let (state, vars) := acc
           let (state', v) := freshVar state
           (state', vars ++ [(input.fst, v)])

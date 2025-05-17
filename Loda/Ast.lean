@@ -9,6 +9,8 @@ instance (p : ℕ) [Fact p.Prime] : Fintype (F p) := ZMod.fintype p
 instance (p : ℕ) [Fact p.Prime] : Inhabited (F p) := ⟨0⟩
 instance (p : ℕ) : CommRing (F p) := ZMod.commRing p
 
+namespace Ast
+
 /-- Field operators =⊙. -/
 inductive BooleanOp where
   | and   -- ∧
@@ -223,3 +225,5 @@ partial def eval (σ : Env) (δ : CircuitEnv) : Expr → Option (Value)
       let σ' := (c.inputs.zip vs).foldl (fun env (⟨x,_⟩,v) => set env x v) σ
       eval σ' δ c.body
   | _ => none
+
+end Ast

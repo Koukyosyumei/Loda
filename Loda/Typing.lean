@@ -1,87 +1,87 @@
 import Loda.Ast
 
 /-- Type Environment. -/
-def TyEnv := String -> Ty
+def TyEnv := String -> Ast.Ty
 
-def setTy (Γ : TyEnv) (x : String) (v: Ty) : TyEnv :=
+def setTy (Γ : TyEnv) (x : String) (v: Ast.Ty) : TyEnv :=
   fun y => if y = x then v else Γ y
 
 /-- Subtyping judgment for CODA types -/
-inductive SubtypeJudgment : Env -> TyEnv → Option Ty → Option Ty → Prop where
+inductive SubtypeJudgment : Ast.Env -> TyEnv → Option Ast.Ty → Option Ast.Ty → Prop where
   /-- TSUB-REFL: Reflexivity -/
-  | TSub_Refl {σ : Env} {Γ : TyEnv} {τ : Ty} :
+  | TSub_Refl {σ : Ast.Env} {Γ : TyEnv} {τ : Ast.Ty} :
       SubtypeJudgment σ Γ (pure τ) (pure τ)
 
   /-- TSUB-TRANS: Transitivity -/
-  | TSub_Trans {σ : Env} {Γ : TyEnv} {τ₁ τ₂ τ₃ : Ty} :
+  | TSub_Trans {σ : Ast.Env} {Γ : TyEnv} {τ₁ τ₂ τ₃ : Ast.Ty} :
       SubtypeJudgment σ Γ (pure τ₁) (pure τ₂) →
       SubtypeJudgment σ Γ (pure τ₂) (pure τ₃) →
       SubtypeJudgment σ Γ (pure τ₁) (pure τ₃)
 
   /-- TSUB-REFINE: Refinement subtyping -/
-  | TSub_Refine {σ : Env} {Γ : TyEnv} {T₁ T₂ : Ty} {φ₁ φ₂ : Prop} {v: Value} :
+  | TSub_Refine {σ : Ast.Env} {Γ : TyEnv} {T₁ T₂ : Ast.Ty} {φ₁ φ₂ : Prop} {v: Ast.Value} :
       SubtypeJudgment σ Γ (pure T₁) (pure T₂) →
       (φ₁ → φ₂) →
-      SubtypeJudgment σ Γ (pure (Ty.refin v T₁ φ₁)) (pure (Ty.refin v T₂ φ₂))
+      SubtypeJudgment σ Γ (pure (Ast.Ty.refin v T₁ φ₁)) (pure (Ast.Ty.refin v T₂ φ₂))
 
   /-- TSUB-FUN: Function subtyping -/
-  | TSub_Fun {σ : Env} {Γ : TyEnv} {x y : String} {z : Value} {τx τy τr τs : Ty} :
+  | TSub_Fun {σ : Ast.Env} {Γ : TyEnv} {x y : String} {z : Ast.Value} {τx τy τr τs : Ast.Ty} :
       SubtypeJudgment σ Γ (pure τy) (pure τx) →
       -- Using a fresh variable z to avoid capture
       -- SubtypeJudgment (set (set σ x z) y z) Γ τr τs →
       SubtypeJudgment σ Γ (pure τr) (pure τs) →
-      SubtypeJudgment σ Γ (pure (Ty.func x τx τr)) (pure (Ty.func y τy τs))
+      SubtypeJudgment σ Γ (pure (Ast.Ty.func x τx τr)) (pure (Ast.Ty.func y τy τs))
 
   /-- TSUB-ARR: Array subtyping -/
-  | TSub_Arr {σ : Env} {Γ : TyEnv} {T₁ T₂ : Ty} :
+  | TSub_Arr {σ : Ast.Env} {Γ : TyEnv} {T₁ T₂ : Ast.Ty} :
       SubtypeJudgment σ Γ (pure T₁) (pure T₂) →
-      SubtypeJudgment σ Γ (pure (Ty.arr T₁)) (pure (Ty.arr T₂))
+      SubtypeJudgment σ Γ (pure (Ast.Ty.arr T₁)) (pure (Ast.Ty.arr T₂))
 
   /-- TSUB-PRODUCT: Product subtyping -/
-  | TSub_Product {σ : Env} {Γ : TyEnv} {Ts₁ Ts₂ : List Ty} :
+  | TSub_Product {σ : Ast.Env} {Γ : TyEnv} {Ts₁ Ts₂ : List Ast.Ty} :
       Ts₁.length = Ts₂.length →
       --PairwiseProd (SubtypeJudgment σ Γ) (List.zip Ts₁ Ts₂) →
       (∀ i, i < Ts₁.length → SubtypeJudgment σ Γ Ts₁[i]? Ts₂[i]?) →
-      SubtypeJudgment σ Γ (pure (Ty.prod Ts₁)) (pure (Ty.prod Ts₂))
+      SubtypeJudgment σ Γ (pure (Ast.Ty.prod Ts₁)) (pure (Ast.Ty.prod Ts₂))
 
-inductive TypeJudgment: Env -> CircuitEnv -> TyEnv -> Expr -> (Ty × Env) -> Prop where
+inductive TypeJudgment: Ast.Env -> Ast.CircuitEnv -> TyEnv -> Ast.Expr -> (Ast.Ty × Ast.Env) -> Prop where
   -- TE-VAR
-  | TE_Var {σ: Env} {δ: CircuitEnv} {Γ: TyEnv} {x : String} {v: Value} {T: Ty} {φ: Prop}:
-      Γ x = (Ty.refin v T φ) →
-    TypeJudgment σ δ Γ (Expr.var x) ((Ty.refin v T (v = eval σ δ (Expr.var x))), σ)
+  | TE_Var {σ: Ast.Env} {δ: Ast.CircuitEnv} {Γ: TyEnv} {x : String} {v: Ast.Value} {T: Ast.Ty} {φ: Prop}:
+      Γ x = (Ast.Ty.refin v T φ) →
+    TypeJudgment σ δ Γ (Ast.Expr.var x) ((Ast.Ty.refin v T (v = Ast.eval σ δ (Ast.Expr.var x))), σ)
 
   -- TE-VAR-FUNC
-  | T_VarFunc {σ: Env} {δ: CircuitEnv} {Γ: TyEnv} {f x : String} {τ₁ τ₂: Ty}:
-      Γ f = (Ty.func x τ₁ τ₂) →
-      TypeJudgment σ δ Γ (Expr.var f) ((Ty.func x τ₁ τ₂), σ)
+  | T_VarFunc {σ: Ast.Env} {δ: Ast.CircuitEnv} {Γ: TyEnv} {f x : String} {τ₁ τ₂: Ast.Ty}:
+      Γ f = (Ast.Ty.func x τ₁ τ₂) →
+      TypeJudgment σ δ Γ (Ast.Expr.var f) ((Ast.Ty.func x τ₁ τ₂), σ)
 
   -- TE-NONDET
-  | T_Nondet {σ: Env} {δ: CircuitEnv} {Γ: TyEnv} {p: ℕ} {v: Value}:
-    TypeJudgment σ δ Γ Expr.wildcard ((Ty.refin v (Ty.field p) True), σ)
+  | T_Nondet {σ: Ast.Env} {δ: Ast.CircuitEnv} {Γ: TyEnv} {p: ℕ} {v: Ast.Value}:
+    TypeJudgment σ δ Γ Ast.Expr.wildcard ((Ast.Ty.refin v (Ast.Ty.field p) True), σ)
 
   -- TE-CONSTF
-  | T_ConstF {σ: Env} {δ: CircuitEnv} {Γ: TyEnv} {p: ℕ} {v: Value} {f: F p} :
-    TypeJudgment σ δ Γ (Expr.constF p f) ((Ty.refin v (Ty.field p) (v = Value.vF p f)), σ)
+  | T_ConstF {σ: Ast.Env} {δ: Ast.CircuitEnv} {Γ: TyEnv} {p: ℕ} {v: Ast.Value} {f: F p} :
+    TypeJudgment σ δ Γ (Ast.Expr.constF p f) ((Ast.Ty.refin v (Ast.Ty.field p) (v = Ast.Value.vF p f)), σ)
 
   -- TE-ASSERT
-  | T_Assert {σ: Env} {δ: CircuitEnv} {Γ: TyEnv} {e₁ e₂: Expr} {p: ℕ} {v: Value} :
-    TypeJudgment σ δ Γ e₁ ((Ty.field p), σ) →
-    TypeJudgment σ δ Γ e₂ ((Ty.field p), σ) →
-    TypeJudgment σ δ Γ (Expr.assertE e₁ e₂) ((Ty.refin v Ty.unit (eval σ δ e₁ = eval σ δ e₂)), σ)
+  | T_Assert {σ: Ast.Env} {δ: Ast.CircuitEnv} {Γ: TyEnv} {e₁ e₂: Ast.Expr} {p: ℕ} {v: Ast.Value} :
+    TypeJudgment σ δ Γ e₁ ((Ast.Ty.field p), σ) →
+    TypeJudgment σ δ Γ e₂ ((Ast.Ty.field p), σ) →
+    TypeJudgment σ δ Γ (Ast.Expr.assertE e₁ e₂) ((Ast.Ty.refin v Ast.Ty.unit (Ast.eval σ δ e₁ = Ast.eval σ δ e₂)), σ)
 
   -- TE-BINOPFIELD
-  | T_BinOpField {σ: Env} {δ: CircuitEnv} {Γ: TyEnv} {e₁ e₂: Expr} {op: FieldOp} {p: ℕ} {v: Value}:
-    TypeJudgment σ δ Γ e₁ ((Ty.field p), σ) →
-    TypeJudgment σ δ Γ e₂ ((Ty.field p), σ) →
-    TypeJudgment σ δ Γ (Expr.fieldExpr e₁ op e₂) ((Ty.refin v (Ty.field p) (v = eval σ δ (Expr.fieldExpr e₁ op e₂))), σ)
+  | T_BinOpField {σ: Ast.Env} {δ: Ast.CircuitEnv} {Γ: TyEnv} {e₁ e₂: Ast.Expr} {op: Ast.FieldOp} {p: ℕ} {v: Ast.Value}:
+    TypeJudgment σ δ Γ e₁ ((Ast.Ty.field p), σ) →
+    TypeJudgment σ δ Γ e₂ ((Ast.Ty.field p), σ) →
+    TypeJudgment σ δ Γ (Ast.Expr.fieldExpr e₁ op e₂) ((Ast.Ty.refin v (Ast.Ty.field p) (v = Ast.eval σ δ (Ast.Expr.fieldExpr e₁ op e₂))), σ)
 
   -- TE-ABS (function abstraction)
-  | T_Abs {σ: Env} {δ: CircuitEnv} {Γ: TyEnv} {x: String} {τ₁ τ₂: Ty} {e: Expr}:
+  | T_Abs {σ: Ast.Env} {δ: Ast.CircuitEnv} {Γ: TyEnv} {x: String} {τ₁ τ₂: Ast.Ty} {e: Ast.Expr}:
     TypeJudgment σ δ (setTy Γ x τ₁) e (τ₂, σ) →
-    TypeJudgment σ δ Γ (Expr.lam x τ₁ e) ((Ty.func x τ₁ τ₂), σ)
+    TypeJudgment σ δ Γ (Ast.Expr.lam x τ₁ e) ((Ast.Ty.func x τ₁ τ₂), σ)
 
   -- TE-APP
-  | T_App {σ: Env} {δ: CircuitEnv} {Γ: TyEnv} {x₁ x₂: Expr} {s: String} {τ₁ τ₂: Ty} {v: Value}:
-    TypeJudgment σ δ Γ x₁ ((Ty.func s τ₁ τ₂), σ) →
-    eval σ δ x₂ = some v →
-    TypeJudgment σ δ Γ x₂ (τ₁, σ) → TypeJudgment σ δ Γ (Expr.app x₁ x₂) (τ₂, (set σ s v))
+  | T_App {σ: Ast.Env} {δ: Ast.CircuitEnv} {Γ: TyEnv} {x₁ x₂: Ast.Expr} {s: String} {τ₁ τ₂: Ast.Ty} {v: Ast.Value}:
+    TypeJudgment σ δ Γ x₁ ((Ast.Ty.func s τ₁ τ₂), σ) →
+    Ast.eval σ δ x₂ = some v →
+    TypeJudgment σ δ Γ x₂ (τ₁, σ) → TypeJudgment σ δ Γ (Ast.Expr.app x₁ x₂) (τ₂, (Ast.set σ s v))
