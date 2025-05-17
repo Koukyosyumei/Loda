@@ -183,7 +183,7 @@ unsafe def compile (σ: CompEnv) (δ: Ast.CircuitEnv) (s: CompState) (e: Ast.Exp
                   | CompValue.closure idx_var body σ' =>
                       -- Bind index variable to current value i
                       let σ_idx := setCompValue σ' idx_var (CompValue.constInt i)
-                      let (state'', stepFn) := compile σ_idx δ state body
+                      let (state'', stepFn) := compile σ_idx δ state' body
 
                       -- Evaluate to get function from accumulator to next value
                       match stepFn with
