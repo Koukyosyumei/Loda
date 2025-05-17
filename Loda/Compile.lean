@@ -177,25 +177,24 @@ unsafe def compile (σ: CompEnv) (s: CompState) (e: Expr) : (CompState × CompVa
               if i >= endInt then
                   (state, accValue)  -- Base case: return final accumulator
               else
+                  let (state', stepVal) := compile σ state step
                   -- Compile step function application to current index and accumulator
-                  match step with
+                  match stepVal with
                   | CompValue.closure idx_var body σ' =>
                       -- Bind index variable to current value i
-                      let σ_idx := setSymbolic σ' idx_var (CompValue.constInt i)
+                      let σ_idx := setCompValue σ' idx_var (CompValue.constInt i)
+                      let (state'', stepFn) := compile σ_idx state body
 
                       -- Evaluate to get function from accumulator to next value
-                      match compile σ_idx state body with
-                      | (state', stepFn) =>
-                          match stepFn with
-                          | CompValue.closure acc_var innerBody σ'' =>
-                              -- Bind accumulator variable
-                              let σ_acc := setSymbolic σ'' acc_var accValue
-                              -- Compute next accumulator value
-                              let (state'', newAccVal) := compile σ_acc state' innerBody
-                              -- Continue unrolling with updated accumulator
-                              unroll (i+1) state'' newAccVal
-                          | _ => (state', CompValue.unit) -- Error: not a function
-                      | _ => (state, CompValue.unit) -- Error in compilation
+                      match stepFn with
+                        | CompValue.closure acc_var innerBody σ'' =>
+                            -- Bind accumulator variable
+                            let σ_acc := setCompValue σ'' acc_var accValue
+                            -- Compute next accumulator value
+                            let (state''', newAccVal) := compile σ_acc state'' innerBody
+                            -- Continue unrolling with updated accumulator
+                            unroll (i+1) state''' newAccVal
+                        | _ => (state'', CompValue.unit) -- Error: not a function
                   | _ =>
                       -- Directly apply step to index and accumulator if not a closure
                       let (state', fnVal) := compile σ state step
