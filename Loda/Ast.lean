@@ -46,9 +46,9 @@ mutual
     | var         : String → Expr                    -- variable x
     | wildcard    : Expr                             -- ⋆
     | assertE     : Expr → Expr → Expr               -- assert e₁ = e₂
-    | boolExpr    : Expr → BooleanOp → Expr
-    | intExpr     : Expr → IntegerOp → Expr
-    | fieldExpr   : Expr → FieldOp → Expr
+    | boolExpr    : Expr → BooleanOp → Expr → Expr
+    | intExpr     : Expr → IntegerOp → Expr → Expr
+    | fieldExpr   : Expr → FieldOp → Expr → Expr
     | binRel      : Expr → RelOp → Expr → Expr       -- e₁ ⊘ e₂
     | circRef     : String → List Expr → Expr        -- #C e₁ ... eₙ
     | arrCons     : Expr → Expr → Expr               -- e₁ :: e₂

@@ -59,11 +59,11 @@ inductive TypeJudgment: Env -> CircuitEnv -> TyEnv -> Expr -> Ty -> Prop where
     TypeJudgment σ δ Γ e₁ (Ty.field p) →
     TypeJudgment σ δ Γ e₂ (Ty.field p) →
     TypeJudgment σ δ Γ (Expr.assertE e₁ e₂) (Ty.refin v Ty.unit (eval σ δ e₁ = eval σ δ e₂))
-
-  | T_BinOpField {σ δ Γ e1 e2 p v} :
-    TypeJudgment σ δ Γ e1 (Ty.field p) →
-    TypeJudgment σ δ Γ e2 (Ty.field p) →
-    TypeJudgment σ δ Γ (Expr.binRel e1 RelOp.eq e2) (Ty.refin v (Ty.field p) (v = eval σ δ (Expr.binRel e1 RelOp.eq e2)))
+  -- TE-BINOPFIELD
+  | T_BinOpField {σ: Env} {δ: CircuitEnv} {Γ: TyEnv} {e₁ e₂: Expr} {op: FieldOp} {p: ℕ} {v: Value}:
+    TypeJudgment σ δ Γ e₁ (Ty.field p) →
+    TypeJudgment σ δ Γ e₂ (Ty.field p) →
+    TypeJudgment σ δ Γ (Expr.fieldExpr e₁ op e₂) (Ty.refin v (Ty.field p) (v = eval σ δ (Expr.fieldExpr e₁ op e₂)))
 
   | T_Abs {σ δ Γ x τ₁ e τ₂} :
     TypeJudgment σ δ (setTy Γ x τ₁) e τ₂ →
