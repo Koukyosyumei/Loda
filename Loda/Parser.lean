@@ -1,0 +1,48 @@
+import Loda.Ast
+import Loda.Typing
+import Loda.Compile
+import Loda.Frontend -- assuming you've implemented the frontend from earlier
+
+open System
+open Lean Elab Command Term Meta
+
+/-- Parse CODA DSL content into a list of Circuits -/
+def parseLodaProgram (content : String) : MetaM (List Ast.Circuit) := do
+  -- Parse the entire file content into syntax
+  let env ← getEnv
+  let fileId := `unnamedLodaFile
+  match Lean.Parser.runParserCategory env `coda_file content fileId.toString with
+  | Except.error err => throwError err
+  | Except.ok stx =>
+    -- Process all circuit declarations in the file
+    let circuits ← elabLodaFile stx
+    pure circuits
+
+
+/-- Parse a CODA file and convert it to AST -/
+def parseLodaFile (filename : String) : IO (Option (List Ast.Circuit)) := do
+  -- Read the file content
+  match ← IO.FS.readFile filename with
+  | content =>
+    -- Parse content using the frontend parser
+    try
+      -- Assuming your parser returns a list of circuits
+      let circuits ← parseLodaProgram content
+      pure (some circuits)
+    catch e =>
+      IO.eprintln s!"Parse error in {filename}: {e.toString}"
+      pure none
+  /-
+  | .error err =>
+    IO.eprintln s!"Error reading file {filename}: {err}"
+    pure none
+  | .ok content =>
+    -- Parse content using the frontend parser
+    try
+      -- Assuming your parser returns a list of circuits
+      let circuits ← parseLodaProgram content
+      pure (some circuits)
+    catch e =>
+      IO.eprintln s!"Parse error in {filename}: {e.toString}"
+      pure none
+  -/

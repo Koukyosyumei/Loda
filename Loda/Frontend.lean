@@ -9,10 +9,14 @@ import Loda.Compile
 open Lean Meta
 
 -- Main syntax categories
+declare_syntax_cat loda_file
 declare_syntax_cat loda_circuit
 declare_syntax_cat loda_param
 declare_syntax_cat loda_ty
 declare_syntax_cat loda_expr
+
+/-- A CODA file consists of one or more circuit declarations -/
+syntax (loda_circuit)+ : loda_file
 
 -- Type syntax
 syntax "F" : loda_ty
@@ -20,7 +24,8 @@ syntax "Int" : loda_ty
 syntax "Bool" : loda_ty
 syntax "{" ident ":" loda_ty "|" term "}" : loda_ty  -- Refinement type
 syntax "[" loda_ty "]" : loda_ty                     -- Array type
-syntax loda_ty "^" term : loda_ty                    -- Sized array
+syntax loda_ty "^" term : loda_ty                    -- Size-indexed array
+syntax "(" sepBy(loda_ty, ",") ")" : loda_ty         -- Product type
 
 -- Expression syntax
 syntax ident : loda_expr                             -- Variables
@@ -334,6 +339,11 @@ unsafe def elaborateCircuit (stx : Syntax) : MetaM Ast.Circuit := do
     let bodyAst ← elaborateExpr body
     pure { name := nameStr, inputs := paramsList.toList, output := retTyAst, body := bodyAst }
   | _ => throwError "Invalid circuit syntax"
+
+/-- Elaborate a CODA file into a list of Circuits -/
+unsafe def elabCodaFile : Syntax → MetaM (Array Ast.Circuit)
+  | `(loda_file| $[$circuits]*) => circuits.mapM elaborateCircuit
+  | _ => throwError "Invalid CODA file syntax"
 
 /-
 @[command_elab "loda_circuit"] def elabCodaCircuit : CommandElab
