@@ -378,3 +378,9 @@ example :
     simp_all
 
 #eval Ast.eval σ0 δ0 123 (Ast.Expr.letIn "z" (Ast.Expr.constF 5 7) (Ast.Expr.fieldExpr (Ast.Expr.var "z") Ast.FieldOp.mul (Ast.Expr.constF 5 3)))
+
+example :
+  Ast.eval σ0 δ0 123 (Ast.Expr.binRel (Ast.Expr.constInt 3) Ast.RelOp.le (Ast.Expr.constInt 7))
+  = some (Ast.Value.vBool true) := by
+    simp [Ast.eval]
+    simp [Ast.evalRelOp]
