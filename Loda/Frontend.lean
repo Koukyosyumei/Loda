@@ -1,3 +1,5 @@
+import Lean
+import Lean.Meta
 import Lean.Elab.Command
 
 import Loda.Ast
@@ -200,6 +202,140 @@ unsafe def elaborateType (stx : Syntax) : MetaM Ast.Ty := do
   -- Handle other type forms...
   | _ => throwError "Unsupported type syntax"
 
+unsafe def elaborateExpr (stx : Syntax) : MetaM Ast.Expr := do
+  match stx with
+  -- Numeric literal: match on a numeric literal syntax
+  /-
+  | `(term| $n) =>
+    if let some num := n.isNatLit? then
+      pure (Expr.constInt (Int.ofNat num))
+    else
+      throwError "Invalid number literal"
+  -/
+
+  -- Identifier variable
+  | `(term| $x:ident) =>
+    pure (Ast.Expr.var x.getId.toString)
+
+  -- Wildcard `_`
+  | `(term| _) =>
+    pure Ast.Expr.wildcard
+
+  -- Assertion: match any ident, then check if 'assert'
+  | `(term| `assert $e1:term = $e2:term) => do
+    let e1Ast ← elaborateExpr e1
+    let e2Ast ← elaborateExpr e2
+    pure (Ast.Expr.assertE e1Ast e2Ast)
+
+  -- Circuit call prefixed by `#`
+  /-
+  | `(term| "#" $c:ident $args*) => do
+    let cName := c.getId.toString
+    let argsAst ← args.mapM elaborateExpr
+    pure (Ast.Expr.circRef cName argsAst)
+  -/
+
+  -- Array indexing: arr[idx]
+  /-
+  | `(term| $arr:term [ $idx:term ]) => do
+    let arrAst ← elaborateExpr arr
+    let idxAst ← elaborateExpr idx
+    pure (Expr.mkApp (Expr.mkProj ``Array.get 0 arrAst) #[idxAst])
+  -/
+
+  -- Lambda abstraction: \x. body
+  | `(term| "\\" $x:ident ":" $ty "=>" $body) => do
+    let tyAst ← elaborateType ty
+    let bodyAst ← elaborateExpr body
+    pure (Ast.Expr.lam x.getId.toString tyAst bodyAst)
+
+  -- Let-binding: let x = val in body
+  /-
+  | `(term| let $x:ident := $val; $body) => do
+    let valAst ← elaborateExpr val
+    let bodyAst ← elaborateExpr body
+    pure (Expr.letE x.getId.toString valAst bodyAst)
+  -/
+
+  -- Iteration: iter init cond (step) (body) inv:(inv)
+  /-
+  | `(term| `iter $init $cond ($step) ($body) `inv:( $inv ) ) => do
+    let initAst ← elaborateExpr init
+    let condAst ← elaborateExpr cond
+    let stepAst ← elaborateExpr step
+    let bodyAst ← elaborateExpr body
+    let invAst  ← elaborateProp inv
+    pure (Expr.mkIter initAst condAst stepAst bodyAst invAst)
+  -/
+
+  -- Unary negation
+  /-
+  | `(term| - $e) => do
+    let eAst ← elaborateExpr e
+    pure (Expr.unOp "-" eAst)
+  -/
+
+  -- Binary operations
+  | `(term| $e1 + $e2) => do
+    let e1Ast ← elaborateExpr e1; let e2Ast ← elaborateExpr e2
+    pure (Ast.Expr.fieldExpr e1Ast Ast.FieldOp.add e2Ast)
+  /-
+  | `(term| $e1 - $e2) => do
+    let e1Ast ← elaborateExpr e1; let e2Ast ← elaborateExpr e2
+    pure (Expr.binOp "-" e1Ast e2Ast)
+  | `(term| $e1 * $e2) => do
+    let e1Ast ← elaborateExpr e1; let e2Ast ← elaborateExpr e2
+    pure (Expr.binOp "*" e1Ast e2Ast)
+  | `(term| $e1 / $e2) => do
+    let e1Ast ← elaborateExpr e1; let e2Ast ← elaborateExpr e2
+    pure (Expr.binOp "/" e1Ast e2Ast)
+  | `(term| $e1 % $e2) => do
+    let e1Ast ← elaborateExpr e1; let e2Ast ← elaborateExpr e2
+    pure (Expr.binOp "%" e1Ast e2Ast)
+  -/
+
+  -- Tuple: (e1, e2, ...)
+  /-
+  | `(term| ( $`[$es:term`],* )) => do
+    let esAst ← es.getElems.mapM elaborateExpr
+    pure (Expr.mkAppN (Expr.const ``Prod.mk []) esAst)
+  -/
+
+  /-
+  -- Field projection: e.f
+  | `(term| $e:term . $f:ident) => do
+    let eAst ← elaborateExpr e
+    pure (Expr.app (Expr.mkProj (← getConstName f.getId) 1) #[eAst])
+
+  -- Cast: e : ty
+  | `(term| $e:term ":" $ty:term) => do
+    let eAst  ← elaborateExpr e
+    let tyAst ← elaborateType ty
+    pure (Expr.cast eAst tyAst)
+  -/
+
+  | _ => throwError "Unsupported expression syntax: {stx}"
+
+-- Elaborate a single parameter: `(param| x : T)
+unsafe def elaborateParam (stx : Syntax) : MetaM (String × Ast.Ty) := do
+  match stx with
+  | `(term| $x:ident ":" $ty:term) => do
+    let tyAst ← elaborateType ty
+    pure (x.getId.toString, tyAst)
+  | _ =>
+    throwError "Unsupported parameter syntax: {stx}, expected `x : T`"
+
+unsafe def elaborateCircuit (stx : Syntax) : MetaM Ast.Circuit := do
+  match stx with
+  | `(loda_circuit| circuit $name:ident ($params:loda_param,*) -> $retTy:loda_ty {$body:loda_expr}) => do
+    let nameStr := name.getId.toString
+    let paramsList ← params.getElems.mapM elaborateParam
+    let retTyAst ← elaborateType retTy
+    let bodyAst ← elaborateExpr body
+    pure { name := nameStr, inputs := paramsList.toList, output := retTyAst, body := bodyAst }
+  | _ => throwError "Invalid circuit syntax"
+
+/-
 @[command_elab "loda_circuit"] def elabCodaCircuit : CommandElab
   | `(loda_circuit $circ) => do
     let ast ← elaborateCircuit circ
@@ -207,31 +343,4 @@ unsafe def elaborateType (stx : Syntax) : MetaM Ast.Ty := do
     addCodaCircuit ast
     -- You might also want to output the circuit definition
     pure ()
-
-def elaborateCircuit (stx : Syntax) : MetaM Ast.Circuit := do
-  match stx with
-  | `(loda_circuit| circuit $name:ident ($params:loda_param,*) -> $retTy:loda_ty {$body:loda_expr}) => do
-    let nameStr := name.getId.toString
-    let paramsList ← params.getElems.mapM elaborateParam
-    let retTyAst ← elaborateType retTy
-    let bodyAst ← elaborateExpr body
-    pure { name := nameStr, inputs := paramsList, output := retTyAst, body := bodyAst }
-  | _ => throwError "Invalid circuit syntax"
-
-def elaborateExpr (stx : Syntax) : MetaM Ast.Expr := do
-  match stx with
-  | `($n:numLit) =>
-    if let some num := n.isNatLit? then
-      pure (Loda.Ast.Expr.constInt (Int.ofNat num))
-    else
-      throwError "Invalid number literal"
-  | `($x:ident) =>
-    pure (Loda.Ast.Expr.var x.getId.toString)
-  | `(*) =>
-    pure Loda.Ast.Expr.wildcard
-  | `(assert $e1 = $e2) => do
-    let e1Ast ← elaborateExpr e1
-    let e2Ast ← elaborateExpr e2
-    pure (Loda.Ast.Expr.assertE e1Ast e2Ast)
-  -- Handle other expression forms...
-  | _ => throwError "Unsupported expression syntax"
+-/
