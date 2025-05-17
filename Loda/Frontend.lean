@@ -341,7 +341,7 @@ unsafe def elaborateCircuit (stx : Syntax) : MetaM Ast.Circuit := do
   | _ => throwError "Invalid circuit syntax"
 
 /-- Elaborate a CODA file into a list of Circuits -/
-unsafe def elabCodaFile : Syntax → MetaM (Array Ast.Circuit)
+unsafe def elabLodaFile : Syntax → MetaM (Array Ast.Circuit)
   | `(loda_file| $[$circuits]*) => circuits.mapM elaborateCircuit
   | _ => throwError "Invalid CODA file syntax"
 
