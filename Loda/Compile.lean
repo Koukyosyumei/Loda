@@ -95,10 +95,13 @@ unsafe def compile (σ: CompEnv) (s: CompState) (e: Expr) : (CompState × CompVa
   | Expr.constF p v => (s, CompValue.constF p v)
   | Expr.constInt i => (s, CompValue.constInt i)
   | Expr.constBool b => (s, CompValue.constBool b)
+
   -- C-VAR (variables) lookup in the environment
   | Expr.var x => (s, σ x)
+
   -- C-NONDET (wildcard) generates a fresh R1CS variable
   | Expr.wildcard => freshVar s
+
   -- C-ASSERT (assert e₁ = e₂) adds an equality constraint
   | Expr.assertE e₁ e₂ =>
       let (s₁, u₁) := compile σ s e₁
@@ -106,8 +109,9 @@ unsafe def compile (σ: CompEnv) (s: CompState) (e: Expr) : (CompState × CompVa
       let constraint := mkEqualityConstraint u₁ u₂
       let s₃ := addConstraint s₂ constraint
       (s₃, CompValue.unit)
-  -- C-RED and C-IRRED for binary operations
-  | Expr.binRel e₁ op e₂ =>
+
+  -- C-RED and C-IRRED for field operations
+  | Expr.fieldExpr e₁ op e₂ =>
       let (s₁, u₁) := compile σ s e₁
       let (s₂, u₂) := compile σ s₁ e₂
       -- C-RED: If both operands are field constants, try to reduce
@@ -118,9 +122,11 @@ unsafe def compile (σ: CompEnv) (s: CompState) (e: Expr) : (CompState × CompVa
       -- C-IRRED: Otherwise, create an irreducible expression
       else
         (s₂, CompValue.binOp u₁ u₂)
+
   -- Lambda abstraction
   | Expr.lam x τ body =>
       (s, CompValue.closure x body σ)
+
   -- Function application
   | Expr.app e₁ e₂ =>
       let (s₁, u₁) := compile σ s e₁
@@ -130,11 +136,13 @@ unsafe def compile (σ: CompEnv) (s: CompState) (e: Expr) : (CompState × CompVa
           let σ'' := setCompValue σ' x u₂
           compile σ'' s₂ body
       | _ => (s₂, CompValue.unit) -- Error case
+
   -- Let binding
   | Expr.letIn x e₁ e₂ =>
       let (s₁, u₁) := compile σ s e₁
       let σ' := setCompValue σ x u₁
       compile σ' s₁ e₂
+
   -- Product construction
   | Expr.prodCons es =>
       let folder := fun (acc : CompState × List CompValue) e =>
@@ -143,6 +151,7 @@ unsafe def compile (σ: CompEnv) (s: CompState) (e: Expr) : (CompState × CompVa
         (s'', vs ++ [v])
       let (s', vs) := List.foldl folder (s, []) es
       (s', CompValue.prodValue vs)
+
   -- Array construction
   | Expr.arrCons h t =>
       let (s₁, u₁) := compile σ s h
