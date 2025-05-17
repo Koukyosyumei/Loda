@@ -134,14 +134,17 @@ partial def eval (σ : Env) (δ : CircuitEnv) : Expr → Option (Value)
   | Expr.constF _ v      => pure (Value.vF _ v)
   | Expr.constInt i      => pure (Value.vInt i)
   | Expr.constBool b     => pure (Value.vBool b)
+
   -- E-VAR
   | Expr.var x           => pure (σ x)
   | Expr.letIn x e₁ e₂   => do
     let v₁ ← eval σ δ e₁
     let σ' := set σ x v₁
     eval σ' δ e₂
+
   -- E-LAM
   | Expr.lam x _ e       => pure (Value.vClosure x e σ)
+
   -- E-APP
   | Expr.app f e         => do
       let vf ← eval σ δ f
@@ -151,12 +154,14 @@ partial def eval (σ : Env) (δ : CircuitEnv) : Expr → Option (Value)
         let σ'' := set σ' x va
         eval σ'' δ body
       | _ => none
+
   -- E-FBINOP
   | Expr.binRel e₁ op e₂ => do
       let v₁ ← eval σ δ e₁
       let v₂ ← eval σ δ e₂
       let b ← evalRelOp op v₁ v₂
       pure (Value.vBool b)
+
   -- E-PRODCONS
   | Expr.prodCons es     => do
       let vs ← es.mapM (eval σ δ)
@@ -166,6 +171,7 @@ partial def eval (σ : Env) (δ : CircuitEnv) : Expr → Option (Value)
       match v with
       | Value.vProd vs => vs[i]?
       | _              => none
+
   | Expr.arrCons h t     => do
       let vh ← eval σ δ h
       let vt ← eval σ δ t
@@ -183,6 +189,7 @@ partial def eval (σ : Env) (δ : CircuitEnv) : Expr → Option (Value)
       match va, vi with
       | Value.vArr vs, Value.vInt j => vs[j.toNat]?
       | _, _                        => none
+
   -- E-ITER
   | Expr.iter _ sExpr eExpr fExpr accExpr => do
       let sVal ← eval σ δ sExpr
@@ -208,6 +215,7 @@ partial def eval (σ : Env) (δ : CircuitEnv) : Expr → Option (Value)
             | _ => none
           loop s aVal
       | _, _ => none
+
   -- E-CREF
   | Expr.circRef name args => do
       let vs ← args.mapM (eval σ δ )
