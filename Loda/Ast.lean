@@ -379,3 +379,11 @@ example :
     simp [Ast.evalIntegerOp]
     unfold Ast.set
     simp_all
+
+example :
+  Ast.eval σ0 δ0 123 (Ast.Expr.letIn "z" (Ast.Expr.constF 5 7) (Ast.Expr.fieldExpr (Ast.Expr.var "z") Ast.FieldOp.mul (Ast.Expr.constF 5 3)))
+  = some (Ast.Value.vF 5 1) := by
+    simp [Ast.eval]
+    simp [Ast.evalFieldOp]
+    unfold Ast.set
+    simp_all
