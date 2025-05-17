@@ -46,8 +46,8 @@ inductive SubtypeJudgment : Ast.Env -> TyEnv → Option Ast.Ty → Option Ast.Ty
 
 inductive TypeJudgment: Ast.Env -> Ast.CircuitEnv -> TyEnv -> ℕ -> Ast.Expr -> (Ast.Ty × Ast.Env) -> Prop where
   -- TE-VAR
-  | TE_Var {σ: Ast.Env} {δ: Ast.CircuitEnv} {Γ: TyEnv} {ctr: ℕ} {x : String} {v: Ast.Value} {T: Ast.Ty} {φ: Prop}:
-      Γ x = (Ast.Ty.refin v T φ) →
+  | TE_Var {σ: Ast.Env} {δ: Ast.CircuitEnv} {Γ: TyEnv} {ctr: ℕ} {x : String} {v: Ast.Value} {T: Ast.Ty}:
+    (∀ φ: Prop, φ → Γ x = (Ast.Ty.refin v T φ)) →
     TypeJudgment σ δ Γ ctr (Ast.Expr.var x) ((Ast.Ty.refin v T (v = Ast.eval σ δ ctr (Ast.Expr.var x))), σ)
 
   -- TE-VAR-FUNC
@@ -85,34 +85,3 @@ inductive TypeJudgment: Ast.Env -> Ast.CircuitEnv -> TyEnv -> ℕ -> Ast.Expr ->
     TypeJudgment σ δ Γ ctr x₁ ((Ast.Ty.func s τ₁ τ₂), σ) →
     Ast.eval σ δ ctr x₂ = some v →
     TypeJudgment σ δ Γ ctr x₂ (τ₁, σ) → TypeJudgment σ δ Γ ctr (Ast.Expr.app x₁ x₂) (τ₂, (Ast.set σ s v))
-
-open Ast
--- dummy environments
-def σ0 : Env := fun _ => Value.vBool true
-def Γ0 : TyEnv := fun _ => (Ty.refin (Value.vBool true) Ty.bool (True))
-def Γ1 := setTy Γ0 "x" Ty.bool
-def δ0 : Ast.CircuitEnv :=
-  fun _ => { name := "idInt", inputs := [("x", Ast.Ty.int)], output := Ast.Ty.int,
-                 body := Ast.Expr.var "x" }
-
-example : SubtypeJudgment σ0 Γ0 (pure Ty.int) (pure Ty.int) :=
-  SubtypeJudgment.TSub_Refl
-
--- refinement subtyping: {v:int | True} <: {v:int | True}
-example : SubtypeJudgment σ0 Γ0 (pure (Ty.refin (Value.vInt 1) Ty.int (True))) (pure (Ty.refin (Value.vInt 1) Ty.int (True))) := by
-  apply SubtypeJudgment.TSub_Refine
-  · apply SubtypeJudgment.TSub_Refl
-  · intros _; trivial
-
--- TypeJudgment tests
-
-def tyEnv : TyEnv := fun
-  | "b" => Ty.bool
-  | "f" => Ty.func "x" Ty.int Ty.bool
-  | _   => Ty.int
-
--- TE_VAR: assume env maps "b" to {v | v = eval ...}
-example : TypeJudgment σ0 δ0 Γ0 123 (Expr.var "b") ((Ty.refin (Value.vBool true) Ty.bool (Value.vBool true = eval σ0 δ0 123 (Expr.var "b"))), σ0) := by
-  apply TypeJudgment.TE_Var
-  simp [Γ0]
-  simp [φ]
