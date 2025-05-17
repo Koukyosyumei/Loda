@@ -79,15 +79,6 @@ def mkApplicationConstraint (fn: CompValue) (arg: CompValue) (result: CompValue)
     C := CompValue.binOp (CompValue.constInt (-1)) result
   }
 
-/-- Create constraint connecting circuit inputs to outputs. -/
-def mkConnectionConstraint (input: CompValue) (output: CompValue) : R1CSConstraint :=
-  -- Simplified constraint that represents some relationship between input and output
-  {
-    A := CompValue.constInt 1,
-    B := input,
-    C := CompValue.binOp (CompValue.constInt (-1)) output
-  }
-
 /-- Compile an expression to R1CS constraints and a compilation value. -/
 unsafe def compile (σ: CompEnv) (δ: Ast.CircuitEnv) (s: CompState) (e: Ast.Expr) : (CompState × CompValue) :=
   match e with
@@ -248,7 +239,7 @@ unsafe def compile (σ: CompEnv) (δ: Ast.CircuitEnv) (s: CompState) (e: Ast.Exp
       -- Add constraints binding argument values to input variables
       let addInputConstraints := fun (state : CompState) (idx : Nat) =>
           match inputVars[idx]?, argVals[idx]? with
-          | some (inputName, inputVar), some argVal => addConstraint state (mkEqualityConstraint inputVar argVal)
+          | some (_, inputVar), some argVal => addConstraint state (mkEqualityConstraint inputVar argVal)
           | _, _ => state
       let stateWithBindings := List.range (min inputVars.length argVals.length)
                               |>.foldl addInputConstraints stateWithInputs
