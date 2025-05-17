@@ -25,11 +25,6 @@ example : Ast.evalRelOp Ast.RelOp.lt (Ast.Value.vInt 2) (Ast.Value.vInt 5) = som
 example : Ast.evalRelOp Ast.RelOp.le (Ast.Value.vInt 5) (Ast.Value.vInt 5) = some true := rfl
 example : Ast.evalRelOp Ast.RelOp.lt (Ast.Value.vBool true) (Ast.Value.vBool false) = none := rfl
 
-#print Ast.eval
-#check Ast.eval
-
-#eval Ast.eval σ0 δ0 123 (Ast.Expr.constInt 42)
-
 -- --------------------------------------------------
 -- eval on basic constants & var/let
 -- --------------------------------------------------
