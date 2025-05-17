@@ -68,7 +68,7 @@ inductive TypeJudgment: Env -> CircuitEnv -> TyEnv -> Expr -> Ty -> Prop where
   | T_Abs {σ: Env} {δ: CircuitEnv} {Γ: TyEnv} {x: String} {τ₁ τ₂: Ty} {e: Expr}:
     TypeJudgment σ δ (setTy Γ x τ₁) e τ₂ →
     TypeJudgment σ δ Γ (Expr.lam x τ₁ e) (Ty.func x τ₁ τ₂)
-
+  -- TE-APP
   | T_App {σ δ Γ x₁ x₂ s τ₁ τ₂} :
       -- x₁ : (x₁ : τ₁ → τ₂)
       TypeJudgment σ δ Γ x₁ (Ty.func s τ₁ τ₂) →
