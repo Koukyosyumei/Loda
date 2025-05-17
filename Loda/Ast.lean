@@ -179,24 +179,34 @@ def eval (σ : Env) (δ : CircuitEnv) (ctr: ℕ) : Expr → Option (Value)
       else
         none
 
-  /-
   -- E-FBINOP
   | Expr.binRel e₁ op e₂ => do
-      let v₁ ← eval σ δ e₁
-      let v₂ ← eval σ δ e₂
-      let b ← evalRelOp op v₁ v₂
-      pure (Value.vBool b)
+      if ctr > 0 then
+        let v₁ ← eval σ δ (ctr - 1) e₁
+        let v₂ ← eval σ δ (ctr - 1) e₂
+        let b ← evalRelOp op v₁ v₂
+        pure (Value.vBool b)
+      else
+        none
+
 
   -- E-PRODCONS
   | Expr.prodCons es     => do
-      let vs ← es.mapM (eval σ δ)
-      pure (Value.vProd vs)
+      if ctr > 0 then
+        let vs ← es.mapM (eval σ δ (ctr - 1))
+        pure (Value.vProd vs)
+      else
+        none
   | Expr.prodIdx e i     => do
-      let v ← eval σ δ e
-      match v with
-      | Value.vProd vs => vs[i]?
-      | _              => none
+      if ctr > 0 then
+        let v ← eval σ δ (ctr - 1) e
+        match v with
+        | Value.vProd vs => vs[i]?
+        | _              => none
+      else
+        none
 
+  /-
   | Expr.arrCons h t     => do
       let vh ← eval σ δ h
       let vt ← eval σ δ t
