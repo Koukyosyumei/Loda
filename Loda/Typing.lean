@@ -64,10 +64,10 @@ inductive TypeJudgment: Env -> CircuitEnv -> TyEnv -> Expr -> Ty -> Prop where
     TypeJudgment σ δ Γ e₁ (Ty.field p) →
     TypeJudgment σ δ Γ e₂ (Ty.field p) →
     TypeJudgment σ δ Γ (Expr.fieldExpr e₁ op e₂) (Ty.refin v (Ty.field p) (v = eval σ δ (Expr.fieldExpr e₁ op e₂)))
-
-  | T_Abs {σ δ Γ x τ₁ e τ₂} :
+  -- TE-ABS (function abstraction)
+  | T_Abs {σ: Env} {δ: CircuitEnv} {Γ: TyEnv} {x: String} {τ₁ τ₂: Ty} {e: Expr}:
     TypeJudgment σ δ (setTy Γ x τ₁) e τ₂ →
-    TypeJudgment σ δ Γ (Expr.lam x τ₁ e) (Ty.func "_" τ₁ τ₂)
+    TypeJudgment σ δ Γ (Expr.lam x τ₁ e) (Ty.func x τ₁ τ₂)
 
   | T_App {σ δ Γ x₁ x₂ s τ₁ τ₂} :
       -- x₁ : (x₁ : τ₁ → τ₂)
