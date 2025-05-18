@@ -61,7 +61,7 @@ inductive SubtypeJudgment : Ast.Env -> Ast.CircuitEnv -> TyEnv -> ℕ → Option
 
 def eeq (e₁ e₂: Ast.Expr): Ast.Expr :=
   Ast.Expr.binRel e₁ Ast.RelOp.eq e₂
-def v: Ast.Expr := Ast.Expr.var "v"
+def v: Ast.Expr := Ast.Expr.var ".v"
 
 axiom IntExprEqImpliesIntVal :
   ∀ (a b : Ast.Expr) (op : Ast.IntegerOp) (σ : Ast.Env) (δ : Ast.CircuitEnv) (ctr : ℕ),
