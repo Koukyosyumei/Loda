@@ -1,6 +1,7 @@
 import Mathlib.Tactic.NormNum.Core
 
 import Loda.Ast
+import Loda.Typing
 
 -- tests
 
@@ -114,13 +115,13 @@ example : Ast.eval σ0 δ0 123 sumIter = some (Ast.Value.vInt 6) := by
 def mulCircuit : Ast.Circuit := {
   name   := "mul",
   inputs := [("x₁", Ast.Ty.field 7), ("x₂", Ast.Ty.field 7)],
-  output := Ast.Ty.refin (Ast.Ty.field 7) True,
+  output := Ast.Ty.refin (Ast.Ty.field 7) (eeq (Ast.Expr.var "out") (Ast.Expr.fieldExpr (Ast.Expr.var "x₁") Ast.FieldOp.mul (Ast.Expr.var "x₂"))),
   body   := Ast.Expr.letIn "out"
-               (Ast.Expr.fieldExpr (Ast.Expr.var "x1") Ast.FieldOp.mul (Ast.Expr.var "x2"))
+               (Ast.Expr.fieldExpr (Ast.Expr.var "x₁") Ast.FieldOp.mul (Ast.Expr.var "x₂"))
                (Ast.Expr.var "out")
 }
 
 def testEnv : Ast.CircuitEnv := fun nm => if nm = "mul" then mulCircuit else mulCircuit
 def env35 : Ast.Env := fun x =>
-  if x = "x₁" then Ast.Value.vF 7 3 else if x = "x2" then Ast.Value.vF 7 5 else Ast.Value.vStar
+  if x = "x₁" then Ast.Value.vF 7 3 else if x = "x₂" then Ast.Value.vF 7 5 else Ast.Value.vStar
 #eval Ast.eval env35 testEnv 123 mulCircuit.body

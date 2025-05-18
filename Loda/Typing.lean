@@ -62,7 +62,7 @@ inductive TypeJudgment: Ast.Env -> Ast.CircuitEnv -> TyEnv -> ℕ -> Ast.Expr ->
   -- TE-VAR
   | TE_Var {σ: Ast.Env} {δ: Ast.CircuitEnv} {Γ: TyEnv} {ctr: ℕ} {x : String} {T: Ast.Ty}:
     ∀ φ: Ast.Expr, Γ x = (Ast.Ty.refin T φ) →
-    TypeJudgment σ δ Γ ctr (Ast.Expr.var x) ((Ast.Ty.refin T (eeq v (Ast.Expr.var "x"))), σ)
+    TypeJudgment σ δ Γ ctr (Ast.Expr.var x) ((Ast.Ty.refin T (eeq v (Ast.Expr.var x))), σ)
 
   -- TE-VAR-FUNC
   | T_VarFunc {σ: Ast.Env} {δ: Ast.CircuitEnv} {Γ: TyEnv} {ctr: ℕ} {f x : String} {τ₁ τ₂: Ast.Ty}:
