@@ -63,6 +63,9 @@ def eeq (e₁ e₂: Ast.Expr): Ast.Expr :=
   Ast.Expr.binRel e₁ Ast.RelOp.eq e₂
 def v: Ast.Expr := Ast.Expr.var "v"
 
+theorem infer_type_of_v (a b: Ast.Expr) (op: Ast.IntegerOp) (σ: Ast.Env) (δ: Ast.CircuitEnv) (ctr: ℕ):
+  expr2prop σ δ ctr (Ast.Expr.binRel v Ast.RelOp.eq (Ast.Expr.intExpr a op b)) → ∀ σ δ ctr, ∃ vv, Ast.eval σ δ ctr v = pure (Ast.Value.vInt vv) := by sorry
+
 inductive TypeJudgment: Ast.Env -> Ast.CircuitEnv -> TyEnv -> ℕ -> Ast.Expr -> (Ast.Ty × Ast.Env) -> Prop where
   -- TE-VAR
   | TE_Var {σ: Ast.Env} {δ: Ast.CircuitEnv} {Γ: TyEnv} {ctr: ℕ} {x : String} {T: Ast.Ty}:
