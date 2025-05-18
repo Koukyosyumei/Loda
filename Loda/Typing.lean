@@ -16,9 +16,9 @@ def TyEnv := String -> Ast.Ty
 def setTy (Γ : TyEnv) (x : String) (v: Ast.Ty) : TyEnv :=
   fun y => if y = x then v else Γ y
 
-def tyenv2prop (Γ: TyEnv) (x : String): Prop :=
+def tyenv2prop (σ : Ast.Env) (δ : Ast.CircuitEnv) (ctr : ℕ) (Γ: TyEnv) (x : String): Prop :=
   match Γ x with
-  | refin _ e => expr2prop e
+  | Ast.Ty.refin _ e => expr2prop σ δ ctr e
   | _ => True
 
 /-- Subtyping judgment for CODA types -/
