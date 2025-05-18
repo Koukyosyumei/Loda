@@ -21,6 +21,6 @@ example : SubtypeJudgment σ0 Γ0 (pure (Ty.refin (Value.vInt 1) Ty.int (True)))
   · intros _; trivial
 
 -- TE_VAR: assume env maps "b" to {v | v = eval ...}
-example : TypeJudgment σ0 δ0 Γ0 123 (Expr.var "b") ((Ty.refin (Value.vBool true) Ty.bool (Value.vBool true = eval σ0 δ0 123 (Expr.var "b"))), σ0) := by
+example : TypeJudgment σ0 δ0 Γ0 123 (Expr.var "b") ((Ty.refin (Value.vBool true) Ty.bool (Value.vBool true = σ0 "b")), σ0) := by
   apply TypeJudgment.TE_Var
   simp [Γ0]
