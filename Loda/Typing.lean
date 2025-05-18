@@ -100,6 +100,11 @@ inductive TypeJudgment: Ast.Env -> Ast.CircuitEnv -> TyEnv -> ℕ -> Ast.Expr ->
     Ast.eval σ δ ctr x₂ = some v →
     TypeJudgment σ δ Γ ctr x₂ (τ₁, σ) → TypeJudgment σ δ Γ ctr (Ast.Expr.app x₁ x₂) (τ₂, (Ast.set σ s v))
 
+  -- TE_SUB
+  | T_SUB {σ σ': Ast.Env} {δ: Ast.CircuitEnv} {Γ: TyEnv} {ctr: ℕ} {e: Ast.Expr} {τ₁ τ₂: Ast.Ty}:
+    SubtypeJudgment σ δ Γ ctr (pure τ₁) (pure τ₂) →
+    TypeJudgment σ δ Γ ctr e (τ₁, σ') →
+    TypeJudgment σ δ Γ ctr e (τ₂, σ')
 
 /-- Given a circuit `c`, produce the Prop that says
 1. for any choice of inputs of the correct field type,
