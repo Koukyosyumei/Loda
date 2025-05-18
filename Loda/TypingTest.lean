@@ -4,8 +4,18 @@ import Loda.Typing
 open Ast
 
 -- dummy environments
-def σ0 : Env := fun _ => Value.vBool true
-def Γ0 : TyEnv := fun _ => (Ty.refin Ty.bool (Ast.Expr.constBool true))
+def σ0 : Env := fun x =>
+  match x with
+  | "x" => Value.vBool true
+  | "b" => Value.vBool true
+  | "y" => Value.vInt 123
+  | _ => Value.vStar
+def Γ0 : TyEnv := fun x =>
+  match x with
+  | "x" => (Ty.refin Ty.bool (Ast.Expr.constBool true))
+  | "b" => (Ty.refin Ty.bool (Ast.Expr.constBool true))
+  | "y" => Ty.int
+  | _ => Ty.unit
 def Γ1 := setTy Γ0 "x" Ty.bool
 def δ0 : Ast.CircuitEnv :=
   fun _ => { name := "idInt", inputs := [("x", Ast.Ty.int)], output := ("out", Ast.Ty.int),
@@ -24,6 +34,9 @@ example : SubtypeJudgment σ0 δ0 Γ0 123
   (pure (Ty.refin Ty.int (Ast.Expr.intExpr (Ast.Expr.constInt 2) Ast.IntegerOp.mul (Ast.Expr.var "y"))))
   := by
   apply SubtypeJudgment.TSub_Refine
+  apply SubtypeJudgment.TSub_Refl
+  unfold expr2prop
+  simp_all
 
 -- TE_VAR: assume env maps "b" to {v | v = eval ...}
 example : TypeJudgment σ0 δ0 Γ0 123 (Expr.var "b") ((Ty.refin Ty.bool (eeq v (Ast.Expr.var "b"))), σ0) := by
