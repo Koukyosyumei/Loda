@@ -156,13 +156,22 @@ def evalFieldOp : FieldOp → Value → Value → Option Value
       none
   | _,         _,            _            => none
 
+@[inline]
 def evalIntegerOp: IntegerOp → Value → Value → Option Value
   | IntegerOp.add, Value.vInt x, Value.vInt y => some (Value.vInt (x + y))
   | IntegerOp.sub, Value.vInt x, Value.vInt y => some (Value.vInt (x - y))
   | IntegerOp.mul, Value.vInt x, Value.vInt y => some (Value.vInt (x * y))
   | _, _, _ => none
 
+@[simp] theorem evalIntegerOp_add  (x y) :
+  evalIntegerOp .add (Value.vInt x) (Value.vInt y) = some (Value.vInt (x + y)) := rfl
+@[simp] theorem evalIntegerOp_sub  (x y) :
+  evalIntegerOp .sub (Value.vInt x) (Value.vInt y) = some (Value.vInt (x - y)) := rfl
+@[simp] theorem evalIntegerOp_mul  (x y) :
+  evalIntegerOp .mul (Value.vInt x) (Value.vInt y) = some (Value.vInt (x * y)) := rfl
+
 /-- Evaluate a binary relation. -/
+@[inline]
 def evalRelOp : RelOp → Value → Value → Option Bool
   | RelOp.eq,  Value.vF p₁ i, Value.vF p₂ j =>
     if h : p₁ = p₂ then
@@ -175,7 +184,7 @@ def evalRelOp : RelOp → Value → Value → Option Bool
   | _,         _,            _            => none
 
 /-- Evaluate an expression in a given environment. -/
-@[simp]
+@[simp, inline]
 def eval (σ : Env) (δ : CircuitEnv) (ctr: ℕ) : Expr → Option (Value)
   -- E-VALUE
   | Expr.constF p v      => pure (Value.vF p v)
@@ -328,4 +337,13 @@ def eval (σ : Env) (δ : CircuitEnv) (ctr: ℕ) : Expr → Option (Value)
   | _ => none
   -- The natural number ctr decreases in every recursive call
   termination_by ctr
+
+/-- Single `@[simp]` to reduce *any* variable lookup. -/
+@[simp]
+theorem eval_var (σ δ ctr x) :
+  eval σ δ ctr (Expr.var x) = some (σ x) := by
+  -- this just unfolds the `| Expr.var x => …` branch
+  unfold eval
+  rfl
+
 end Ast

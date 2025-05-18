@@ -6,9 +6,9 @@ def expr2prop (σ : Ast.Env) (δ : Ast.CircuitEnv) (ctr : ℕ) : Ast.Expr → Pr
   | some v₁, some v₂ =>
     match Ast.evalRelOp op v₁ v₂ with
     | some b => b
-    | none   => True
-  | _, _ => True
-| _ => True
+    | none   => False
+  | _, _ => False
+| _ => False
 
 /-- Type Environment. -/
 def TyEnv := String -> Ast.Ty
