@@ -106,7 +106,7 @@ instance : Repr Value where
 structure Circuit where
   name    : String
   inputs  : List (String × Ty)
-  output  : Ty
+  output  : List (String × Ty)
   body    : Expr
 
 def beq : Value → Value → Bool

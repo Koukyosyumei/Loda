@@ -99,3 +99,24 @@ inductive TypeJudgment: Ast.Env -> Ast.CircuitEnv -> TyEnv -> ℕ -> Ast.Expr ->
     TypeJudgment σ δ Γ ctr x₁ ((Ast.Ty.func s τ₁ τ₂), σ) →
     Ast.eval σ δ ctr x₂ = some v →
     TypeJudgment σ δ Γ ctr x₂ (τ₁, σ) → TypeJudgment σ δ Γ ctr (Ast.Expr.app x₁ x₂) (τ₂, (Ast.set σ s v))
+
+
+/-- Given a circuit `c`, produce the Prop that says
+1. for any choice of inputs of the correct field type,
+2. evaluating `c.body` yields a value `v`,
+3. and `v` satisfies the refinement predicate in `c.output`. -/
+def circuit2prop {p : ℕ} [Fact p.Prime] (δ : Ast.CircuitEnv) (c : Ast.Circuit) : Prop :=
+  ∀ (xs : List (ZMod p)),
+    -- require that the argument list `xs` matches `c.inputs` in length
+    xs.length = c.inputs.length →
+  let env : Ast.Env :=
+    (c.inputs.zip xs).foldl (fun σ (xy : (String × Ast.Ty) × ZMod p) =>
+      let ((name, τ), x) := xy; fun y => if y = name then Ast.Value.vF p x else σ y)
+      (fun _ => Ast.Value.vStar)
+  match Ast.eval env δ (c.inputs.length + 1) c.body with
+  | some v =>
+    -- extract the refinement predicate φ from `c.output`
+    match c.output with
+    | Ast.Ty.refin _ φ => expr2prop env δ (c.inputs.length + 1) φ
+    | _            => True
+  | none   => False
