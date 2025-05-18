@@ -9,7 +9,7 @@ def σ0 : Ast.Env := fun _ => Ast.Value.vStar
 
 -- A helper circuit env with a single identity circuit
 def δ0 : Ast.CircuitEnv :=
-  fun _ => { name := "idInt", inputs := [("x", Ast.Ty.int)], output := [("x", Ast.Ty.int)],
+  fun _ => { name := "idInt", inputs := [("x", Ast.Ty.int)], output := ("x", Ast.Ty.int),
                  body := Ast.Expr.var "x" }
 -- --------------------------------------------------
 -- beq tests
@@ -115,7 +115,7 @@ example : Ast.eval σ0 δ0 123 sumIter = some (Ast.Value.vInt 6) := by
 def mulCircuit : Ast.Circuit := {
   name   := "mul",
   inputs := [("x₁", Ast.Ty.field 7), ("x₂", Ast.Ty.field 7)],
-  output := [("out", Ast.Ty.refin (Ast.Ty.field 7) (eeq v (Ast.Expr.fieldExpr (Ast.Expr.var "x₁") Ast.FieldOp.mul (Ast.Expr.var "x₂"))))],
+  output := ("out", Ast.Ty.refin (Ast.Ty.field 7) (eeq v (Ast.Expr.fieldExpr (Ast.Expr.var "x₁") Ast.FieldOp.mul (Ast.Expr.var "x₂")))),
   body   := (Ast.Expr.fieldExpr (Ast.Expr.var "x₁") Ast.FieldOp.mul (Ast.Expr.var "x₂"))
 }
 
@@ -123,3 +123,17 @@ def testEnv : Ast.CircuitEnv := fun nm => if nm = "mul" then mulCircuit else mul
 def env35 : Ast.Env := fun x =>
   if x = "x₁" then Ast.Value.vF 7 3 else if x = "x₂" then Ast.Value.vF 7 5 else Ast.Value.vStar
 def Γ0 : TyEnv := fun _ => Ast.Ty.field 7
+
+#check circuit2prop 7 testEnv mulCircuit
+
+theorem mulCircuit_correct : (circuit2prop 7 testEnv mulCircuit) := by
+  unfold circuit2prop
+  intros xs hlen
+  cases xs
+  case nil =>
+    cases hlen
+  case cons hmod hlist =>
+    unfold expr2prop
+    unfold mulCircuit
+    simp [Ast.eval]
+    sorry

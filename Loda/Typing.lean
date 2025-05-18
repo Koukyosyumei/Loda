@@ -105,7 +105,7 @@ inductive TypeJudgment: Ast.Env -> Ast.CircuitEnv -> TyEnv -> ℕ -> Ast.Expr ->
 1. for any choice of inputs of the correct field type,
 2. evaluating `c.body` yields a value `v`,
 3. and `v` satisfies the refinement predicate in `c.output`. -/
-def circuit2prop {p : ℕ} [Fact p.Prime] (δ : Ast.CircuitEnv) (c : Ast.Circuit) : Prop :=
+def circuit2prop (p : ℕ) (δ : Ast.CircuitEnv) (c : Ast.Circuit) : Prop :=
   ∀ (xs : List (ZMod p)),
     -- require that the argument list `xs` matches `c.inputs` in length
     xs.length = c.inputs.length →
@@ -117,6 +117,6 @@ def circuit2prop {p : ℕ} [Fact p.Prime] (δ : Ast.CircuitEnv) (c : Ast.Circuit
   | some v =>
     -- extract the refinement predicate φ from `c.output`
     match c.output with
-    | Ast.Ty.refin _ φ => expr2prop env δ (c.inputs.length + 1) φ
+    | (n, Ast.Ty.refin _ φ) => expr2prop env δ (c.inputs.length + 1) φ
     | _            => True
   | none   => False
