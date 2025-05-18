@@ -19,7 +19,7 @@ inductive SubtypeJudgment : Ast.Env -> TyEnv → Option Ast.Ty → Option Ast.Ty
       SubtypeJudgment σ Γ (pure τ₁) (pure τ₃)
 
   /-- TSUB-REFINE: Refinement subtyping -/
-  | TSub_Refine {σ : Ast.Env} {Γ : TyEnv} {T₁ T₂ : Ast.Ty} {φ₁ φ₂ : Prop} {v: Ast.Value} :
+  | TSub_Refine {σ : Ast.Env} {Γ : TyEnv} {T₁ T₂ : Ast.Ty} {φ₁ φ₂ : Prop} :
       SubtypeJudgment σ Γ (pure T₁) (pure T₂) →
       (φ₁ → φ₂) →
       SubtypeJudgment σ Γ (pure (Ast.Ty.refin T₁ φ₁)) (pure (Ast.Ty.refin T₂ φ₂))
@@ -56,7 +56,7 @@ inductive TypeJudgment: Ast.Env -> Ast.CircuitEnv -> TyEnv -> ℕ -> Ast.Expr ->
       TypeJudgment σ δ Γ ctr (Ast.Expr.var f) ((Ast.Ty.func x τ₁ τ₂), σ)
 
   -- TE-NONDET
-  | T_Nondet {σ: Ast.Env} {δ: Ast.CircuitEnv} {Γ: TyEnv} {ctr: ℕ} {p: ℕ} {v: Ast.Value}:
+  | T_Nondet {σ: Ast.Env} {δ: Ast.CircuitEnv} {Γ: TyEnv} {ctr: ℕ} {p: ℕ}:
     TypeJudgment σ δ Γ ctr Ast.Expr.wildcard ((Ast.Ty.refin (Ast.Ty.field p) True), σ)
 
   -- TE-CONSTF
@@ -64,7 +64,7 @@ inductive TypeJudgment: Ast.Env -> Ast.CircuitEnv -> TyEnv -> ℕ -> Ast.Expr ->
     TypeJudgment σ δ Γ ctr (Ast.Expr.constF p f) ((Ast.Ty.refin (Ast.Ty.field p) (v = Ast.Value.vF p f)), σ)
 
   -- TE-ASSERT
-  | T_Assert {σ: Ast.Env} {δ: Ast.CircuitEnv} {Γ: TyEnv} {ctr: ℕ} {e₁ e₂: Ast.Expr} {p: ℕ} {v: Ast.Value} :
+  | T_Assert {σ: Ast.Env} {δ: Ast.CircuitEnv} {Γ: TyEnv} {ctr: ℕ} {e₁ e₂: Ast.Expr} {p: ℕ}:
     TypeJudgment σ δ Γ ctr e₁ ((Ast.Ty.field p), σ) →
     TypeJudgment σ δ Γ ctr e₂ ((Ast.Ty.field p), σ) →
     TypeJudgment σ δ Γ ctr (Ast.Expr.assertE e₁ e₂) ((Ast.Ty.refin Ast.Ty.unit (Ast.eval σ δ ctr e₁ = Ast.eval σ δ ctr e₂)), σ)

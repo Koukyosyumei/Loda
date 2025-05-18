@@ -15,7 +15,7 @@ example : SubtypeJudgment σ0 Γ0 (pure Ty.int) (pure Ty.int) :=
   SubtypeJudgment.TSub_Refl
 
 -- refinement subtyping: {v:int | True} <: {v:int | True}
-example : SubtypeJudgment σ0 Γ0 (pure (Ty.refin Ty.int (True))) (pure (Ty.refin Ty.int (True))) := by
+example : SubtypeJudgment σ0 Γ0 (pure (Ty.refin Ty.int True)) (pure (Ty.refin Ty.int True)) := by
   apply SubtypeJudgment.TSub_Refl
 
 -- TE_VAR: assume env maps "b" to {v | v = eval ...}
