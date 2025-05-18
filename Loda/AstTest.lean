@@ -124,4 +124,9 @@ def mulCircuit : Ast.Circuit := {
 def testEnv : Ast.CircuitEnv := fun nm => if nm = "mul" then mulCircuit else mulCircuit
 def env35 : Ast.Env := fun x =>
   if x = "x₁" then Ast.Value.vF 7 3 else if x = "x₂" then Ast.Value.vF 7 5 else Ast.Value.vStar
+def Γ0 : TyEnv := fun _ => Ast.Ty.field 7
+
 #eval Ast.eval env35 testEnv 123 mulCircuit.body
+example : TypeJudgment env35 testEnv Γ0 123 (Ast.Expr.var "out")
+  ((Ast.Ty.refin (Ast.Ty.field 7) (eeq (Ast.Expr.var "out") (Ast.Expr.fieldExpr (Ast.Expr.var "x₁") Ast.FieldOp.mul (Ast.Expr.var "x₂")))), σ0) := by
+  sorry
