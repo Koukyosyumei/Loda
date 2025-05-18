@@ -121,8 +121,10 @@ def circuit2prop (p : ℕ) (δ : Ast.CircuitEnv) (c : Ast.Circuit) : Prop :=
     xs.length = c.inputs.length →
   let σ : Ast.Env :=
     (c.inputs.zip xs).foldl (fun σ (xy : (String × Ast.Ty) × ZMod p) =>
-      let ((name, τ), x) := xy; fun y => if y = name then Ast.Value.vF p x else σ y)
+      let ((name, _), x) := xy; fun y => if y = name then Ast.Value.vF p x else σ y)
       (fun _ => Ast.Value.vStar)
+  ((List.zip c.inputs xs).all fun ((name, τ), y) => (tyenv2prop σ δ 1000 (fun y =>
+       if y = name then τ else τ) name) = true) →
   match Ast.eval σ δ 1000 c.body with
   | some _ =>
     -- extract the refinement predicate φ from `c.output`
