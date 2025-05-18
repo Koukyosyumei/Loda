@@ -37,7 +37,7 @@ example (y: ℕ) (hσy : σ0 "y" = Value.vInt y) : SubtypeJudgment σ0 δ0 Γ0 1
   · apply SubtypeJudgment.TSub_Refl
   intro h
   have hv : ∃ vv, eval σ0 δ0 123 v = some (Value.vInt vv) := by {
-    apply infer_type_of_v at h
+    apply IntExprEqImpliesIntVal at h
     exact h
   }
   obtain ⟨vv, hv_eq⟩ := hv
