@@ -85,7 +85,7 @@ mutual
     | bool     : Ty                       -- Bool
     | prod     : List Ty → Ty             -- T₁ × ... × Tₙ (unit is prod [])
     | arr      : Ty → Ty                  -- [T]
-    | refin    : Ty → Prop → Ty   -- {ν : T | ϕ}
+    | refin    : Ty → Expr → Ty   -- {ν : T | ϕ}
     | func     : String → Ty → Ty → Ty    -- x: τ₁ → τ₂
     --deriving DecidableEq, Repr
 end
@@ -164,6 +164,11 @@ def evalIntegerOp: IntegerOp → Value → Value → Option Value
 
 /-- Evaluate a binary relation. -/
 def evalRelOp : RelOp → Value → Value → Option Bool
+  | RelOp.eq,  Value.vF p₁ i, Value.vF p₂ j =>
+    if h : p₁ = p₂ then
+      some (i = (Eq.mp (by rw [h]) j))
+    else
+      none
   | RelOp.eq,  Value.vInt i, Value.vInt j => pure (i = j)
   | RelOp.lt,  Value.vInt i, Value.vInt j => pure (i < j)
   | RelOp.le,  Value.vInt i, Value.vInt j => pure (i ≤ j)
