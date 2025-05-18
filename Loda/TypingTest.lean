@@ -30,8 +30,8 @@ example : SubtypeJudgment σ0 δ0 Γ0 123 (pure (Ty.refin Ty.int (Ast.Expr.const
 -- refinement subtyping: {v:int | y + y} <: {v:int | 2 * y}
 -- (Ast.Expr.intExpr (Ast.Expr.constInt 2) Ast.IntegerOp.mul (Ast.Expr.var "y"))
 example (y: ℕ) (hσy : σ0 "y" = Value.vInt y) : SubtypeJudgment σ0 δ0 Γ0 123
-  (pure (Ty.refin Ty.int (Ast.Expr.binRel v Ast.RelOp.eq (Ast.Expr.intExpr (Ast.Expr.var "y") Ast.IntegerOp.add (Ast.Expr.var "y")))))
-  (pure (Ty.refin Ty.int (Ast.Expr.binRel v Ast.RelOp.eq (Ast.Expr.intExpr (Ast.Expr.constInt 2) Ast.IntegerOp.mul (Ast.Expr.var "y")))))
+  (pure (Ty.refin Ty.int (eeq v (Ast.Expr.intExpr (Ast.Expr.var "y") Ast.IntegerOp.add (Ast.Expr.var "y")))))
+  (pure (Ty.refin Ty.int (eeq v (Ast.Expr.intExpr (Ast.Expr.constInt 2) Ast.IntegerOp.mul (Ast.Expr.var "y")))))
   := by
   apply SubtypeJudgment.TSub_Refine
   · apply SubtypeJudgment.TSub_Refl
@@ -42,6 +42,8 @@ example (y: ℕ) (hσy : σ0 "y" = Value.vInt y) : SubtypeJudgment σ0 δ0 Γ0 1
   }
   obtain ⟨vv, hv_eq⟩ := hv
   dsimp [expr2prop, Ast.eval] at h ⊢
+  unfold eeq
+  unfold eeq at h
   simp [decide_eq_true] at h ⊢
   rw[hσy]
   rw[hσy] at h
