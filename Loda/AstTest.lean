@@ -45,7 +45,6 @@ example :
   Ast.eval σ0 δ0 123 (Ast.Expr.letIn "z" (Ast.Expr.constInt 7) (Ast.Expr.intExpr (Ast.Expr.var "z") Ast.IntegerOp.mul (Ast.Expr.constInt 3)))
   = some (Ast.Value.vInt 21) := by
     simp [Ast.eval]
-    simp [Ast.evalIntegerOp]
     unfold Ast.set
     simp_all
 
@@ -65,7 +64,6 @@ example :
   Ast.eval σ0 δ0 123 (Ast.Expr.binRel (Ast.Expr.constInt 3) Ast.RelOp.le (Ast.Expr.constInt 7))
   = some (Ast.Value.vBool true) := by
     simp [Ast.eval]
-    simp [Ast.evalRelOp]
 
 def pair := Ast.Expr.prodCons [Ast.Expr.constInt 2, Ast.Expr.constBool true]
 example :
@@ -94,6 +92,8 @@ def sumIter : Ast.Expr :=
         Ast.Expr.intExpr (Ast.Expr.var "acc") Ast.IntegerOp.add (Ast.Expr.var "i"))
     (Ast.Expr.constInt 0)  -- initial accumulator
 
+#eval Ast.eval σ0 δ0 123 sumIter
+
 -- sum 0 + 1 + 2 + 3 = 6
 example : Ast.eval σ0 δ0 123 sumIter = some (Ast.Value.vInt 6) := by
   unfold sumIter
@@ -107,10 +107,8 @@ example : Ast.eval σ0 δ0 123 sumIter = some (Ast.Value.vInt 6) := by
   unfold Ast.eval.loop
   simp_all
   unfold Ast.eval.loop
-  simp_all
   unfold Ast.set
   simp_all
-  simp [Ast.evalIntegerOp]
 
 def mulCircuit : Ast.Circuit := {
   name   := "mul",
