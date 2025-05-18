@@ -85,7 +85,7 @@ mutual
     | bool     : Ty                       -- Bool
     | prod     : List Ty → Ty             -- T₁ × ... × Tₙ (unit is prod [])
     | arr      : Ty → Ty                  -- [T]
-    | refin    : Value → Ty → Prop → Ty   -- {ν : T | ϕ}
+    | refin    : Ty → Prop → Ty   -- {ν : T | ϕ}
     | func     : String → Ty → Ty → Ty    -- x: τ₁ → τ₂
     --deriving DecidableEq, Repr
 end
