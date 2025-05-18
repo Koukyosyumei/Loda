@@ -116,7 +116,7 @@ unsafe def elaborateTerm (stx : Syntax) (expectedType : Option Expr) : MetaM Exp
     throwError "Unsupported term syntax: {stx}"
 
 -- Function to elaborate a Lean term into an Ast.Prop (incomplete)
-unsafe def elaborateProp (stx : Syntax) : MetaM Prop := do
+unsafe def elaborateProp (stx : Syntax) : MetaM Ast.Expr := do
     --  This is the *core* of the problem.  We need to convert a Lean
     --  term (which represents a logical proposition) into a Lean `Prop`.
     --  This is generally *impossible* to do automatically in full generality,
@@ -131,18 +131,19 @@ unsafe def elaborateProp (stx : Syntax) : MetaM Prop := do
     | `(term| $b:term && $c:term) => do
       let bProp ← elaborateProp b
       let cProp ← elaborateProp c
-      pure (bProp ∧ cProp)
+      pure (Ast.Expr.boolExpr bProp Ast.BooleanOp.and cProp)
     | `(term| $b:term || $c:term) => do
       let bProp ← elaborateProp b
       let cProp ← elaborateProp c
-      pure (bProp ∨ cProp)
+      pure (Ast.Expr.boolExpr bProp Ast.BooleanOp.or cProp)
+    /-
     | `(term| ! $b:term) => do
       let bProp ← elaborateProp b
       pure (¬bProp)
     | `(term| $x:term = $y:term) => do
       let xVal ← elaborateTerm x none
       let yVal ← elaborateTerm y none
-      pure (xVal = yVal)  --  VERY simplified.  Assumes decidable equality.
+      pure (eeq xVal yVal)  --  VERY simplified.  Assumes decidable equality.
     | `(term| $p:ident) => do
         -- Try to resolve the identifier as a proposition
         let pExpr ←  elaborateTerm p none
@@ -154,8 +155,9 @@ unsafe def elaborateProp (stx : Syntax) : MetaM Prop := do
         else
           -- Otherwise, it's not a proposition.
           throwError "Expected a proposition, but got {p} of type {pType}"
-    | `(term| True) =>  pure True
-    | `(term| False) => pure False
+    -/
+    | `(term| True) =>  pure (Ast.Expr.constBool true)
+    | `(term| False) => pure (Ast.Expr.constBool false)
     /-
     | `(term| forall $x:ident : $T:term, $p:term) => do
         let T_expr ← elaborateType T
@@ -203,7 +205,7 @@ unsafe def elaborateType (stx : Syntax) : MetaM Ast.Ty := do
     let phiProp ← elaborateProp phi
     -- Create a dummy value for the refinement
     let dummyValue := Ast.Value.vStar -- This might need to be improved
-    pure (Ast.Ty.refin dummyValue tAst phiProp)
+    pure (Ast.Ty.refin tAst phiProp)
   -- Handle other type forms...
   | _ => throwError "Unsupported type syntax"
 
