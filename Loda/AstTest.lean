@@ -110,3 +110,15 @@ example : Ast.eval σ0 δ0 123 sumIter = some (Ast.Value.vInt 6) := by
   unfold Ast.set
   simp_all
   simp [Ast.evalIntegerOp]
+
+def mulCircuit : Ast.Circuit := {
+  name   := "mul",
+  inputs := [("x₁", Ast.Ty.field 7), ("x₂", Ast.Ty.field 7)],
+  output := Ast.Ty.field 7,
+  body   := Ast.Expr.fieldExpr (Ast.Expr.var "x₁") Ast.FieldOp.mul (Ast.Expr.var "x₂")
+}
+
+def testEnv : Ast.CircuitEnv := fun nm => if nm = "mul" then mulCircuit else mulCircuit
+def env35 : Ast.Env := fun x =>
+  if x = "x₁" then Ast.Value.vF 7 3 else if x = "x2" then Ast.Value.vF 7 5 else Ast.Value.vStar
+#eval Ast.eval env35 testEnv 123 mulCircuit.body
