@@ -10,7 +10,7 @@
                                     
 ```
 
-<h3>Elegant Circuit, Certified by Types</h3>
+> <h3>Elegant Circuit, Certified by Types</h3>
 
 ## Install
 
