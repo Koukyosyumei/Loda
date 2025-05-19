@@ -332,18 +332,18 @@ unsafe def elaborateParam (stx : Syntax) : MetaM (String × Ast.Ty) := do
   | _ =>
     throwError "Unsupported parameter syntax: {stx}, expected `x : T`"
 
-unsafe def elaborateCircuit (stx : Syntax) : MetaM Ast.Circuit := do
+unsafe def elaborateCircuit (stx : Syntax) : MetaM Circuit.Circuit := do
   match stx with
   | `(loda_circuit| circuit $name:ident ($params:loda_param,*) -> $retTy:loda_ty {$body:loda_expr}) => do
     let nameStr := name.getId.toString
     let paramsList ← params.getElems.mapM elaborateParam
     let retTyAst ← elaborateType retTy
     let bodyAst ← elaborateExpr body
-    pure { name := nameStr, inputs := paramsList.toList, output := retTyAst, body := bodyAst }
+    pure { name := nameStr, inputs := paramsList.toList, output := ("output", retTyAst), body := bodyAst }
   | _ => throwError "Invalid circuit syntax"
 
 /-- Elaborate a CODA file into a list of Circuits -/
-unsafe def elabLodaFile : Syntax → MetaM (Array Ast.Circuit)
+unsafe def elabLodaFile : Syntax → MetaM (Array Circuit.Circuit)
   | `(loda_file| $[$circuits]*) => circuits.mapM elaborateCircuit
   | _ => throwError "Invalid CODA file syntax"
 

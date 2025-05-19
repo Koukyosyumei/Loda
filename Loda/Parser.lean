@@ -8,7 +8,7 @@ open System
 open Lean Elab Command Term Meta
 
 /-- Parse CODA DSL content into a list of Circuits -/
-unsafe def parseLodaProgram (content : String) : MetaM (List Ast.Circuit) := do
+unsafe def parseLodaProgram (content : String) : MetaM (List Circuit.Circuit) := do
   -- Parse the entire file content into syntax
   let env ← getEnv
   let fileId := `unnamedLodaFile
@@ -21,7 +21,7 @@ unsafe def parseLodaProgram (content : String) : MetaM (List Ast.Circuit) := do
 
 
 /-- Parse a CODA file and convert it to AST -/
-unsafe def parseLodaFile (filename : String) : MetaM (Option (List Ast.Circuit)) := do
+unsafe def parseLodaFile (filename : String) : MetaM (Option (List Circuit.Circuit)) := do
   -- Read the file content
   match ← IO.FS.readFile filename with
   | content =>
