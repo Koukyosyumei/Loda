@@ -1,4 +1,4 @@
-# Loda: Certified ZK Circuit in Lean4
+# Loda:
 
 > [!IMPORTANT]
 > This tool is under active development. Usage patterns and features may change over time.
@@ -8,6 +8,8 @@
       <img src="./img/logo.png" alt="Loda Logo" height="142">
   </a>
 </p>
+
+Certified ZK Circuit in Lean4
 
 ## Install
 
