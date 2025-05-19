@@ -1,23 +1,22 @@
-import Loda.Ast
 import Loda.Typing
 
 open Ast
 
 -- dummy environments
-def σ0 : Env := fun x =>
+def σ0 : Env.ValEnv := fun x =>
   match x with
   | "x" => Value.vBool true
   | "b" => Value.vBool true
   | "y" => Value.vInt 123
   | _ => Value.vStar
-def Γ0 : TyEnv := fun x =>
+def Γ0 : Env.TyEnv := fun x =>
   match x with
   | "x" => (Ty.refin Ty.bool (Ast.Expr.constBool true))
   | "b" => (Ty.refin Ty.bool (Ast.Expr.constBool true))
   | "y" => Ty.int
   | _ => Ty.unit
-def Γ1 := setTy Γ0 "x" Ty.bool
-def δ0 : Ast.CircuitEnv :=
+def Γ1 := Env.setTy Γ0 "x" Ty.bool
+def δ0 : Env.CircuitEnv :=
   fun _ => { name := "idInt", inputs := [("x", Ast.Ty.int)], output := ("out", Ast.Ty.int),
                  body := Ast.Expr.var "x" }
 
@@ -36,18 +35,18 @@ example (y: ℕ) (hσy : σ0 "y" = Value.vInt y) : SubtypeJudgment σ0 δ0 Γ0 1
   apply SubtypeJudgment.TSub_Refine
   · apply SubtypeJudgment.TSub_Refl
   intro h
-  have hv : ∃ vv, eval σ0 δ0 123 v = some (Value.vInt vv) := by {
+  have hv : ∃ vv, Eval.eval σ0 δ0 123 v = some (Value.vInt vv) := by {
     apply IntExprEqImpliesIntVal at h
     exact h
   }
   obtain ⟨vv, hv_eq⟩ := hv
-  dsimp [expr2prop, Ast.eval] at h ⊢
+  dsimp [PropSemantics.expr2prop, Eval.eval] at h ⊢
   unfold eeq
   unfold eeq at h
   simp [decide_eq_true] at h ⊢
   rw[hσy]
   rw[hσy] at h
-  simp[Ast.evalIntegerOp]
+  simp[Eval.evalIntegerOp]
   rw[hv_eq]
   rw[hv_eq] at h
   simp_all

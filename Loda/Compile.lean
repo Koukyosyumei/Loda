@@ -1,4 +1,5 @@
 import Loda.Ast
+import Loda.Env
 import Loda.Typing
 
 /-- Compilation values representing partially evaluated expressions. -/
@@ -80,7 +81,7 @@ def mkApplicationConstraint (fn: CompValue) (arg: CompValue) (result: CompValue)
   }
 
 /-- Compile an expression to R1CS constraints and a compilation value. -/
-unsafe def compile (σ: CompEnv) (δ: Ast.CircuitEnv) (s: CompState) (e: Ast.Expr) : (CompState × CompValue) :=
+unsafe def compile (σ: CompEnv) (δ: Env.CircuitEnv) (s: CompState) (e: Ast.Expr) : (CompState × CompValue) :=
   match e with
   -- C-VALUE (constants) just return the value with no constraints
   | Ast.Expr.constF p v => (s, CompValue.constF p v)
