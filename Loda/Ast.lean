@@ -101,7 +101,7 @@ instance : Repr Value where
     | Value.vArr vs, _  => Format.text "Arr"
     | Value.vClosure name _ _, _ => Format.text s!"<closure {name}>"
 
-def beq : Value → Value → Bool
+def val_eq : Value → Value → Bool
   | Value.vF p₁ x, Value.vF p₂ y        => p₁ = p₂ ∧ x.val % p₁ = y.val % p₁
   | Value.vF _ _, Value.vStar           => true
   | Value.vStar, Value.vF _ _           => true
@@ -113,10 +113,11 @@ def beq : Value → Value → Bool
   | _, _                    => false
 
 instance : BEq Value where
-  beq := beq
+  beq := val_eq
 
-def eeq (e₁ e₂: Ast.Expr): Ast.Expr :=
+def expr_eq (e₁ e₂: Ast.Expr): Ast.Expr :=
   Ast.Expr.binRel e₁ Ast.RelOp.eq e₂
+
 def v: Ast.Expr := Ast.Expr.var ".v"
 
 end Ast

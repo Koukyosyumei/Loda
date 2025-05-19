@@ -116,7 +116,7 @@ example : Eval.eval σ0 δ0 123 sumIter = some (Ast.Value.vInt 6) := by
 def mulCircuit : Circuit.Circuit := {
   name   := "mul",
   inputs := [("x₁", Ast.Ty.field 7), ("x₂", Ast.Ty.field 7)],
-  output := ("out", Ast.Ty.refin (Ast.Ty.field 7) (eeq v (Ast.Expr.fieldExpr (Ast.Expr.var "x₁") Ast.FieldOp.mul (Ast.Expr.var "x₂")))),
+  output := ("out", Ast.Ty.refin (Ast.Ty.field 7) (expr_eq v (Ast.Expr.fieldExpr (Ast.Expr.var "x₁") Ast.FieldOp.mul (Ast.Expr.var "x₂")))),
   body   := (Ast.Expr.fieldExpr (Ast.Expr.var "x₁") Ast.FieldOp.mul (Ast.Expr.var "x₂"))
 }
 

@@ -143,7 +143,7 @@ unsafe def elaborateProp (stx : Syntax) : MetaM Ast.Expr := do
     | `(term| $x:term = $y:term) => do
       let xVal ← elaborateTerm x none
       let yVal ← elaborateTerm y none
-      pure (eeq xVal yVal)  --  VERY simplified.  Assumes decidable equality.
+      pure (expr_eq xVal yVal)  --  VERY simplified.  Assumes decidable equality.
     | `(term| $p:ident) => do
         -- Try to resolve the identifier as a proposition
         let pExpr ←  elaborateTerm p none

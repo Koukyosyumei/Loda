@@ -48,7 +48,7 @@ inductive TypeJudgment: Env.ValEnv -> Env.CircuitEnv -> Env.TyEnv -> ℕ -> Ast.
   -- TE-VAR
   | TE_Var {σ: Env.ValEnv} {δ: Env.CircuitEnv} {Γ: Env.TyEnv} {ctr: ℕ} {x : String} {T: Ast.Ty}:
     ∀ φ: Ast.Expr, Γ x = (Ast.Ty.refin T φ) →
-    TypeJudgment σ δ Γ ctr (Ast.Expr.var x) ((Ast.Ty.refin T (Ast.eeq Ast.v (Ast.Expr.var x))), σ)
+    TypeJudgment σ δ Γ ctr (Ast.Expr.var x) ((Ast.Ty.refin T (Ast.expr_eq Ast.v (Ast.Expr.var x))), σ)
 
   -- TE-VAR-FUNC
   | T_VarFunc {σ: Env.ValEnv} {δ: Env.CircuitEnv} {Γ: Env.TyEnv} {ctr: ℕ} {f x : String} {τ₁ τ₂: Ast.Ty}:
@@ -61,19 +61,19 @@ inductive TypeJudgment: Env.ValEnv -> Env.CircuitEnv -> Env.TyEnv -> ℕ -> Ast.
 
   -- TE-CONSTF
   | T_ConstF {σ: Env.ValEnv} {δ: Env.CircuitEnv} {Γ: Env.TyEnv} {ctr: ℕ} {p: ℕ} {f: F p} :
-    TypeJudgment σ δ Γ ctr (Ast.Expr.constF p f) ((Ast.Ty.refin (Ast.Ty.field p) (Ast.eeq Ast.v (Ast.Expr.constF p f))), σ)
+    TypeJudgment σ δ Γ ctr (Ast.Expr.constF p f) ((Ast.Ty.refin (Ast.Ty.field p) (Ast.expr_eq Ast.v (Ast.Expr.constF p f))), σ)
 
   -- TE-ASSERT
   | T_Assert {σ: Env.ValEnv} {δ: Env.CircuitEnv} {Γ: Env.TyEnv} {ctr: ℕ} {e₁ e₂: Ast.Expr} {p: ℕ}:
     TypeJudgment σ δ Γ ctr e₁ ((Ast.Ty.field p), σ) →
     TypeJudgment σ δ Γ ctr e₂ ((Ast.Ty.field p), σ) →
-    TypeJudgment σ δ Γ ctr (Ast.Expr.assertE e₁ e₂) ((Ast.Ty.refin Ast.Ty.unit (Ast.eeq e₁ e₂)), σ)
+    TypeJudgment σ δ Γ ctr (Ast.Expr.assertE e₁ e₂) ((Ast.Ty.refin Ast.Ty.unit (Ast.expr_eq e₁ e₂)), σ)
 
   -- TE-BINOPFIELD
   | T_BinOpField {σ: Env.ValEnv} {δ: Env.CircuitEnv} {Γ: Env.TyEnv} {ctr: ℕ} {e₁ e₂: Ast.Expr} {op: Ast.FieldOp} {p: ℕ}:
     TypeJudgment σ δ Γ ctr e₁ ((Ast.Ty.field p), σ) →
     TypeJudgment σ δ Γ ctr e₂ ((Ast.Ty.field p), σ) →
-    TypeJudgment σ δ Γ ctr (Ast.Expr.fieldExpr e₁ op e₂) ((Ast.Ty.refin (Ast.Ty.field p) (Ast.eeq Ast.v (Ast.Expr.fieldExpr e₁ op e₂))), σ)
+    TypeJudgment σ δ Γ ctr (Ast.Expr.fieldExpr e₁ op e₂) ((Ast.Ty.refin (Ast.Ty.field p) (Ast.expr_eq Ast.v (Ast.Expr.fieldExpr e₁ op e₂))), σ)
 
   -- TE-ABS (function abstraction)
   | T_Abs {σ: Env.ValEnv} {δ: Env.CircuitEnv} {Γ: Env.TyEnv} {ctr: ℕ} {x: String} {τ₁ τ₂: Ast.Ty} {e: Ast.Expr}:
@@ -94,12 +94,12 @@ inductive TypeJudgment: Env.ValEnv -> Env.CircuitEnv -> Env.TyEnv -> ℕ -> Ast.
 
 axiom IntExprEqImpliesIntVal :
   ∀ (a b : Ast.Expr) (op : Ast.IntegerOp) (σ : Env.ValEnv) (δ : Env.CircuitEnv) (ctr : ℕ),
-  PropSemantics.expr2prop σ δ ctr (Ast.eeq Ast.v (Ast.Expr.intExpr a op b)) →
+  PropSemantics.expr2prop σ δ ctr (Ast.expr_eq Ast.v (Ast.Expr.intExpr a op b)) →
   ∃ vv, Eval.eval σ δ ctr Ast.v = some (Ast.Value.vInt vv)
 
 axiom FieldExprEqImpliesFieldVal {p : ℕ} :
   ∀ (a b : Ast.Expr) (op : Ast.FieldOp) (σ : Env.ValEnv) (δ : Env.CircuitEnv) (ctr : ℕ),
-  PropSemantics.expr2prop σ δ ctr (Ast.eeq Ast.v (Ast.Expr.fieldExpr a op b)) →
+  PropSemantics.expr2prop σ δ ctr (Ast.expr_eq Ast.v (Ast.Expr.fieldExpr a op b)) →
   ∃ vv, Eval.eval σ δ ctr Ast.v = some (Ast.Value.vF p vv)
 
 end Ty
