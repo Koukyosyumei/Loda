@@ -20,23 +20,26 @@ def δ0 : Env.CircuitEnv :=
   fun _ => { name := "idInt", inputs := [("x", Ast.Ty.int)], output := ("out", Ast.Ty.int),
                  body := Ast.Expr.var "x" }
 
-example : SubtypeJudgment σ0 δ0 Γ0 123 (pure Ty.int) (pure Ty.int) :=
-  SubtypeJudgment.TSub_Refl
+example : Ty.SubtypeJudgment σ0 δ0 Γ0 123 (pure Ty.int) (pure Ty.int) :=
+  Ty.SubtypeJudgment.TSub_Refl
 
 -- refinement subtyping: {v:int | True} <: {v:int | True}
-example : SubtypeJudgment σ0 δ0 Γ0 123 (pure (Ty.refin Ty.int (Ast.Expr.constBool true))) (pure (Ty.refin Ty.int (Ast.Expr.constBool true))) := SubtypeJudgment.TSub_Refl
+example : Ty.SubtypeJudgment σ0 δ0 Γ0 123
+  (pure (Ty.refin Ty.int (Ast.Expr.constBool true)))
+  (pure (Ty.refin Ty.int (Ast.Expr.constBool true))) :=
+  Ty.SubtypeJudgment.TSub_Refl
 
 -- refinement subtyping: {v:int | y + y} <: {v:int | 2 * y}
 -- (Ast.Expr.intExpr (Ast.Expr.constInt 2) Ast.IntegerOp.mul (Ast.Expr.var "y"))
-example (y: ℕ) (hσy : σ0 "y" = Value.vInt y) : SubtypeJudgment σ0 δ0 Γ0 123
+example (y: ℕ) (hσy : σ0 "y" = Value.vInt y) : Ty.SubtypeJudgment σ0 δ0 Γ0 123
   (pure (Ty.refin Ty.int (eeq v (Ast.Expr.intExpr (Ast.Expr.var "y") Ast.IntegerOp.add (Ast.Expr.var "y")))))
   (pure (Ty.refin Ty.int (eeq v (Ast.Expr.intExpr (Ast.Expr.constInt 2) Ast.IntegerOp.mul (Ast.Expr.var "y")))))
   := by
-  apply SubtypeJudgment.TSub_Refine
-  · apply SubtypeJudgment.TSub_Refl
+  apply Ty.SubtypeJudgment.TSub_Refine
+  · apply Ty.SubtypeJudgment.TSub_Refl
   intro h
   have hv : ∃ vv, Eval.eval σ0 δ0 123 v = some (Value.vInt vv) := by {
-    apply IntExprEqImpliesIntVal at h
+    apply Ty.IntExprEqImpliesIntVal at h
     exact h
   }
   obtain ⟨vv, hv_eq⟩ := hv
@@ -53,7 +56,7 @@ example (y: ℕ) (hσy : σ0 "y" = Value.vInt y) : SubtypeJudgment σ0 δ0 Γ0 1
   rw[two_mul]
 
 -- TE_VAR: assume env maps "b" to {v | v = eval ...}
-example : TypeJudgment σ0 δ0 Γ0 123 (Expr.var "b") ((Ty.refin Ty.bool (eeq v (Ast.Expr.var "b"))), σ0) := by
-  apply TypeJudgment.TE_Var
+example : Ty.TypeJudgment σ0 δ0 Γ0 123 (Expr.var "b") ((Ty.refin Ty.bool (eeq v (Ast.Expr.var "b"))), σ0) := by
+  apply Ty.TypeJudgment.TE_Var
   simp [Γ0]
   rfl

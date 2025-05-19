@@ -115,4 +115,8 @@ def beq : Value → Value → Bool
 instance : BEq Value where
   beq := beq
 
+def eeq (e₁ e₂: Ast.Expr): Ast.Expr :=
+  Ast.Expr.binRel e₁ Ast.RelOp.eq e₂
+def v: Ast.Expr := Ast.Expr.var ".v"
+
 end Ast

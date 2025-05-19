@@ -4,6 +4,8 @@ import Loda.Env
 import Loda.Eval
 import Loda.PropSemantics
 
+namespace Ty
+
 /-- Subtyping judgment for CODA types -/
 inductive SubtypeJudgment : Env.ValEnv -> Env.CircuitEnv -> Env.TyEnv -> ℕ → Option Ast.Ty → Option Ast.Ty → Prop where
   /-- TSUB-REFL: Reflexivity -/
@@ -42,20 +44,16 @@ inductive SubtypeJudgment : Env.ValEnv -> Env.CircuitEnv -> Env.TyEnv -> ℕ →
       (∀ i, i < Ts₁.length → SubtypeJudgment σ δ Γ ctr Ts₁[i]? Ts₂[i]?) →
       SubtypeJudgment σ δ Γ ctr (pure (Ast.Ty.prod Ts₁)) (pure (Ast.Ty.prod Ts₂))
 
-def eeq (e₁ e₂: Ast.Expr): Ast.Expr :=
-  Ast.Expr.binRel e₁ Ast.RelOp.eq e₂
-def v: Ast.Expr := Ast.Expr.var ".v"
-
 axiom IntExprEqImpliesIntVal :
   ∀ (a b : Ast.Expr) (op : Ast.IntegerOp) (σ : Env.ValEnv) (δ : Env.CircuitEnv) (ctr : ℕ),
-  PropSemantics.expr2prop σ δ ctr (eeq v (Ast.Expr.intExpr a op b)) →
-  ∃ vv, Eval.eval σ δ ctr v = some (Ast.Value.vInt vv)
+  PropSemantics.expr2prop σ δ ctr (Ast.eeq Ast.v (Ast.Expr.intExpr a op b)) →
+  ∃ vv, Eval.eval σ δ ctr Ast.v = some (Ast.Value.vInt vv)
 
 inductive TypeJudgment: Env.ValEnv -> Env.CircuitEnv -> Env.TyEnv -> ℕ -> Ast.Expr -> (Ast.Ty × Env.ValEnv) -> Prop where
   -- TE-VAR
   | TE_Var {σ: Env.ValEnv} {δ: Env.CircuitEnv} {Γ: Env.TyEnv} {ctr: ℕ} {x : String} {T: Ast.Ty}:
     ∀ φ: Ast.Expr, Γ x = (Ast.Ty.refin T φ) →
-    TypeJudgment σ δ Γ ctr (Ast.Expr.var x) ((Ast.Ty.refin T (eeq v (Ast.Expr.var x))), σ)
+    TypeJudgment σ δ Γ ctr (Ast.Expr.var x) ((Ast.Ty.refin T (Ast.eeq Ast.v (Ast.Expr.var x))), σ)
 
   -- TE-VAR-FUNC
   | T_VarFunc {σ: Env.ValEnv} {δ: Env.CircuitEnv} {Γ: Env.TyEnv} {ctr: ℕ} {f x : String} {τ₁ τ₂: Ast.Ty}:
@@ -68,19 +66,19 @@ inductive TypeJudgment: Env.ValEnv -> Env.CircuitEnv -> Env.TyEnv -> ℕ -> Ast.
 
   -- TE-CONSTF
   | T_ConstF {σ: Env.ValEnv} {δ: Env.CircuitEnv} {Γ: Env.TyEnv} {ctr: ℕ} {p: ℕ} {f: F p} :
-    TypeJudgment σ δ Γ ctr (Ast.Expr.constF p f) ((Ast.Ty.refin (Ast.Ty.field p) (eeq v (Ast.Expr.constF p f))), σ)
+    TypeJudgment σ δ Γ ctr (Ast.Expr.constF p f) ((Ast.Ty.refin (Ast.Ty.field p) (Ast.eeq Ast.v (Ast.Expr.constF p f))), σ)
 
   -- TE-ASSERT
   | T_Assert {σ: Env.ValEnv} {δ: Env.CircuitEnv} {Γ: Env.TyEnv} {ctr: ℕ} {e₁ e₂: Ast.Expr} {p: ℕ}:
     TypeJudgment σ δ Γ ctr e₁ ((Ast.Ty.field p), σ) →
     TypeJudgment σ δ Γ ctr e₂ ((Ast.Ty.field p), σ) →
-    TypeJudgment σ δ Γ ctr (Ast.Expr.assertE e₁ e₂) ((Ast.Ty.refin Ast.Ty.unit (eeq e₁ e₂)), σ)
+    TypeJudgment σ δ Γ ctr (Ast.Expr.assertE e₁ e₂) ((Ast.Ty.refin Ast.Ty.unit (Ast.eeq e₁ e₂)), σ)
 
   -- TE-BINOPFIELD
   | T_BinOpField {σ: Env.ValEnv} {δ: Env.CircuitEnv} {Γ: Env.TyEnv} {ctr: ℕ} {e₁ e₂: Ast.Expr} {op: Ast.FieldOp} {p: ℕ}:
     TypeJudgment σ δ Γ ctr e₁ ((Ast.Ty.field p), σ) →
     TypeJudgment σ δ Γ ctr e₂ ((Ast.Ty.field p), σ) →
-    TypeJudgment σ δ Γ ctr (Ast.Expr.fieldExpr e₁ op e₂) ((Ast.Ty.refin (Ast.Ty.field p) (eeq v (Ast.Expr.fieldExpr e₁ op e₂))), σ)
+    TypeJudgment σ δ Γ ctr (Ast.Expr.fieldExpr e₁ op e₂) ((Ast.Ty.refin (Ast.Ty.field p) (Ast.eeq Ast.v (Ast.Expr.fieldExpr e₁ op e₂))), σ)
 
   -- TE-ABS (function abstraction)
   | T_Abs {σ: Env.ValEnv} {δ: Env.CircuitEnv} {Γ: Env.TyEnv} {ctr: ℕ} {x: String} {τ₁ τ₂: Ast.Ty} {e: Ast.Expr}:
@@ -99,25 +97,4 @@ inductive TypeJudgment: Env.ValEnv -> Env.CircuitEnv -> Env.TyEnv -> ℕ -> Ast.
     TypeJudgment σ δ Γ ctr e (τ₁, σ') →
     TypeJudgment σ δ Γ ctr e (τ₂, σ')
 
-/-- Given a circuit `c`, produce the Prop that says
-1. for any choice of inputs of the correct field type,
-2. evaluating `c.body` yields a value `v`,
-3. and `v` satisfies the refinement predicate in `c.output`. -/
-def circuit2prop (p : ℕ) (δ : Env.CircuitEnv) (c : Circuit.Circuit) : Prop :=
-  ∀ (xs : List (ZMod p)),
-    -- require that the argument list `xs` matches `c.inputs` in length
-    xs.length = c.inputs.length →
-  let σ : Env.ValEnv :=
-    (c.inputs.zip xs).foldl (fun σ (xy : (String × Ast.Ty) × ZMod p) =>
-      let ((name, _), x) := xy; Env.setVal σ name (Ast.Value.vF p x)) (fun _ => Ast.Value.vStar)
-  let Γ : Env.TyEnv :=
-    (c.inputs.zip xs).foldl (fun Γ (xy : (String × Ast.Ty) × ZMod p) =>
-      let ((name, τ), _) := xy; Env.setTy Γ name τ) (fun _ => Ast.Ty.unit)
-  ∀ p ∈ (List.zip c.inputs xs), (PropSemantics.tyenv2prop σ δ 1000 Γ p.fst.fst) →
-  match Eval.eval σ δ 1000 c.body with
-  | some _ =>
-    -- extract the refinement predicate φ from `c.output`
-    match c.output with
-    | (n, Ast.Ty.refin _ φ) => PropSemantics.expr2prop σ δ 1000 φ
-    | _            => True
-  | none   => False
+end Ty
