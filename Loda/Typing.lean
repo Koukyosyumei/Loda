@@ -44,11 +44,6 @@ inductive SubtypeJudgment : Env.ValEnv -> Env.CircuitEnv -> Env.TyEnv -> ℕ →
       (∀ i, i < Ts₁.length → SubtypeJudgment σ δ Γ ctr Ts₁[i]? Ts₂[i]?) →
       SubtypeJudgment σ δ Γ ctr (pure (Ast.Ty.prod Ts₁)) (pure (Ast.Ty.prod Ts₂))
 
-axiom IntExprEqImpliesIntVal :
-  ∀ (a b : Ast.Expr) (op : Ast.IntegerOp) (σ : Env.ValEnv) (δ : Env.CircuitEnv) (ctr : ℕ),
-  PropSemantics.expr2prop σ δ ctr (Ast.eeq Ast.v (Ast.Expr.intExpr a op b)) →
-  ∃ vv, Eval.eval σ δ ctr Ast.v = some (Ast.Value.vInt vv)
-
 inductive TypeJudgment: Env.ValEnv -> Env.CircuitEnv -> Env.TyEnv -> ℕ -> Ast.Expr -> (Ast.Ty × Env.ValEnv) -> Prop where
   -- TE-VAR
   | TE_Var {σ: Env.ValEnv} {δ: Env.CircuitEnv} {Γ: Env.TyEnv} {ctr: ℕ} {x : String} {T: Ast.Ty}:
@@ -96,5 +91,15 @@ inductive TypeJudgment: Env.ValEnv -> Env.CircuitEnv -> Env.TyEnv -> ℕ -> Ast.
     SubtypeJudgment σ δ Γ ctr (pure τ₁) (pure τ₂) →
     TypeJudgment σ δ Γ ctr e (τ₁, σ') →
     TypeJudgment σ δ Γ ctr e (τ₂, σ')
+
+axiom IntExprEqImpliesIntVal :
+  ∀ (a b : Ast.Expr) (op : Ast.IntegerOp) (σ : Env.ValEnv) (δ : Env.CircuitEnv) (ctr : ℕ),
+  PropSemantics.expr2prop σ δ ctr (Ast.eeq Ast.v (Ast.Expr.intExpr a op b)) →
+  ∃ vv, Eval.eval σ δ ctr Ast.v = some (Ast.Value.vInt vv)
+
+axiom FieldExprEqImpliesFieldVal {p : ℕ} :
+  ∀ (a b : Ast.Expr) (op : Ast.FieldOp) (σ : Env.ValEnv) (δ : Env.CircuitEnv) (ctr : ℕ),
+  PropSemantics.expr2prop σ δ ctr (Ast.eeq Ast.v (Ast.Expr.fieldExpr a op b)) →
+  ∃ vv, Eval.eval σ δ ctr Ast.v = some (Ast.Value.vF p vv)
 
 end Ty
