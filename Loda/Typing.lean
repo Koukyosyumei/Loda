@@ -97,6 +97,11 @@ axiom IntExprEqImpliesIntVal :
   PropSemantics.expr2prop σ δ ctr (Ast.expr_eq Ast.v (Ast.Expr.intExpr a op b)) →
   ∃ vv, Eval.eval σ δ ctr Ast.v = some (Ast.Value.vInt vv)
 
+axiom BoolExprEqImpliesBoolVal :
+  ∀ (a b : Ast.Expr) (op : Ast.BooleanOp) (σ : Env.ValEnv) (δ : Env.CircuitEnv) (ctr : ℕ),
+  PropSemantics.expr2prop σ δ ctr (Ast.expr_eq Ast.v (Ast.Expr.boolExpr a op b)) →
+  ∃ vv, Eval.eval σ δ ctr Ast.v = some (Ast.Value.vBool vv)
+
 axiom FieldExprEqImpliesFieldVal {p : ℕ} :
   ∀ (a b : Ast.Expr) (op : Ast.FieldOp) (σ : Env.ValEnv) (δ : Env.CircuitEnv) (ctr : ℕ),
   PropSemantics.expr2prop σ δ ctr (Ast.expr_eq Ast.v (Ast.Expr.fieldExpr a op b)) →

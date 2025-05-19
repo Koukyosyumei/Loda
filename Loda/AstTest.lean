@@ -18,11 +18,11 @@ def δ0 : Env.CircuitEnv :=
 -- --------------------------------------------------
 -- beq tests
 -- --------------------------------------------------
-example : Ast.beq (Ast.Value.vInt 3) (Ast.Value.vInt 3) = true := rfl
-example : Ast.beq (Ast.Value.vInt 3) (Ast.Value.vInt 4) = false := rfl
-example : Ast.beq (Ast.Value.vStar) (Ast.Value.vF 7 5) = true := rfl
-example : Ast.beq (Ast.Value.vF 7 4) (Ast.Value.vStar) = true := rfl
-example : Ast.beq (Ast.Value.vBool true) (Ast.Value.vBool false) = false := rfl
+example : (Ast.Value.vInt 3) = (Ast.Value.vInt 3) := rfl
+example : (Ast.Value.vInt 3) != (Ast.Value.vInt 4) := rfl
+example : Ast.val_eq (Ast.Value.vStar) (Ast.Value.vF 7 5) = true := rfl
+example : Ast.val_eq (Ast.Value.vF 7 4) (Ast.Value.vStar) := rfl
+example : (Ast.Value.vBool true) != (Ast.Value.vBool false) := rfl
 
 -- --------------------------------------------------
 -- evalRelOp tests
