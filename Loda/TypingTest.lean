@@ -60,3 +60,34 @@ example : Ty.TypeJudgment σ0 δ0 Γ0 123 (Expr.var "b") ((Ty.refin Ty.bool (exp
   apply Ty.TypeJudgment.TE_Var
   simp [Γ0]
   rfl
+
+def mulCircuit : Circuit.Circuit := {
+  name   := "mul",
+  inputs := [("x", Ast.Ty.int)],
+  output := ("out", Ast.Ty.refin (Ast.Ty.int) (Ast.expr_eq Ast.v (Ast.Expr.intExpr (Ast.Expr.constInt 2) Ast.IntegerOp.mul (Ast.Expr.var "x")))),
+  body   := (Ast.Expr.letIn "out" (Ast.Expr.intExpr (Ast.Expr.var "x") Ast.IntegerOp.add (Ast.Expr.var "x")) (Ast.Expr.var "out"))
+}
+
+def δ₁ : Env.CircuitEnv := fun nm => if nm = "mul" then mulCircuit else mulCircuit
+def σ₁ : Env.ValEnv := fun x =>
+  if x = "x₁" then Ast.Value.vF 7 3 else if x = "x₂" then Ast.Value.vF 7 5 else Ast.Value.vStar
+--def Γ₁ : Env.TyEnv := fun _ => Ast.Ty.field 7
+
+#check Ty.circuit2prop 7 δ₁ mulCircuit
+
+#check Ty.circuit2prop 7 δ₁ mulCircuit
+
+theorem mulCircuit_correct : (Ty.circuit2prop 7 δ₁ mulCircuit) := by
+  unfold Ty.circuit2prop
+  intros xs henv h₁ h₂ h₃ h₄ h₅
+  cases xs
+  case nil =>
+    simp_all
+  case cons hmod hlist =>
+    simp [mulCircuit]
+    -- Ty.refin Ty.int (expr_eq v (Expr.intExpr (Expr.var "y") IntegerOp.add (Expr.var "y")))
+    have hsub : Ty.TypeJudgment henv δ₁ h₁ 1000 (Expr.var "out") (Ty.refin Ty.int (expr_eq v (Expr.intExpr (Expr.var "y") IntegerOp.add (Expr.var "y"))), henv) := by {
+      dsimp [henv]
+      sorry
+    }
+    sorry

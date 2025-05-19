@@ -112,29 +112,3 @@ example : Eval.eval σ0 δ0 123 sumIter = some (Ast.Value.vInt 6) := by
   unfold Eval.eval.loop
   unfold Env.setVal
   simp_all
-
-def mulCircuit : Circuit.Circuit := {
-  name   := "mul",
-  inputs := [("x₁", Ast.Ty.field 7), ("x₂", Ast.Ty.field 7)],
-  output := ("out", Ast.Ty.refin (Ast.Ty.field 7) (Ast.expr_eq Ast.v (Ast.Expr.fieldExpr (Ast.Expr.var "x₁") Ast.FieldOp.mul (Ast.Expr.var "x₂")))),
-  body   := (Ast.Expr.fieldExpr (Ast.Expr.var "x₁") Ast.FieldOp.mul (Ast.Expr.var "x₂"))
-}
-
-def testEnv : Env.CircuitEnv := fun nm => if nm = "mul" then mulCircuit else mulCircuit
-def env35 : Env.ValEnv := fun x =>
-  if x = "x₁" then Ast.Value.vF 7 3 else if x = "x₂" then Ast.Value.vF 7 5 else Ast.Value.vStar
-def Γ0 : Env.TyEnv := fun _ => Ast.Ty.field 7
-
-#check PropSemantics.circuit2prop 7 testEnv mulCircuit
-
-theorem mulCircuit_correct : (PropSemantics.circuit2prop 7 testEnv mulCircuit) := by
-  unfold PropSemantics.circuit2prop
-  intros xs hlen
-  cases xs
-  case nil =>
-    cases hlen
-  case cons hmod hlist =>
-    unfold PropSemantics.expr2prop
-    unfold mulCircuit
-    simp [Eval.eval]
-    sorry

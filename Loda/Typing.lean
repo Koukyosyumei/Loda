@@ -107,4 +107,25 @@ axiom FieldExprEqImpliesFieldVal {p : ℕ} :
   PropSemantics.expr2prop σ δ ctr (Ast.expr_eq Ast.v (Ast.Expr.fieldExpr a op b)) →
   ∃ vv, Eval.eval σ δ ctr Ast.v = some (Ast.Value.vF p vv)
 
+/-- Given a circuit `c`, produce the Prop that says
+1. for any choice of inputs of the correct field type,
+2. evaluating `c.body` yields a value `v`,
+3. and `v` satisfies the refinement predicate in `c.output`. -/
+def circuit2prop (p : ℕ) (δ : Env.CircuitEnv) (c : Circuit.Circuit) : Prop :=
+  ∀ (xs : List (ZMod p)),
+  let σ : Env.ValEnv :=
+    (c.inputs.zip xs).foldl (fun σ (xy : (String × Ast.Ty) × ZMod p) =>
+      let ((name, _), x) := xy; Env.setVal σ name (Ast.Value.vF p x)) (fun _ => Ast.Value.vStar)
+  let Γ : Env.TyEnv :=
+    (c.inputs.zip xs).foldl (fun Γ (xy : (String × Ast.Ty) × ZMod p) =>
+      let ((name, τ), _) := xy; Env.setTy Γ name τ) (fun _ => Ast.Ty.unit)
+  -- require that the argument list `xs` matches `c.inputs` in length
+  xs.length = c.inputs.length →
+  -- require that the inputs satisfy the assumed types
+  ∀ p ∈ (List.zip c.inputs xs), (PropSemantics.tyenv2prop σ δ 1000 Γ p.fst.fst) →
+  -- check the type of the output is valid
+  match Eval.eval σ δ 1000 c.body with
+  | some _ => TypeJudgment σ δ Γ 1000 (Ast.Expr.var c.output.fst) (c.output.snd, σ)
+  | none   => False
+
 end Ty
