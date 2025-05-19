@@ -103,7 +103,7 @@ instance : Repr Value where
 
 def val_eq : Value → Value → Bool
   | Value.vF p₁ x, Value.vF p₂ y        => p₁ = p₂ ∧ x.val % p₁ = y.val % p₁
-  | Value.vF _ _, Value.vStar           => true
+  | Value.vF _ _, Value.vStar          => true
   | Value.vStar, Value.vF _ _           => true
   | Value.vInt i₁, Value.vInt i₂        => i₁ = i₂
   | Value.vBool b₁, Value.vBool b₂      => b₁ = b₂
