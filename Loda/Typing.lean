@@ -18,14 +18,6 @@ inductive SubtypeJudgment : Env.ValEnv -> Env.CircuitEnv -> Env.TyEnv -> ℕ →
       SubtypeJudgment σ δ Γ ctr (pure τ₂) (pure τ₃) →
       SubtypeJudgment σ δ Γ ctr (pure τ₁) (pure τ₃)
 
-  /-
-  | TSub_Refine_True {σ : Env.ValEnv} {δ: Env.CircuitEnv} {Γ : Env.TyEnv} {ctr: ℕ} {τ: Ast.Ty}:
-      SubtypeJudgment σ δ Γ ctr (pure τ) (pure (Ast.Ty.refin τ (Ast.Expr.constBool true)))
-
-  | TSub_Refine_True_Right {σ : Env.ValEnv} {δ: Env.CircuitEnv} {Γ : Env.TyEnv} {ctr: ℕ} {τ: Ast.Ty}:
-      SubtypeJudgment σ δ Γ ctr (pure (Ast.Ty.refin τ (Ast.Expr.constBool true))) (pure τ)
-  -/
-
   /-- TSUB-REFINE: Refinement subtyping -/
   | TSub_Refine {σ : Env.ValEnv} {δ: Env.CircuitEnv} {Γ : Env.TyEnv} {ctr: ℕ} {T₁ T₂ : Ast.Ty} {φ₁ φ₂ : Ast.Expr} :
       SubtypeJudgment σ δ Γ ctr (pure T₁) (pure T₂) →
@@ -94,24 +86,24 @@ inductive TypeJudgment: Env.ValEnv -> Env.CircuitEnv -> Env.TyEnv -> ℕ -> Ast.
     TypeJudgment σ δ Γ ctr (Ast.Expr.lam x τ₁ e) ((Ast.Ty.func x τ₁ τ₂), σ)
 
   -- TE-APP
-  | T_App {σ: Env.ValEnv} {δ: Env.CircuitEnv} {Γ: Env.TyEnv} {ctr: ℕ} {x₁ x₂: Ast.Expr} {s: String} {τ₁ τ₂: Ast.Ty} {v: Ast.Value}:
+  | T_App {σ σ': Env.ValEnv} {δ: Env.CircuitEnv} {Γ: Env.TyEnv} {ctr: ℕ} {x₁ x₂: Ast.Expr} {s: String} {τ₁ τ₂: Ast.Ty} {v: Ast.Value}:
     TypeJudgment σ δ Γ ctr x₁ ((Ast.Ty.func s τ₁ τ₂), σ) →
     Eval.eval σ δ ctr x₂ = some v →
-    TypeJudgment σ δ Γ ctr x₂ (τ₁, σ) → TypeJudgment σ δ Γ ctr (Ast.Expr.app x₁ x₂) (τ₂, (Env.setVal σ s v))
+    TypeJudgment σ δ Γ ctr x₂ (τ₁, σ') → TypeJudgment σ δ Γ ctr (Ast.Expr.app x₁ x₂) (τ₂, (Env.setVal σ' s v))
 
   -- TE_SUB
-  | T_SUB {σ σ': Env.ValEnv} {δ: Env.CircuitEnv} {Γ: Env.TyEnv} {ctr: ℕ} {e: Ast.Expr} {τ₁ τ₂: Ast.Ty}:
+  | T_SUB {σ: Env.ValEnv} {δ: Env.CircuitEnv} {Γ: Env.TyEnv} {ctr: ℕ} {e: Ast.Expr} {τ₁ τ₂: Ast.Ty}:
     SubtypeJudgment σ δ Γ ctr (pure τ₁) (pure τ₂) →
-    TypeJudgment σ δ Γ ctr e (τ₁, σ') →
-    TypeJudgment σ δ Γ ctr e (τ₂, σ')
+    TypeJudgment σ δ Γ ctr e (τ₁, σ) →
+    TypeJudgment σ δ Γ ctr e (τ₂, σ)
 
   -- TE-LETIN
-  | T_LetIn {σ σ' : Env.ValEnv} {δ : Env.CircuitEnv} {Γ : Env.TyEnv} {ctr : ℕ}
+  | T_LetIn {σ : Env.ValEnv} {δ : Env.CircuitEnv} {Γ : Env.TyEnv} {ctr : ℕ}
             {x : String} {e₁ e₂ : Ast.Expr} {τ₁ τ₂ : Ast.Ty} {v : Ast.Value}:
-      TypeJudgment σ δ Γ ctr e₁ (τ₁, σ') →
+      TypeJudgment σ δ Γ ctr e₁ (τ₁, σ) →
       Eval.eval σ δ ctr e₁ = some v →
-      TypeJudgment (Env.setVal σ' x v) δ (Env.setTy Γ x τ₁) ctr e₂ (τ₂, σ') →
-      TypeJudgment σ δ Γ ctr (Ast.Expr.letIn x e₁ e₂) (τ₂, σ')
+      TypeJudgment (Env.setVal σ x v) δ (Env.setTy Γ x τ₁) ctr e₂ (τ₂, σ) →
+      TypeJudgment σ δ Γ ctr (Ast.Expr.letIn x e₁ e₂) (τ₂, σ)
 
 lemma TE_Var_env {σ δ Γ ctr x T φ} (hp: PropSemantics.expr2prop σ δ ctr φ) (hΓ : Γ x = Ast.Ty.refin T φ) :
   TypeJudgment σ δ Γ ctr (Ast.Expr.var x) (Γ x, σ) := by

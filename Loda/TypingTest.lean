@@ -121,8 +121,18 @@ example {p : ℕ} :
   -- ④ ボディ out の型付け（環境に out ↦ {v:int | v = x+x} が入っている）
   set σ₂ := Env.setVal σ₁ "out" (Value.vInt 10)
   set Γ₂ := (Env.setTy Γ₁ "out" (Ty.int.refin (expr_eq v ((Expr.var "x").intExpr IntegerOp.add (Expr.var "x")))))
+  have hΓout : Γ₂ "out" = Ty.int.refin (expr_eq v (Expr.intExpr (Expr.var "x") IntegerOp.add (Expr.var "x"))) := by {
+    simp [Γ₂]
+    rfl
+  }
+  have hφout : PropSemantics.expr2prop σ₂ δ₁ 123
+      (expr_eq v (Expr.intExpr (Expr.var "x") IntegerOp.add (Expr.var "x"))) :=
+    by {
+      simp [PropSemantics.expr2prop, Eval.evalIntegerOp, σ₂]
+    }
+
   apply Ty.TE_Var_env
-  rfl
+
 
 #check Ty.circuit2prop 7 δ₁ mulCircuit
 
