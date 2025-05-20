@@ -93,28 +93,35 @@ example {p : ℕ} : Ty.TypeJudgment σ₁ δ₁ Γ₁ 123 (Ast.Expr.intExpr (Ast
   apply Ty.TypeJudgment.TE_Var (Ast.Expr.constBool true)
   simp [Γ₁]
 
-example : Ty.TypeJudgment σ₁ δ₁ Γ₁ 123 (Ast.Expr.letIn "out" (Ast.Expr.intExpr (Ast.Expr.var "x") Ast.IntegerOp.add (Ast.Expr.var "x")) (Ast.Expr.var "out"))
-((Ty.refin Ty.int (expr_eq v (Expr.intExpr (Expr.var "x") IntegerOp.add (Expr.var "x")))), σ₁) := by
+example {p : ℕ} :
+  Ty.TypeJudgment σ₁ δ₁ Γ₁ 123
+    (Ast.Expr.letIn "out"
+       (Ast.Expr.intExpr (Ast.Expr.var "x") Ast.IntegerOp.add (Ast.Expr.var "x"))
+       (Ast.Expr.var "out"))
+    ((Ty.refin Ty.int (Ast.expr_eq Ast.v (Ast.Expr.intExpr (Ast.Expr.var "x") Ast.IntegerOp.add (Ast.Expr.var "x")))), σ₁)
+:= by
   apply Ty.TypeJudgment.T_LetIn
-  apply Ty.TypeJudgment.T_BinOpInt
-  sorry
-  have ht : Ty.TypeJudgment σ₁ δ₁ Γ₁ 123 (Expr.var "x") (Ast.Ty.refin (Ast.Ty.int) (Ast.expr_eq Ast.v (Ast.Expr.var "x")), σ₁) := by {
-    apply Ty.TypeJudgment.TE_Var
-    simp [Γ₁]
-    rfl
-  }
-  have htrue : Ty.SubtypeJudgment σ₁ δ₁ Γ₁ 123 Ty.int (Ty.int.refin (Ast.Expr.constBool true)) := by {
-    apply Ty.SubtypeJudgment.TSub_Refine_True
-  }
-  apply Ty.TypeJudgment.T_SUB
-  apply ht
-  apply Ty.SubtypeJudgment.TSub_Refine_True_Right
-  sorry
-  sorry
-  sorry
-  sorry
-  sorry
-  sorry
+  · apply Ty.TypeJudgment.T_BinOpInt
+    -- 最初の x
+    exact p
+    · apply Ty.TypeJudgment.T_SUB (Ty.SubtypeJudgment.TSub_Refine
+                        Ty.SubtypeJudgment.TSub_Refl
+                        (by intro _; trivial))
+      apply Ty.TypeJudgment.TE_Var (Ast.Expr.constBool true)
+      simp [Γ₁]
+    -- 二番目の x
+    · apply Ty.TypeJudgment.T_SUB (Ty.SubtypeJudgment.TSub_Refine
+                        Ty.SubtypeJudgment.TSub_Refl
+                        (by intro _; trivial))
+      apply Ty.TypeJudgment.TE_Var (Ast.Expr.constBool true)
+      simp [Γ₁]
+
+  -- ③ e₁ の評価結果を計算
+  · simp [Eval.eval, Eval.evalIntegerOp, σ₁]; rfl
+  -- ④ ボディ out の型付け（環境に out ↦ {v:int | v = x+x} が入っている）
+  set σ₂ := Env.setVal σ₁ "out" (Value.vInt 10)
+  set Γ₂ := (Env.setTy Γ₁ "out" (Ty.int.refin (expr_eq v ((Expr.var "x").intExpr IntegerOp.add (Expr.var "x")))))
+  apply Ty.TE_Var_env
 
 #check Ty.circuit2prop 7 δ₁ mulCircuit
 

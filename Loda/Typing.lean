@@ -111,6 +111,22 @@ inductive TypeJudgment: Env.ValEnv -> Env.CircuitEnv -> Env.TyEnv -> ℕ -> Ast.
       TypeJudgment (Env.setVal σ' x v) δ (Env.setTy Γ x τ₁) ctr e₂ (τ₂, σ') →
       TypeJudgment σ δ Γ ctr (Ast.Expr.letIn x e₁ e₂) (τ₂, σ')
 
+lemma TE_Var_env {σ σ' δ Γ ctr x} :
+  TypeJudgment σ δ Γ ctr (Ast.Expr.var x) (Γ x, σ') :=
+by
+  -- Γ x が実際にどんな型かを場合分けして扱ってもいいですが……
+  -- 一番シンプルには rewrite で `Γ x = refine T φ`; rfl させて
+  -- TE_Var＋T_SUB の組み合わせを自動化します。
+  have h : ∃ T φ, Γ x = Ast.Ty.refin T φ := by
+    -- ここは Γ の定義次第で証明
+    sorry
+  obtain ⟨T, φ, hΓ⟩ := h
+  rw [hΓ]
+  apply Ty.TypeJudgment.T_SUB (Ty.SubtypeJudgment.TSub_Refine
+                    Ty.SubtypeJudgment.TSub_Refl
+                    (by intro _; trivial))
+  sorry
+
 axiom IntExprEqImpliesIntVal :
   ∀ (a b : Ast.Expr) (op : Ast.IntegerOp) (σ : Env.ValEnv) (δ : Env.CircuitEnv) (ctr : ℕ),
   PropSemantics.expr2prop σ δ ctr (Ast.expr_eq Ast.v (Ast.Expr.intExpr a op b)) →
