@@ -18,11 +18,13 @@ inductive SubtypeJudgment : Env.ValEnv -> Env.CircuitEnv -> Env.TyEnv -> ℕ →
       SubtypeJudgment σ δ Γ ctr (pure τ₂) (pure τ₃) →
       SubtypeJudgment σ δ Γ ctr (pure τ₁) (pure τ₃)
 
+  /-
   | TSub_Refine_True {σ : Env.ValEnv} {δ: Env.CircuitEnv} {Γ : Env.TyEnv} {ctr: ℕ} {τ: Ast.Ty}:
       SubtypeJudgment σ δ Γ ctr (pure τ) (pure (Ast.Ty.refin τ (Ast.Expr.constBool true)))
 
   | TSub_Refine_True_Right {σ : Env.ValEnv} {δ: Env.CircuitEnv} {Γ : Env.TyEnv} {ctr: ℕ} {τ: Ast.Ty}:
       SubtypeJudgment σ δ Γ ctr (pure (Ast.Ty.refin τ (Ast.Expr.constBool true))) (pure τ)
+  -/
 
   /-- TSUB-REFINE: Refinement subtyping -/
   | TSub_Refine {σ : Env.ValEnv} {δ: Env.CircuitEnv} {Γ : Env.TyEnv} {ctr: ℕ} {T₁ T₂ : Ast.Ty} {φ₁ φ₂ : Ast.Expr} :
@@ -111,20 +113,16 @@ inductive TypeJudgment: Env.ValEnv -> Env.CircuitEnv -> Env.TyEnv -> ℕ -> Ast.
       TypeJudgment (Env.setVal σ' x v) δ (Env.setTy Γ x τ₁) ctr e₂ (τ₂, σ') →
       TypeJudgment σ δ Γ ctr (Ast.Expr.letIn x e₁ e₂) (τ₂, σ')
 
-lemma TE_Var_env {σ σ' δ Γ ctr x} :
-  TypeJudgment σ δ Γ ctr (Ast.Expr.var x) (Γ x, σ') :=
-by
-  -- Γ x が実際にどんな型かを場合分けして扱ってもいいですが……
-  -- 一番シンプルには rewrite で `Γ x = refine T φ`; rfl させて
-  -- TE_Var＋T_SUB の組み合わせを自動化します。
-  have h : ∃ T φ, Γ x = Ast.Ty.refin T φ := by
-    -- ここは Γ の定義次第で証明
-    sorry
-  obtain ⟨T, φ, hΓ⟩ := h
+lemma TE_Var_env {σ δ σ' Γ ctr x T φ} (hΓ : Γ x = Ast.Ty.refin T φ) :
+  TypeJudgment σ δ Γ ctr (Ast.Expr.var x) (Γ x, σ') := by
   rw [hΓ]
-  apply Ty.TypeJudgment.T_SUB (Ty.SubtypeJudgment.TSub_Refine
-                    Ty.SubtypeJudgment.TSub_Refl
-                    (by intro _; trivial))
+  apply Ty.TypeJudgment.T_SUB
+  apply Ty.SubtypeJudgment.TSub_Refine
+  . apply Ty.SubtypeJudgment.TSub_Refl
+  .
+    intro h
+    sorry
+  exact φ
   sorry
 
 axiom IntExprEqImpliesIntVal :

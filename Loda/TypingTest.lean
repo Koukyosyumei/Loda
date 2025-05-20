@@ -122,6 +122,7 @@ example {p : ℕ} :
   set σ₂ := Env.setVal σ₁ "out" (Value.vInt 10)
   set Γ₂ := (Env.setTy Γ₁ "out" (Ty.int.refin (expr_eq v ((Expr.var "x").intExpr IntegerOp.add (Expr.var "x")))))
   apply Ty.TE_Var_env
+  rfl
 
 #check Ty.circuit2prop 7 δ₁ mulCircuit
 
