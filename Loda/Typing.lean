@@ -121,7 +121,7 @@ lemma TE_Var_env {σ δ σ' Γ ctr x T φ} (hΓ : Γ x = Ast.Ty.refin T φ) :
   . apply Ty.SubtypeJudgment.TSub_Refl
   .
     intro h
-    sorry
+
   exact φ
   sorry
 
