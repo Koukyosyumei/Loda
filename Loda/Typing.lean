@@ -113,17 +113,19 @@ inductive TypeJudgment: Env.ValEnv -> Env.CircuitEnv -> Env.TyEnv -> ℕ -> Ast.
       TypeJudgment (Env.setVal σ' x v) δ (Env.setTy Γ x τ₁) ctr e₂ (τ₂, σ') →
       TypeJudgment σ δ Γ ctr (Ast.Expr.letIn x e₁ e₂) (τ₂, σ')
 
-lemma TE_Var_env {σ δ σ' Γ ctr x T φ} (hΓ : Γ x = Ast.Ty.refin T φ) :
-  TypeJudgment σ δ Γ ctr (Ast.Expr.var x) (Γ x, σ') := by
-  rw [hΓ]
+lemma TE_Var_env {σ δ Γ ctr x T φ} (hp: PropSemantics.expr2prop σ δ ctr φ) (hΓ : Γ x = Ast.Ty.refin T φ) :
+  TypeJudgment σ δ Γ ctr (Ast.Expr.var x) (Γ x, σ) := by
+  -- 1) まず TE_Var で {v : T | v = x}
+  have H0 : Ty.TypeJudgment σ δ Γ ctr (Ast.Expr.var x)
+                (Ast.Ty.refin T (Ast.expr_eq Ast.v (Ast.Expr.var x)), σ)
+    := Ty.TypeJudgment.TE_Var _ hΓ
+  rw[hΓ]
+  -- 2) 次にサブタイピングで expr_eq v x ⇒ φ を使って貼り替え
   apply Ty.TypeJudgment.T_SUB
-  apply Ty.SubtypeJudgment.TSub_Refine
-  . apply Ty.SubtypeJudgment.TSub_Refl
-  .
-    intro h
-
-  exact φ
-  sorry
+    (Ty.SubtypeJudgment.TSub_Refine
+      Ty.SubtypeJudgment.TSub_Refl
+      (by intro _; exact hp))
+    H0
 
 axiom IntExprEqImpliesIntVal :
   ∀ (a b : Ast.Expr) (op : Ast.IntegerOp) (σ : Env.ValEnv) (δ : Env.CircuitEnv) (ctr : ℕ),
