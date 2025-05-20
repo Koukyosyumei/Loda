@@ -18,6 +18,12 @@ inductive SubtypeJudgment : Env.ValEnv -> Env.CircuitEnv -> Env.TyEnv -> ℕ →
       SubtypeJudgment σ δ Γ ctr (pure τ₂) (pure τ₃) →
       SubtypeJudgment σ δ Γ ctr (pure τ₁) (pure τ₃)
 
+  | TSub_Refine_True {σ : Env.ValEnv} {δ: Env.CircuitEnv} {Γ : Env.TyEnv} {ctr: ℕ} {τ: Ast.Ty}:
+      SubtypeJudgment σ δ Γ ctr (pure τ) (pure (Ast.Ty.refin τ (Ast.Expr.constBool true)))
+
+  | TSub_Refine_True_Right {σ : Env.ValEnv} {δ: Env.CircuitEnv} {Γ : Env.TyEnv} {ctr: ℕ} {τ: Ast.Ty}:
+      SubtypeJudgment σ δ Γ ctr (pure (Ast.Ty.refin τ (Ast.Expr.constBool true))) (pure τ)
+
   /-- TSUB-REFINE: Refinement subtyping -/
   | TSub_Refine {σ : Env.ValEnv} {δ: Env.CircuitEnv} {Γ : Env.TyEnv} {ctr: ℕ} {T₁ T₂ : Ast.Ty} {φ₁ φ₂ : Ast.Expr} :
       SubtypeJudgment σ δ Γ ctr (pure T₁) (pure T₂) →
@@ -75,6 +81,11 @@ inductive TypeJudgment: Env.ValEnv -> Env.CircuitEnv -> Env.TyEnv -> ℕ -> Ast.
     TypeJudgment σ δ Γ ctr e₂ ((Ast.Ty.field p), σ) →
     TypeJudgment σ δ Γ ctr (Ast.Expr.fieldExpr e₁ op e₂) ((Ast.Ty.refin (Ast.Ty.field p) (Ast.expr_eq Ast.v (Ast.Expr.fieldExpr e₁ op e₂))), σ)
 
+  | T_BinOpInt {σ: Env.ValEnv} {δ: Env.CircuitEnv} {Γ: Env.TyEnv} {ctr: ℕ} {e₁ e₂: Ast.Expr} {op: Ast.IntegerOp} {p: ℕ}:
+    TypeJudgment σ δ Γ ctr e₁ ((Ast.Ty.refin Ast.Ty.int (Ast.Expr.constBool true)), σ) →
+    TypeJudgment σ δ Γ ctr e₂ ((Ast.Ty.refin Ast.Ty.int (Ast.Expr.constBool true)), σ) →
+    TypeJudgment σ δ Γ ctr (Ast.Expr.intExpr e₁ op e₂) ((Ast.Ty.refin (Ast.Ty.int) (Ast.expr_eq Ast.v (Ast.Expr.intExpr e₁ op e₂))), σ)
+
   -- TE-ABS (function abstraction)
   | T_Abs {σ: Env.ValEnv} {δ: Env.CircuitEnv} {Γ: Env.TyEnv} {ctr: ℕ} {x: String} {τ₁ τ₂: Ast.Ty} {e: Ast.Expr}:
     TypeJudgment σ δ (Env.setTy Γ x τ₁) ctr e (τ₂, σ) →
@@ -91,6 +102,14 @@ inductive TypeJudgment: Env.ValEnv -> Env.CircuitEnv -> Env.TyEnv -> ℕ -> Ast.
     SubtypeJudgment σ δ Γ ctr (pure τ₁) (pure τ₂) →
     TypeJudgment σ δ Γ ctr e (τ₁, σ') →
     TypeJudgment σ δ Γ ctr e (τ₂, σ')
+
+  -- TE-LETIN
+  | T_LetIn {σ σ' : Env.ValEnv} {δ : Env.CircuitEnv} {Γ : Env.TyEnv} {ctr : ℕ}
+            {x : String} {e₁ e₂ : Ast.Expr} {τ₁ τ₂ : Ast.Ty} {v : Ast.Value}:
+      TypeJudgment σ δ Γ ctr e₁ (τ₁, σ') →
+      Eval.eval σ δ ctr e₁ = some v →
+      TypeJudgment (Env.setVal σ' x v) δ (Env.setTy Γ x τ₁) ctr e₂ (τ₂, σ') →
+      TypeJudgment σ δ Γ ctr (Ast.Expr.letIn x e₁ e₂) (τ₂, σ')
 
 axiom IntExprEqImpliesIntVal :
   ∀ (a b : Ast.Expr) (op : Ast.IntegerOp) (σ : Env.ValEnv) (δ : Env.CircuitEnv) (ctr : ℕ),

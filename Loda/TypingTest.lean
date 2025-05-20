@@ -61,6 +61,7 @@ example : Ty.TypeJudgment σ0 δ0 Γ0 123 (Expr.var "b") ((Ty.refin Ty.bool (exp
   simp [Γ0]
   rfl
 
+@[simp]
 def mulCircuit : Circuit.Circuit := {
   name   := "mul",
   inputs := [("x", Ast.Ty.int)],
@@ -70,10 +71,50 @@ def mulCircuit : Circuit.Circuit := {
 
 def δ₁ : Env.CircuitEnv := fun nm => if nm = "mul" then mulCircuit else mulCircuit
 def σ₁ : Env.ValEnv := fun x =>
-  if x = "x₁" then Ast.Value.vF 7 3 else if x = "x₂" then Ast.Value.vF 7 5 else Ast.Value.vStar
---def Γ₁ : Env.TyEnv := fun _ => Ast.Ty.field 7
+  if x = "x" then Ast.Value.vInt 5 else Ast.Value.vStar
+def Γ₁ : Env.TyEnv := fun _ => Ast.Ty.refin Ast.Ty.int (Ast.Expr.constBool true)
 
-#check Ty.circuit2prop 7 δ₁ mulCircuit
+#eval Eval.eval σ₁ δ₁ 123 mulCircuit.body
+
+example {p : ℕ} : Ty.TypeJudgment σ₁ δ₁ Γ₁ 123 (Ast.Expr.intExpr (Ast.Expr.var "x") Ast.IntegerOp.add (Ast.Expr.var "x"))
+((Ty.refin Ty.int (expr_eq v (Expr.intExpr (Expr.var "x") IntegerOp.add (Expr.var "x")))), σ₁) := by
+  apply Ty.TypeJudgment.T_BinOpInt
+  exact p
+  apply Ty.TypeJudgment.T_SUB (Ty.SubtypeJudgment.TSub_Refine
+                    Ty.SubtypeJudgment.TSub_Refl             -- underlying int <: int
+                    (by intro _; trivial)                     -- φ₁ → true
+                  )
+  apply Ty.TypeJudgment.TE_Var (Ast.Expr.constBool true)
+  simp [Γ₁]
+  apply Ty.TypeJudgment.T_SUB (Ty.SubtypeJudgment.TSub_Refine
+                    Ty.SubtypeJudgment.TSub_Refl             -- underlying int <: int
+                    (by intro _; trivial)                     -- φ₁ → true
+                  )
+  apply Ty.TypeJudgment.TE_Var (Ast.Expr.constBool true)
+  simp [Γ₁]
+
+example : Ty.TypeJudgment σ₁ δ₁ Γ₁ 123 (Ast.Expr.letIn "out" (Ast.Expr.intExpr (Ast.Expr.var "x") Ast.IntegerOp.add (Ast.Expr.var "x")) (Ast.Expr.var "out"))
+((Ty.refin Ty.int (expr_eq v (Expr.intExpr (Expr.var "x") IntegerOp.add (Expr.var "x")))), σ₁) := by
+  apply Ty.TypeJudgment.T_LetIn
+  apply Ty.TypeJudgment.T_BinOpInt
+  sorry
+  have ht : Ty.TypeJudgment σ₁ δ₁ Γ₁ 123 (Expr.var "x") (Ast.Ty.refin (Ast.Ty.int) (Ast.expr_eq Ast.v (Ast.Expr.var "x")), σ₁) := by {
+    apply Ty.TypeJudgment.TE_Var
+    simp [Γ₁]
+    rfl
+  }
+  have htrue : Ty.SubtypeJudgment σ₁ δ₁ Γ₁ 123 Ty.int (Ty.int.refin (Ast.Expr.constBool true)) := by {
+    apply Ty.SubtypeJudgment.TSub_Refine_True
+  }
+  apply Ty.TypeJudgment.T_SUB
+  apply ht
+  apply Ty.SubtypeJudgment.TSub_Refine_True_Right
+  sorry
+  sorry
+  sorry
+  sorry
+  sorry
+  sorry
 
 #check Ty.circuit2prop 7 δ₁ mulCircuit
 

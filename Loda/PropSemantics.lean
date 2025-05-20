@@ -13,6 +13,7 @@ def expr2prop (σ : Env.ValEnv) (δ : Env.CircuitEnv) (ctr : ℕ) : Ast.Expr →
     | some b => b
     | none   => False
   | _, _ => False
+| Ast.Expr.constBool true => True
 | _ => False
 
 def tyenv2prop (σ : Env.ValEnv) (δ : Env.CircuitEnv) (ctr : ℕ) (Γ: Env.TyEnv) (x : String): Prop :=
