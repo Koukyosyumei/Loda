@@ -125,13 +125,14 @@ example {p : ℕ} :
     simp [Γ₂]
     rfl
   }
-  have hφout : PropSemantics.expr2prop σ₂ δ₁ 123
+  have hφout : PropSemantics.expr2prop σ₁ δ₁ 123
       (expr_eq v (Expr.intExpr (Expr.var "x") IntegerOp.add (Expr.var "x"))) :=
     by {
       simp [PropSemantics.expr2prop, Eval.evalIntegerOp, σ₂]
+      sorry
     }
-
-  apply Ty.TE_Var_env
+  rw[← hΓout]
+  apply Ty.TE_Var_env hφout hΓout
 
 
 #check Ty.circuit2prop 7 δ₁ mulCircuit

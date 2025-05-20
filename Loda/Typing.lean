@@ -102,7 +102,8 @@ inductive TypeJudgment: Env.ValEnv -> Env.CircuitEnv -> Env.TyEnv -> ℕ -> Ast.
             {x : String} {e₁ e₂ : Ast.Expr} {τ₁ τ₂ : Ast.Ty} {v : Ast.Value}:
       TypeJudgment σ δ Γ ctr e₁ (τ₁, σ) →
       Eval.eval σ δ ctr e₁ = some v →
-      TypeJudgment (Env.setVal σ x v) δ (Env.setTy Γ x τ₁) ctr e₂ (τ₂, σ) →
+      --TypeJudgment (Env.setVal σ x v) δ (Env.setTy Γ x τ₁) ctr e₂ (τ₂, σ) →
+      TypeJudgment σ δ (Env.setTy Γ x τ₁) ctr e₂ (τ₂, σ) →
       TypeJudgment σ δ Γ ctr (Ast.Expr.letIn x e₁ e₂) (τ₂, σ)
 
 lemma TE_Var_env {σ δ Γ ctr x T φ} (hp: PropSemantics.expr2prop σ δ ctr φ) (hΓ : Γ x = Ast.Ty.refin T φ) :

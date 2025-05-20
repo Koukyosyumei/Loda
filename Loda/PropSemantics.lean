@@ -6,10 +6,12 @@ import Loda.Eval
 namespace PropSemantics
 
 def expr2prop (σ : Env.ValEnv) (δ : Env.CircuitEnv) (ctr : ℕ) : Ast.Expr → Prop
+/-
 | Ast.Expr.boolExpr e₁ op e₂ =>
   match expr2prop σ δ ctr e₁, op, expr2prop σ δ ctr e₂ with
   | p₁, Ast.BooleanOp.and, p₂ => p₁ ∧ p₂
   | p₁, Ast.BooleanOp.or, p₂ => p₁ ∨ p₂
+-/
 | Ast.Expr.binRel e₁ op e₂ =>
   match Eval.eval σ δ ctr e₁, Eval.eval σ δ ctr e₂ with
   | some v₁, some v₂ =>
