@@ -93,7 +93,8 @@ example {p : ℕ} : Ty.TypeJudgment σ₁ δ₁ Γ₁ 123 (Ast.Expr.intExpr (Ast
   apply Ty.TypeJudgment.TE_Var (Ast.Expr.constBool true)
   simp [Γ₁]
 
-example {p : ℕ} :
+example {p : ℕ} (hφout : PropSemantics.expr2prop σ₁ δ₁ 123
+      (expr_eq v (Expr.intExpr (Expr.var "x") IntegerOp.add (Expr.var "x")))) :
   Ty.TypeJudgment σ₁ δ₁ Γ₁ 123
     (Ast.Expr.letIn "out"
        (Ast.Expr.intExpr (Ast.Expr.var "x") Ast.IntegerOp.add (Ast.Expr.var "x"))
@@ -125,12 +126,6 @@ example {p : ℕ} :
     simp [Γ₂]
     rfl
   }
-  have hφout : PropSemantics.expr2prop σ₁ δ₁ 123
-      (expr_eq v (Expr.intExpr (Expr.var "x") IntegerOp.add (Expr.var "x"))) :=
-    by {
-      simp [PropSemantics.expr2prop, Eval.evalIntegerOp, σ₂]
-      sorry
-    }
   rw[← hΓout]
   apply Ty.TE_Var_env hφout hΓout
 
