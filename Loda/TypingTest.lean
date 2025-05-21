@@ -56,7 +56,7 @@ example (y: ℕ) (hσy : σ0 "y" = Value.vInt y) : @Ty.SubtypeJudgment σ0 δ0 �
   rw[two_mul]
 
 -- TE_VAR: assume env maps "b" to {v | v = eval ...}
-example : Ty.TypeJudgment σ0 δ0 Γ0 123 (Expr.var "b") (Ty.refin Ty.bool (expr_eq v (Expr.var "b"))) := by
+example : @Ty.TypeJudgment σ0 δ0 123 Γ0 (Expr.var "b") (Ty.refin Ty.bool (expr_eq v (Expr.var "b"))) := by
   apply Ty.TypeJudgment.TE_Var
   simp [Γ0]
   rfl
@@ -76,7 +76,7 @@ def Γ₁ : Env.TyEnv := fun _ => Ast.Ty.refin Ast.Ty.int (Ast.Expr.constBool tr
 
 #eval Eval.eval σ₁ δ₁ 123 mulCircuit.body
 
-example {p : ℕ} : Ty.TypeJudgment σ₁ δ₁ Γ₁ 123 (Ast.Expr.intExpr (Ast.Expr.var "x") Ast.IntegerOp.add (Ast.Expr.var "x"))
+example {p : ℕ} : @Ty.TypeJudgment σ₁ δ₁ 123 Γ₁ (Ast.Expr.intExpr (Ast.Expr.var "x") Ast.IntegerOp.add (Ast.Expr.var "x"))
 (Ty.refin Ty.int (expr_eq v (Expr.intExpr (Expr.var "x") IntegerOp.add (Expr.var "x")))) := by
   apply Ty.TypeJudgment.T_BinOpInt
   exact p
@@ -95,7 +95,7 @@ example {p : ℕ} : Ty.TypeJudgment σ₁ δ₁ Γ₁ 123 (Ast.Expr.intExpr (Ast
 
 example {p : ℕ} (hφout : PropSemantics.expr2prop σ₁ δ₁ 123
       (expr_eq v (Expr.intExpr (Expr.var "x") IntegerOp.add (Expr.var "x")))) :
-  Ty.TypeJudgment σ₁ δ₁ Γ₁ 123
+  @Ty.TypeJudgment σ₁ δ₁ 123 Γ₁
     (Ast.Expr.letIn "out"
        (Ast.Expr.intExpr (Ast.Expr.var "x") Ast.IntegerOp.add (Ast.Expr.var "x"))
        (Ast.Expr.var "out"))
@@ -141,7 +141,7 @@ theorem mulCircuit_correct : (Ty.circuit2prop 7 δ₁ mulCircuit) := by
   case cons hmod hlist =>
     simp [mulCircuit]
     -- Ty.refin Ty.int (expr_eq v (Expr.intExpr (Expr.var "y") IntegerOp.add (Expr.var "y")))
-    have hsub : Ty.TypeJudgment henv δ₁ h₁ 1000 (Expr.var "out") (Ty.refin Ty.int (expr_eq v (Expr.intExpr (Expr.var "y") IntegerOp.add (Expr.var "y")))) := by {
+    have hsub : @Ty.TypeJudgment henv δ₁ 1000 h₁ (Expr.var "out") (Ty.refin Ty.int (expr_eq v (Expr.intExpr (Expr.var "y") IntegerOp.add (Expr.var "y")))) := by {
       dsimp [henv]
       sorry
     }

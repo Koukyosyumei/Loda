@@ -7,7 +7,8 @@ import Loda.PropSemantics
 namespace Ty
 
 /-- Subtyping judgment for CODA types -/
-inductive SubtypeJudgment {σ : Env.ValEnv} {δ: Env.CircuitEnv} {Γ: Env.TyEnv} {ctr: ℕ} : Option Ast.Ty → Option Ast.Ty → Prop where
+inductive SubtypeJudgment {σ : Env.ValEnv} {δ: Env.CircuitEnv} {Γ: Env.TyEnv} {ctr: ℕ} :
+  Option Ast.Ty → Option Ast.Ty → Prop where
   /-- TSUB-REFL: Reflexivity -/
   | TSub_Refl {τ : Ast.Ty} :
       SubtypeJudgment (pure τ) (pure τ)
@@ -44,79 +45,82 @@ inductive SubtypeJudgment {σ : Env.ValEnv} {δ: Env.CircuitEnv} {Γ: Env.TyEnv}
       (∀ i, i < Ts₁.length → SubtypeJudgment Ts₁[i]? Ts₂[i]?) →
       SubtypeJudgment (pure (Ast.Ty.prod Ts₁)) (pure (Ast.Ty.prod Ts₂))
 
-inductive TypeJudgment: Env.ValEnv -> Env.CircuitEnv -> Env.TyEnv -> ℕ -> Ast.Expr -> (Ast.Ty) -> Prop where
+inductive TypeJudgment {σ: Env.ValEnv} {δ: Env.CircuitEnv} {ctr: ℕ}:
+  Env.TyEnv → Ast.Expr → Ast.Ty → Prop where
   -- TE-VAR
-  | TE_Var {σ: Env.ValEnv} {δ: Env.CircuitEnv} {Γ: Env.TyEnv} {ctr: ℕ} {x : String} {T: Ast.Ty}:
+  | TE_Var {Γ: Env.TyEnv} {x : String} {T: Ast.Ty}:
     ∀ φ: Ast.Expr, Γ x = (Ast.Ty.refin T φ) →
-    TypeJudgment σ δ Γ ctr (Ast.Expr.var x) (Ast.Ty.refin T (Ast.expr_eq Ast.v (Ast.Expr.var x)))
+    TypeJudgment Γ (Ast.Expr.var x) (Ast.Ty.refin T (Ast.expr_eq Ast.v (Ast.Expr.var x)))
 
   -- TE-VAR-FUNC
-  | T_VarFunc {σ: Env.ValEnv} {δ: Env.CircuitEnv} {Γ: Env.TyEnv} {ctr: ℕ} {f x : String} {τ₁ τ₂: Ast.Ty}:
+  | T_VarFunc {Γ: Env.TyEnv} {f x : String} {τ₁ τ₂: Ast.Ty}:
       Γ f = (Ast.Ty.func x τ₁ τ₂) →
-      TypeJudgment σ δ Γ ctr (Ast.Expr.var f) (Ast.Ty.func x τ₁ τ₂)
+      TypeJudgment Γ (Ast.Expr.var f) (Ast.Ty.func x τ₁ τ₂)
 
   -- TE-NONDET
-  | T_Nondet {σ: Env.ValEnv} {δ: Env.CircuitEnv} {Γ: Env.TyEnv} {ctr: ℕ} {p: ℕ}:
-    TypeJudgment σ δ Γ ctr Ast.Expr.wildcard (Ast.Ty.refin (Ast.Ty.field p) (Ast.Expr.constBool true))
+  | T_Nondet {Γ: Env.TyEnv} {p: ℕ}:
+    TypeJudgment Γ Ast.Expr.wildcard (Ast.Ty.refin (Ast.Ty.field p) (Ast.Expr.constBool true))
 
   -- TE-CONSTF
-  | T_ConstF {σ: Env.ValEnv} {δ: Env.CircuitEnv} {Γ: Env.TyEnv} {ctr: ℕ} {p: ℕ} {f: F p} :
-    TypeJudgment σ δ Γ ctr (Ast.Expr.constF p f) (Ast.Ty.refin (Ast.Ty.field p) (Ast.expr_eq Ast.v (Ast.Expr.constF p f)))
+  | T_ConstF {Γ: Env.TyEnv} {p: ℕ} {f: F p} :
+    TypeJudgment Γ (Ast.Expr.constF p f) (Ast.Ty.refin (Ast.Ty.field p) (Ast.expr_eq Ast.v (Ast.Expr.constF p f)))
 
   -- TE-ASSERT
-  | T_Assert {σ: Env.ValEnv} {δ: Env.CircuitEnv} {Γ: Env.TyEnv} {ctr: ℕ} {e₁ e₂: Ast.Expr} {p: ℕ}:
-    TypeJudgment σ δ Γ ctr e₁ (Ast.Ty.field p) →
-    TypeJudgment σ δ Γ ctr e₂ (Ast.Ty.field p) →
-    TypeJudgment σ δ Γ ctr (Ast.Expr.assertE e₁ e₂) (Ast.Ty.refin Ast.Ty.unit (Ast.expr_eq e₁ e₂))
+  | T_Assert {Γ: Env.TyEnv} {e₁ e₂: Ast.Expr} {p: ℕ}:
+    TypeJudgment Γ e₁ (Ast.Ty.field p) →
+    TypeJudgment Γ e₂ (Ast.Ty.field p) →
+    TypeJudgment Γ (Ast.Expr.assertE e₁ e₂) (Ast.Ty.refin Ast.Ty.unit (Ast.expr_eq e₁ e₂))
 
   -- TE-BINOPFIELD
-  | T_BinOpField {σ: Env.ValEnv} {δ: Env.CircuitEnv} {Γ: Env.TyEnv} {ctr: ℕ} {e₁ e₂: Ast.Expr} {op: Ast.FieldOp} {p: ℕ}:
-    TypeJudgment σ δ Γ ctr e₁ (Ast.Ty.field p) →
-    TypeJudgment σ δ Γ ctr e₂ (Ast.Ty.field p) →
-    TypeJudgment σ δ Γ ctr (Ast.Expr.fieldExpr e₁ op e₂) ((Ast.Ty.refin (Ast.Ty.field p) (Ast.expr_eq Ast.v (Ast.Expr.fieldExpr e₁ op e₂))))
+  | T_BinOpField {Γ: Env.TyEnv} {e₁ e₂: Ast.Expr} {op: Ast.FieldOp} {p: ℕ}:
+    TypeJudgment Γ e₁ (Ast.Ty.field p) →
+    TypeJudgment Γ e₂ (Ast.Ty.field p) →
+    TypeJudgment Γ (Ast.Expr.fieldExpr e₁ op e₂) ((Ast.Ty.refin (Ast.Ty.field p) (Ast.expr_eq Ast.v (Ast.Expr.fieldExpr e₁ op e₂))))
 
-  | T_BinOpInt {σ: Env.ValEnv} {δ: Env.CircuitEnv} {Γ: Env.TyEnv} {ctr: ℕ} {e₁ e₂: Ast.Expr} {op: Ast.IntegerOp} {p: ℕ}:
-    TypeJudgment σ δ Γ ctr e₁ (Ast.Ty.refin Ast.Ty.int (Ast.Expr.constBool true)) →
-    TypeJudgment σ δ Γ ctr e₂ (Ast.Ty.refin Ast.Ty.int (Ast.Expr.constBool true)) →
-    TypeJudgment σ δ Γ ctr (Ast.Expr.intExpr e₁ op e₂) ((Ast.Ty.refin (Ast.Ty.int) (Ast.expr_eq Ast.v (Ast.Expr.intExpr e₁ op e₂))))
+  -- TE-BINOPINT
+  | T_BinOpInt {Γ: Env.TyEnv} {e₁ e₂: Ast.Expr} {op: Ast.IntegerOp} {p: ℕ}:
+    TypeJudgment Γ e₁ (Ast.Ty.refin Ast.Ty.int (Ast.Expr.constBool true)) →
+    TypeJudgment Γ e₂ (Ast.Ty.refin Ast.Ty.int (Ast.Expr.constBool true)) →
+    TypeJudgment Γ (Ast.Expr.intExpr e₁ op e₂) ((Ast.Ty.refin (Ast.Ty.int) (Ast.expr_eq Ast.v (Ast.Expr.intExpr e₁ op e₂))))
 
   -- TE-ABS (function abstraction)
-  | T_Abs {σ: Env.ValEnv} {δ: Env.CircuitEnv} {Γ: Env.TyEnv} {ctr: ℕ} {x: String} {τ₁ τ₂: Ast.Ty} {e: Ast.Expr}:
-    TypeJudgment σ δ (Env.setTy Γ x τ₁) ctr e (τ₂) →
-    TypeJudgment σ δ Γ ctr (Ast.Expr.lam x τ₁ e) ((Ast.Ty.func x τ₁ τ₂))
+  | T_Abs {Γ: Env.TyEnv} {x: String} {τ₁ τ₂: Ast.Ty} {e: Ast.Expr}:
+    TypeJudgment (Env.setTy Γ x τ₁) e (τ₂) →
+    TypeJudgment Γ (Ast.Expr.lam x τ₁ e) ((Ast.Ty.func x τ₁ τ₂))
 
   -- TE-APP
-  | T_App {σ : Env.ValEnv} {δ: Env.CircuitEnv} {Γ: Env.TyEnv} {ctr: ℕ} {x₁ x₂: Ast.Expr} {s: String} {τ₁ τ₂: Ast.Ty} {v: Ast.Value}:
-    TypeJudgment σ δ Γ ctr x₁ (Ast.Ty.func s τ₁ τ₂) →
+  | T_App {Γ: Env.TyEnv} {x₁ x₂: Ast.Expr} {s: String} {τ₁ τ₂: Ast.Ty} {v: Ast.Value}:
+    TypeJudgment Γ x₁ (Ast.Ty.func s τ₁ τ₂) →
     Eval.eval σ δ ctr x₂ = some v →
-    TypeJudgment σ δ Γ ctr x₂ τ₁ → TypeJudgment σ δ Γ ctr (Ast.Expr.app x₁ x₂) τ₂
+    TypeJudgment Γ x₂ τ₁ →
+    TypeJudgment Γ (Ast.Expr.app x₁ x₂) τ₂
 
   -- TE_SUB
-  | T_SUB {σ: Env.ValEnv} {δ: Env.CircuitEnv} {Γ: Env.TyEnv} {ctr: ℕ} {e: Ast.Expr} {τ₁ τ₂: Ast.Ty}:
+  | T_SUB {Γ: Env.TyEnv} {e: Ast.Expr} {τ₁ τ₂: Ast.Ty}:
     @SubtypeJudgment σ δ Γ ctr (pure τ₁) (pure τ₂) →
-    TypeJudgment σ δ Γ ctr e τ₁ →
-    TypeJudgment σ δ Γ ctr e τ₂
+    TypeJudgment Γ e τ₁ →
+    TypeJudgment Γ e τ₂
 
   -- TE-LETIN
-  | T_LetIn {σ : Env.ValEnv} {δ : Env.CircuitEnv} {Γ : Env.TyEnv} {ctr : ℕ}
-            {x : String} {e₁ e₂ : Ast.Expr} {τ₁ τ₂ : Ast.Ty} {v : Ast.Value}:
-      TypeJudgment σ δ Γ ctr e₁ τ₁ →
+  | T_LetIn {Γ: Env.TyEnv} {x : String} {e₁ e₂ : Ast.Expr} {τ₁ τ₂ : Ast.Ty} {v : Ast.Value}:
+      TypeJudgment Γ e₁ τ₁ →
       Eval.eval σ δ ctr e₁ = some v →
       --TypeJudgment (Env.setVal σ x v) δ (Env.setTy Γ x τ₁) ctr e₂ (τ₂, σ) →
-      TypeJudgment σ δ (Env.setTy Γ x τ₁) ctr e₂ τ₂ →
-      TypeJudgment σ δ Γ ctr (Ast.Expr.letIn x e₁ e₂) τ₂
+      TypeJudgment (Env.setTy Γ x τ₁) e₂ τ₂ →
+      TypeJudgment Γ (Ast.Expr.letIn x e₁ e₂) τ₂
 
-lemma TE_Var_env {σ δ Γ ctr x T φ} (hp: PropSemantics.expr2prop σ δ ctr φ) (hΓ : Γ x = Ast.Ty.refin T φ) :
-  TypeJudgment σ δ Γ ctr (Ast.Expr.var x) (Γ x) := by
+lemma TE_Var_env {σ : Env.ValEnv} {δ : Env.CircuitEnv} {Γ : Env.TyEnv} {ctr : ℕ} {x : String} {T : Ast.Ty} {φ : Ast.Expr}
+  (hp: PropSemantics.expr2prop σ δ ctr φ) (hΓ : Γ x = Ast.Ty.refin T φ) :
+  @TypeJudgment σ δ ctr Γ (Ast.Expr.var x) (Γ x) := by
   -- 1) まず TE_Var で {v : T | v = x}
-  have H0 : Ty.TypeJudgment σ δ Γ ctr (Ast.Expr.var x)
+  have H0 : @TypeJudgment σ δ ctr Γ (Ast.Expr.var x)
                 (Ast.Ty.refin T (Ast.expr_eq Ast.v (Ast.Expr.var x)))
-    := Ty.TypeJudgment.TE_Var _ hΓ
+    := TypeJudgment.TE_Var _ hΓ
   rw[hΓ]
   -- 2) 次にサブタイピングで expr_eq v x ⇒ φ を使って貼り替え
-  apply Ty.TypeJudgment.T_SUB
-    (Ty.SubtypeJudgment.TSub_Refine
-      Ty.SubtypeJudgment.TSub_Refl
+  apply TypeJudgment.T_SUB
+    (SubtypeJudgment.TSub_Refine
+      SubtypeJudgment.TSub_Refl
       (by intro _; exact hp))
     H0
 
@@ -153,7 +157,7 @@ def circuit2prop (p : ℕ) (δ : Env.CircuitEnv) (c : Circuit.Circuit) : Prop :=
   ∀ p ∈ (List.zip c.inputs xs), (PropSemantics.tyenv2prop σ δ 1000 Γ p.fst.fst) →
   -- check the type of the output is valid
   match Eval.eval σ δ 1000 c.body with
-  | some _ => TypeJudgment σ δ Γ 1000 (Ast.Expr.var c.output.fst) (c.output.snd)
+  | some _ => @TypeJudgment σ δ 1000 Γ (Ast.Expr.var c.output.fst) (c.output.snd)
   | none   => False
 
 end Ty
