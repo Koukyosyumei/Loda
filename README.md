@@ -1,16 +1,10 @@
-```
- _        _______  ______   _______ 
-( \      (  ___  )(  __  \ (  ___  )
-| (      | (   ) || (  \  )| (   ) |
-| |      | |   | || |   ) || (___) |
-| |      | |   | || |   | ||  ___  |
-| |      | |   | || |   ) || (   ) |
-| (____/\| (___) || (__/  )| )   ( |
-(_______/(_______)(______/ |/     \|
-                                    
-```
+# Loda
 
 > <h3>Elegant Circuit, Certified by Types</h3>
+
+<p align="center">
+    <img src="./img/logo-wide.png" alt="Loda Logo" height="126">
+</p>> <h3>Elegant Circuit, Certified by Types</h3>
 
 ## Install
 
