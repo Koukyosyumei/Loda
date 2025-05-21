@@ -20,18 +20,18 @@ def δ0 : Env.CircuitEnv :=
   fun _ => { name := "idInt", inputs := [("x", Ty.int)], output := ("out", Ty.int),
                  body := Expr.var "x" }
 
-example : Ty.SubtypeJudgment σ0 δ0 Γ0 123 (pure Ty.int) (pure Ty.int) :=
+example : @Ty.SubtypeJudgment σ0 δ0 Γ0 123 (pure Ty.int) (pure Ty.int) :=
   Ty.SubtypeJudgment.TSub_Refl
 
 -- refinement subtyping: {v:int | True} <: {v:int | True}
-example : Ty.SubtypeJudgment σ0 δ0 Γ0 123
+example : @Ty.SubtypeJudgment σ0 δ0 Γ0 123
   (pure (Ty.refin Ty.int (Expr.constBool true)))
   (pure (Ty.refin Ty.int (Expr.constBool true))) :=
   Ty.SubtypeJudgment.TSub_Refl
 
 -- refinement subtyping: {v:int | y + y} <: {v:int | 2 * y}
 -- (Expr.intExpr (Expr.constInt 2) IntegerOp.mul (Expr.var "y"))
-example (y: ℕ) (hσy : σ0 "y" = Value.vInt y) : Ty.SubtypeJudgment σ0 δ0 Γ0 123
+example (y: ℕ) (hσy : σ0 "y" = Value.vInt y) : @Ty.SubtypeJudgment σ0 δ0 Γ0 123
   (pure (Ty.refin Ty.int (expr_eq v (Expr.intExpr (Expr.var "y") IntegerOp.add (Expr.var "y")))))
   (pure (Ty.refin Ty.int (expr_eq v (Expr.intExpr (Expr.constInt 2) IntegerOp.mul (Expr.var "y")))))
   := by

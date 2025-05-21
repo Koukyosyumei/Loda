@@ -7,42 +7,42 @@ import Loda.PropSemantics
 namespace Ty
 
 /-- Subtyping judgment for CODA types -/
-inductive SubtypeJudgment : Env.ValEnv -> Env.CircuitEnv -> Env.TyEnv -> ℕ → Option Ast.Ty → Option Ast.Ty → Prop where
+inductive SubtypeJudgment {σ : Env.ValEnv} {δ: Env.CircuitEnv} {Γ: Env.TyEnv} {ctr: ℕ} : Option Ast.Ty → Option Ast.Ty → Prop where
   /-- TSUB-REFL: Reflexivity -/
-  | TSub_Refl {σ : Env.ValEnv} {δ: Env.CircuitEnv} {Γ : Env.TyEnv} {ctr: ℕ} {τ : Ast.Ty} :
-      SubtypeJudgment σ δ Γ ctr (pure τ) (pure τ)
+  | TSub_Refl {τ : Ast.Ty} :
+      SubtypeJudgment (pure τ) (pure τ)
 
   /-- TSUB-TRANS: Transitivity -/
-  | TSub_Trans {σ : Env.ValEnv} {δ: Env.CircuitEnv} {Γ : Env.TyEnv} {ctr: ℕ} {τ₁ τ₂ τ₃ : Ast.Ty} :
-      SubtypeJudgment σ δ Γ ctr (pure τ₁) (pure τ₂) →
-      SubtypeJudgment σ δ Γ ctr (pure τ₂) (pure τ₃) →
-      SubtypeJudgment σ δ Γ ctr (pure τ₁) (pure τ₃)
+  | TSub_Trans {τ₁ τ₂ τ₃ : Ast.Ty} :
+      SubtypeJudgment (pure τ₁) (pure τ₂) →
+      SubtypeJudgment (pure τ₂) (pure τ₃) →
+      SubtypeJudgment (pure τ₁) (pure τ₃)
 
   /-- TSUB-REFINE: Refinement subtyping -/
-  | TSub_Refine {σ : Env.ValEnv} {δ: Env.CircuitEnv} {Γ : Env.TyEnv} {ctr: ℕ} {T₁ T₂ : Ast.Ty} {φ₁ φ₂ : Ast.Expr} :
-      SubtypeJudgment σ δ Γ ctr (pure T₁) (pure T₂) →
+  | TSub_Refine {T₁ T₂ : Ast.Ty} {φ₁ φ₂ : Ast.Expr} :
+      SubtypeJudgment (pure T₁) (pure T₂) →
       (PropSemantics.expr2prop σ δ ctr φ₁ → PropSemantics.expr2prop σ δ ctr φ₂) →
-      SubtypeJudgment σ δ Γ ctr (pure (Ast.Ty.refin T₁ φ₁)) (pure (Ast.Ty.refin T₂ φ₂))
+      SubtypeJudgment (pure (Ast.Ty.refin T₁ φ₁)) (pure (Ast.Ty.refin T₂ φ₂))
 
   /-- TSUB-FUN: Function subtyping -/
-  | TSub_Fun {σ : Env.ValEnv} {δ: Env.CircuitEnv} {Γ : Env.TyEnv} {ctr: ℕ} {x y : String} {z : Ast.Value} {τx τy τr τs : Ast.Ty} :
-      SubtypeJudgment σ δ Γ ctr (pure τy) (pure τx) →
+  | TSub_Fun {x y : String} {z : Ast.Value} {τx τy τr τs : Ast.Ty} :
+      SubtypeJudgment (pure τy) (pure τx) →
       -- Using a fresh variable z to avoid capture
       -- SubtypeJudgment (set (set σ x z) y z) Γ τr τs →
-      SubtypeJudgment σ δ Γ ctr (pure τr) (pure τs) →
-      SubtypeJudgment σ δ Γ ctr (pure (Ast.Ty.func x τx τr)) (pure (Ast.Ty.func y τy τs))
+      SubtypeJudgment (pure τr) (pure τs) →
+      SubtypeJudgment (pure (Ast.Ty.func x τx τr)) (pure (Ast.Ty.func y τy τs))
 
   /-- TSUB-ARR: Array subtyping -/
-  | TSub_Arr {σ : Env.ValEnv} {δ: Env.CircuitEnv} {Γ : Env.TyEnv} {ctr: ℕ} {T₁ T₂ : Ast.Ty} :
-      SubtypeJudgment σ δ Γ ctr (pure T₁) (pure T₂) →
-      SubtypeJudgment σ δ Γ ctr (pure (Ast.Ty.arr T₁)) (pure (Ast.Ty.arr T₂))
+  | TSub_Arr {T₁ T₂ : Ast.Ty} :
+      SubtypeJudgment (pure T₁) (pure T₂) →
+      SubtypeJudgment (pure (Ast.Ty.arr T₁)) (pure (Ast.Ty.arr T₂))
 
   /-- TSUB-PRODUCT: Product subtyping -/
-  | TSub_Product {σ : Env.ValEnv} {δ: Env.CircuitEnv} {Γ : Env.TyEnv} {ctr: ℕ} {Ts₁ Ts₂ : List Ast.Ty} :
+  | TSub_Product {Ts₁ Ts₂ : List Ast.Ty} :
       Ts₁.length = Ts₂.length →
       --PairwiseProd (SubtypeJudgment σ Γ) (List.zip Ts₁ Ts₂) →
-      (∀ i, i < Ts₁.length → SubtypeJudgment σ δ Γ ctr Ts₁[i]? Ts₂[i]?) →
-      SubtypeJudgment σ δ Γ ctr (pure (Ast.Ty.prod Ts₁)) (pure (Ast.Ty.prod Ts₂))
+      (∀ i, i < Ts₁.length → SubtypeJudgment Ts₁[i]? Ts₂[i]?) →
+      SubtypeJudgment (pure (Ast.Ty.prod Ts₁)) (pure (Ast.Ty.prod Ts₂))
 
 inductive TypeJudgment: Env.ValEnv -> Env.CircuitEnv -> Env.TyEnv -> ℕ -> Ast.Expr -> (Ast.Ty × Env.ValEnv) -> Prop where
   -- TE-VAR
@@ -93,7 +93,7 @@ inductive TypeJudgment: Env.ValEnv -> Env.CircuitEnv -> Env.TyEnv -> ℕ -> Ast.
 
   -- TE_SUB
   | T_SUB {σ: Env.ValEnv} {δ: Env.CircuitEnv} {Γ: Env.TyEnv} {ctr: ℕ} {e: Ast.Expr} {τ₁ τ₂: Ast.Ty}:
-    SubtypeJudgment σ δ Γ ctr (pure τ₁) (pure τ₂) →
+    @SubtypeJudgment σ δ Γ ctr (pure τ₁) (pure τ₂) →
     TypeJudgment σ δ Γ ctr e (τ₁, σ) →
     TypeJudgment σ δ Γ ctr e (τ₂, σ)
 
