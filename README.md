@@ -1,10 +1,11 @@
 # Loda
 
-> <h3>Elegant Circuit, Certified by Types</h3>
+> [!IMPORTANT]
+> This tool is under active development. Usage patterns and features may change over time.
 
 <p align="center">
     <img src="./img/logo-wide.png" alt="Loda Logo" height="126">
-</p>> <h3>Elegant Circuit, Certified by Types</h3>
+</p>
 
 ## Install
 
