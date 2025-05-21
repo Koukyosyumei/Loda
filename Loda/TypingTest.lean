@@ -132,17 +132,4 @@ example {p : ℕ} (hφout : PropSemantics.expr2prop σ₁ δ₁ 123
 
 #check Ty.circuit2prop 7 δ₁ mulCircuit
 
-theorem mulCircuit_correct : (Ty.circuit2prop 7 δ₁ mulCircuit) := by
-  unfold Ty.circuit2prop
-  intros xs henv h₁ h₂ h₃ h₄ h₅
-  cases xs
-  case nil =>
-    simp_all
-  case cons hmod hlist =>
-    simp [mulCircuit]
-    -- Ty.refin Ty.int (expr_eq v (Expr.intExpr (Expr.var "y") IntegerOp.add (Expr.var "y")))
-    have hsub : @Ty.TypeJudgment henv δ₁ 1000 h₁ (Expr.var "out") (Ty.refin Ty.int (expr_eq v (Expr.intExpr (Expr.var "y") IntegerOp.add (Expr.var "y")))) := by {
-      dsimp [henv]
-      sorry
-    }
-    sorry
+theorem mulCircuit_correct : (Ty.circuit2prop 7 δ₁ mulCircuit) := by sorry

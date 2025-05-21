@@ -157,7 +157,7 @@ def circuit2prop (p : ℕ) (δ : Env.CircuitEnv) (c : Circuit.Circuit) : Prop :=
   ∀ p ∈ (List.zip c.inputs xs), (PropSemantics.tyenv2prop σ δ 1000 Γ p.fst.fst) →
   -- check the type of the output is valid
   match Eval.eval σ δ 1000 c.body with
-  | some _ => @TypeJudgment σ δ 1000 Γ (Ast.Expr.var c.output.fst) (c.output.snd)
+  | some v => @TypeJudgment (Env.setVal σ c.output.fst v) δ 1000 Γ (Ast.Expr.var c.output.fst) (c.output.snd)
   | none   => False
 
 end Ty
