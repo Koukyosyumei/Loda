@@ -137,6 +137,24 @@ axiom FieldExprEqImpliesFieldVal {p : ℕ} :
   PropSemantics.expr2prop σ δ ctr (Ast.expr_eq Ast.v (Ast.Expr.fieldExpr a op b)) →
   ∃ vv, Eval.eval σ δ ctr Ast.v = some (Ast.Value.vF p vv)
 
+
+-- TODO: this is the soundness theorem that we can prove
+/-
+theorem type_judgment2prop {σ : Env.ValEnv} {δ : Env.CircuitEnv} {Γ : Env.TyEnv} {ctr : ℕ} {τ : Ast.Ty} {e φ : Ast.Expr} :
+  @Ty.TypeJudgment σ δ ctr Γ e (Ast.Ty.refin τ φ) → PropSemantics.expr2prop σ δ ctr φ := by
+  intro h
+  cases h with
+  | TE_Var φ _ => sorry
+  | T_Nondet => simp [PropSemantics.expr2prop]
+  | T_ConstF => sorry
+  | T_Assert _ _ => sorry
+  | T_BinOpField _ _ => sorry
+  | T_BinOpInt _ _ => sorry
+  | T_App _ _ _ => sorry
+  | T_SUB _ _ => sorry
+  | T_LetIn _ _ => sorry
+-/
+
 axiom type_judgment2prop {σ : Env.ValEnv} {δ : Env.CircuitEnv} {Γ : Env.TyEnv} {ctr : ℕ} {τ : Ast.Ty} {e φ : Ast.Expr} :
   @Ty.TypeJudgment σ δ ctr Γ e (Ast.Ty.refin τ φ) → PropSemantics.expr2prop σ δ ctr φ
 
