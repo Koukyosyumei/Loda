@@ -102,10 +102,8 @@ inductive TypeJudgment {σ: Env.ValEnv} {δ: Env.CircuitEnv} {ctr: ℕ}:
     TypeJudgment Γ e τ₂
 
   -- TE-LETIN
-  | T_LetIn {Γ: Env.TyEnv} {x : String} {e₁ e₂ : Ast.Expr} {τ₁ τ₂ : Ast.Ty} {v : Ast.Value}:
+  | T_LetIn {Γ: Env.TyEnv} {x : String} {e₁ e₂ : Ast.Expr} {τ₁ τ₂ : Ast.Ty}:
       TypeJudgment Γ e₁ τ₁ →
-      Eval.eval σ δ ctr e₁ = some v →
-      --TypeJudgment (Env.setVal σ x v) δ (Env.setTy Γ x τ₁) ctr e₂ (τ₂, σ) →
       TypeJudgment (Env.setTy Γ x τ₁) e₂ τ₂ →
       TypeJudgment Γ (Ast.Expr.letIn x e₁ e₂) τ₂
 
