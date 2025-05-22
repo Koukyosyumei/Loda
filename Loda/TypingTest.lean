@@ -17,7 +17,7 @@ def Γ0 : Env.TyEnv := fun x =>
   | _ => Ty.unit
 def Γ1 := Env.setTy Γ0 "x" Ty.bool
 def δ0 : Env.CircuitEnv :=
-  fun _ => { name := "idInt", inputs := [("x", Ty.int)], output := ("out", Ty.int),
+  fun _ => { name := "idInt", inputs := ("x", Ty.int), output := ("out", Ty.int),
                  body := Expr.var "x" }
 
 example : @Ty.SubtypeJudgment σ0 δ0 Γ0 123 (pure Ty.int) (pure Ty.int) :=
@@ -39,14 +39,14 @@ example : @Ty.SubtypeJudgment σ0 δ0 Γ0 123
 -- (Expr.intExpr (Expr.constInt 2) IntegerOp.mul (Expr.var "y"))
 lemma x_plus_x_eq_2_times_x
   (σ: Env.ValEnv) (δ: Env.CircuitEnv) (Γ: Env.TyEnv) (x: String) (xv: ℕ) (hσx : σ x = Value.vInt xv)
-  : @Ty.SubtypeJudgment σ δ Γ 123
+  : @Ty.SubtypeJudgment σ δ Γ 1000
       (pure (Ty.refin Ty.int (expr_eq v (Expr.intExpr (Expr.var x) IntegerOp.add (Expr.var x)))))
       (pure (Ty.refin Ty.int (expr_eq v (Expr.intExpr (Expr.constInt 2) IntegerOp.mul (Expr.var x)))))
   := by
   apply Ty.SubtypeJudgment.TSub_Refine
   · apply Ty.SubtypeJudgment.TSub_Refl
   intro h
-  have hv : ∃ vv, Eval.eval σ δ 123 v = some (Value.vInt vv) := by {
+  have hv : ∃ vv, Eval.eval σ δ 1000 v = some (Value.vInt vv) := by {
     apply Ty.IntExprEqImpliesIntVal at h
     exact h
   }
@@ -64,7 +64,7 @@ lemma x_plus_x_eq_2_times_x
   rw[two_mul]
 
 lemma x_plus_x {p : ℕ} (x: String) (σ: Env.ValEnv) (δ: Env.CircuitEnv) (Γ: Env.TyEnv) (hΓx: Γ x = Ast.Ty.refin Ast.Ty.int (Ast.Expr.constBool true))
-  : @Ty.TypeJudgment σ δ 123 Γ (Ast.Expr.intExpr (Ast.Expr.var x) Ast.IntegerOp.add (Ast.Expr.var x))
+  : @Ty.TypeJudgment σ δ 1000 Γ (Ast.Expr.intExpr (Ast.Expr.var x) Ast.IntegerOp.add (Ast.Expr.var x))
       (Ty.refin Ty.int (expr_eq v (Expr.intExpr (Expr.var x) IntegerOp.add (Expr.var x)))) := by
   apply Ty.TypeJudgment.T_BinOpInt
   exact p
@@ -82,10 +82,8 @@ lemma x_plus_x {p : ℕ} (x: String) (σ: Env.ValEnv) (δ: Env.CircuitEnv) (Γ: 
   simp [hΓx]
 
 lemma let_x_plus_x_y {p : ℕ} (x y: String) (σ: Env.ValEnv) (δ: Env.CircuitEnv) (Γ : Env.TyEnv)
-  (hΓx: Γ x =  Ast.Ty.refin Ast.Ty.int (Ast.Expr.constBool true))
-  (hφout : PropSemantics.expr2prop σ δ 123
-      (expr_eq v (Expr.intExpr (Expr.var x) IntegerOp.add (Expr.var x)))) :
-  @Ty.TypeJudgment σ δ 123 Γ
+  (hΓx: Γ x =  Ast.Ty.refin Ast.Ty.int (Ast.Expr.constBool true)) :
+  @Ty.TypeJudgment σ δ 1000 Γ
     (Ast.Expr.letIn y
        (Ast.Expr.intExpr (Ast.Expr.var x) Ast.IntegerOp.add (Ast.Expr.var x))
        (Ast.Expr.var y))
@@ -104,31 +102,48 @@ lemma let_x_plus_x_y {p : ℕ} (x y: String) (σ: Env.ValEnv) (δ: Env.CircuitEn
                         (by intro _; trivial))
       apply Ty.TypeJudgment.TE_Var (Ast.Expr.constBool true)
       simp [hΓx]
-  -- ④ ボディ out の型付け（環境に out ↦ {v:int | v = x+x} が入っている）
+  let sum_ty : Ast.Ty := Ast.Ty.refin Ast.Ty.int
+      (Ast.expr_eq Ast.v
+         (Ast.Expr.intExpr (Ast.Expr.var x) Ast.IntegerOp.add (Ast.Expr.var x)))
   set Γ' := (Env.setTy Γ y (Ty.int.refin (expr_eq v ((Expr.var x).intExpr IntegerOp.add (Expr.var x)))))
+  have h_sum_ty_judgment :
+    @Ty.TypeJudgment σ δ 1000 Γ
+      (Ast.Expr.intExpr (Ast.Expr.var x) Ast.IntegerOp.add (Ast.Expr.var x))
+      (Ast.Ty.refin Ast.Ty.int
+      (Ast.expr_eq Ast.v
+         (Ast.Expr.intExpr (Ast.Expr.var x) Ast.IntegerOp.add (Ast.Expr.var x)))):= by {
+        apply x_plus_x
+        exact p
+        apply hΓx
+      }
+  have hφ :
+      (@Ty.TypeJudgment σ δ 1000 Γ (Ast.Expr.intExpr (Ast.Expr.var x) Ast.IntegerOp.add (Ast.Expr.var x))
+        (Ast.Ty.refin Ast.Ty.int (Ast.expr_eq Ast.v (Ast.Expr.intExpr (Ast.Expr.var x) Ast.IntegerOp.add (Ast.Expr.var x)))))
+      → PropSemantics.expr2prop σ δ 1000
+          (Ast.expr_eq Ast.v (Ast.Expr.intExpr (Ast.Expr.var x) Ast.IntegerOp.add (Ast.Expr.var x))) :=
+      @Ty.type_judgment2prop σ δ Γ 1000 Ast.Ty.int (Ast.Expr.intExpr (Ast.Expr.var x) Ast.IntegerOp.add (Ast.Expr.var x)) (Ast.expr_eq Ast.v (Ast.Expr.intExpr (Ast.Expr.var x) Ast.IntegerOp.add (Ast.Expr.var x)))
+  apply hφ at h_sum_ty_judgment
+  -- ④ ボディ out の型付け（環境に out ↦ {v:int | v = x+x} が入っている）
   have hΓout : Γ' y = Ty.int.refin (expr_eq v (Expr.intExpr (Expr.var x) IntegerOp.add (Expr.var x))) := by {
     simp [Γ']
     unfold Env.setTy
     simp_all
   }
   rw[← hΓout]
-  apply Ty.TE_Var_env hφout hΓout
+  apply Ty.TE_Var_env h_sum_ty_judgment hΓout
 
 @[simp]
 def mulCircuit : Circuit.Circuit := {
   name   := "mul",
-  inputs := [("x", Ast.Ty.int)],
+  inputs := ("x", Ast.Ty.refin Ast.Ty.int (Ast.Expr.constBool true)),
   output := ("out", Ast.Ty.refin (Ast.Ty.int) (Ast.expr_eq Ast.v (Ast.Expr.intExpr (Ast.Expr.constInt 2) Ast.IntegerOp.mul (Ast.Expr.var "x")))),
   body   := (Ast.Expr.letIn "out" (Ast.Expr.intExpr (Ast.Expr.var "x") Ast.IntegerOp.add (Ast.Expr.var "x")) (Ast.Expr.var "out"))
 }
-
 def δ₁ : Env.CircuitEnv := fun nm => if nm = "mul" then mulCircuit else mulCircuit
+
+theorem mulCircuit_correct : (Ty.circuit2prop 7 δ₁ mulCircuit) := by sorry
+
 def σ₁ : Env.ValEnv := fun x =>
   if x = "x" then Ast.Value.vInt 5 else Ast.Value.vStar
 def Γ₁ : Env.TyEnv := fun _ => Ast.Ty.refin Ast.Ty.int (Ast.Expr.constBool true)
-
 #eval Eval.eval σ₁ δ₁ 123 mulCircuit.body
-
-#check Ty.circuit2prop 7 δ₁ mulCircuit
-
-theorem mulCircuit_correct : (Ty.circuit2prop 7 δ₁ mulCircuit) := by sorry

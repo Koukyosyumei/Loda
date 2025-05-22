@@ -195,12 +195,15 @@ def eval (σ : ValEnv) (δ : CircuitEnv) (ctr: ℕ) : Expr → Option (Value)
         none
 
   -- E-CREF
-  | Expr.circRef name args => do
+  | Expr.circRef name arg => do
       if ctr > 0 then
-        let vs ← args.mapM (eval σ δ (ctr - 1))
+        --let vs ← args.mapM (eval σ δ (ctr - 1))
+        let v := eval σ δ (ctr - 1) arg
         let c := δ name
-        let σ' := (c.inputs.zip vs).foldl (fun env (⟨x,_⟩,v) => setVal env x v) σ
-        eval σ' δ (ctr - 1) c.body
+        --let σ' := (c.inputs.zip vs).foldl (fun env (⟨x,_⟩,v) => setVal env x v) σ
+        match v with
+        | some vv => eval (setVal σ name vv) δ (ctr - 1) c.body
+        | _ => none
       else
         none
 

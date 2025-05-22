@@ -51,7 +51,7 @@ mutual
     | intExpr     : Expr → IntegerOp → Expr → Expr
     | fieldExpr   : Expr → FieldOp → Expr → Expr
     | binRel      : Expr → RelOp → Expr → Expr       -- e₁ ⊘ e₂
-    | circRef     : String → List Expr → Expr        -- #C e₁ ... eₙ
+    | circRef     : String → Expr → Expr        -- #C e₁ ... eₙ
     | arrCons     : Expr → Expr → Expr               -- e₁ :: e₂
     | arrMap      : Expr → Expr → Expr               -- map e₁ e₂
     | arrLen      : Expr → Expr                      -- length e

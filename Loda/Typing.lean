@@ -137,25 +137,21 @@ axiom FieldExprEqImpliesFieldVal {p : ℕ} :
   PropSemantics.expr2prop σ δ ctr (Ast.expr_eq Ast.v (Ast.Expr.fieldExpr a op b)) →
   ∃ vv, Eval.eval σ δ ctr Ast.v = some (Ast.Value.vF p vv)
 
+axiom type_judgment2prop {σ : Env.ValEnv} {δ : Env.CircuitEnv} {Γ : Env.TyEnv} {ctr : ℕ} {τ : Ast.Ty} {e φ : Ast.Expr} :
+  @Ty.TypeJudgment σ δ ctr Γ e (Ast.Ty.refin τ φ) → PropSemantics.expr2prop σ δ ctr φ
+
 /-- Given a circuit `c`, produce the Prop that says
 1. for any choice of inputs of the correct field type,
 2. evaluating `c.body` yields a value `v`,
 3. and `v` satisfies the refinement predicate in `c.output`. -/
 def circuit2prop (p : ℕ) (δ : Env.CircuitEnv) (c : Circuit.Circuit) : Prop :=
-  ∀ (xs : List (ZMod p)),
-  let σ : Env.ValEnv :=
-    (c.inputs.zip xs).foldl (fun σ (xy : (String × Ast.Ty) × ZMod p) =>
-      let ((name, _), x) := xy; Env.setVal σ name (Ast.Value.vF p x)) (fun _ => Ast.Value.vStar)
-  let Γ : Env.TyEnv :=
-    (c.inputs.zip xs).foldl (fun Γ (xy : (String × Ast.Ty) × ZMod p) =>
-      let ((name, τ), _) := xy; Env.setTy Γ name τ) (fun _ => Ast.Ty.unit)
-  -- require that the argument list `xs` matches `c.inputs` in length
-  xs.length = c.inputs.length →
-  -- require that the inputs satisfy the assumed types
-  ∀ p ∈ (List.zip c.inputs xs), (PropSemantics.tyenv2prop σ δ 1000 Γ p.fst.fst) →
-  -- check the type of the output is valid
-  match Eval.eval σ δ 1000 c.body with
-  | some v => @TypeJudgment (Env.setVal σ c.output.fst v) δ 1000 Γ (Ast.Expr.var c.output.fst) (c.output.snd)
-  | none   => False
+  ∀ (x : ZMod p),
+    -- (2) σ, Γ の構築をローカル定義
+    let σ: Env.ValEnv := Env.setVal (fun _ => Ast.Value.vStar) c.inputs.fst (Ast.Value.vF p x)
+    let Γ: Env.TyEnv := Env.setTy (fun _ => Ast.Ty.unit) c.inputs.fst c.inputs.snd
+    -- (3) 全入力が型を満たす仮定
+    PropSemantics.tyenv2prop σ δ 1000 Γ c.inputs.fst →
+    -- (4) 型付けを保証する
+    @TypeJudgment σ δ 1000 Γ c.body c.output.snd
 
 end Ty
