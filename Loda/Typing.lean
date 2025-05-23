@@ -185,3 +185,9 @@ def circuitCorrect (p : ℕ) (fuel : ℕ) (δ : Env.CircuitEnv) (c : Ast.Circuit
     @TypeJudgment fuel σ δ Γ c.body c.output.snd
 
 end Ty
+
+notation:50 Γ " ⊨[" σ ", " Δ ", " fuel "] " τ₁ "<:" τ₂ =>
+  @Ty.SubtypeJudgment fuel σ Δ Γ (some τ₁) (some τ₂)
+
+notation:25 Δ " ; " Γ " ⊢[" σ ", " fuel "] " e " : " τ =>
+  @Ty.TypeJudgment fuel σ Δ Γ e τ

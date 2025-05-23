@@ -23,6 +23,8 @@ def δ0 : Env.CircuitEnv :=
 example : @Ty.SubtypeJudgment 123 σ0 δ0 Γ0 (pure Ty.int) (pure Ty.int) :=
   Ty.SubtypeJudgment.TSub_Refl
 
+example : Γ0 ⊨[σ0, δ0, 12] Ty.int <: Ty.int := Ty.SubtypeJudgment.TSub_Refl
+
 -- TE_VAR: assume env maps "b" to {v | v = eval ...}
 example : @Ty.TypeJudgment 123 σ0 δ0 Γ0 (Expr.var "b") (Ty.refin Ty.bool (exprEq v (Expr.var "b"))) := by
   apply Ty.TypeJudgment.TE_Var
