@@ -53,6 +53,12 @@ def evalRelOp : RelOp → Value → Value → Option Bool
   | RelOp.le,  Value.vInt i, Value.vInt j => pure (i ≤ j)
   | _,         _,            _            => none
 
+@[simp]
+def evalBoolOp : BooleanOp → Value → Value → Option Bool
+  | BooleanOp.and, Value.vBool x, Value.vBool y => some (x ∧ y)
+  | BooleanOp.or, Value.vBool x, Value.vBool y => some (x ∨ y)
+  | _, _, _ => none
+
 /-- Evaluate an expression in a given environment. -/
 @[simp]
 def eval (σ : ValEnv) (δ : CircuitEnv) (ctr: ℕ) : Expr → Option (Value)
