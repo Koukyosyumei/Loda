@@ -91,15 +91,22 @@ mutual
     --deriving DecidableEq, Repr
 end
 
-instance : Repr Value where
-  reprPrec
-    | Value.vF p x, _ => Format.text s!"F{p}.mk {x.val}"
-    | Value.vStar, _    => Format.text "*"
-    | Value.vInt i, _   => Format.text (toString i)
-    | Value.vBool b, _  => Format.text (toString b)
-    | Value.vProd vs, _ => Format.text "Prod"
-    | Value.vArr vs, _  => Format.text "Arr"
-    | Value.vClosure name _ _, _ => Format.text s!"<closure {name}>"
+/-- Convert a `Value` to a `String` by recursion. -/
+def valueToString : Ast.Value → String
+  | Value.vF p x      => s!"F{p}.mk {x.val}"
+  | Value.vStar       => "*"
+  | Value.vInt i      => toString i
+  | Value.vBool b     => toString b
+  | Value.vProd vs    =>
+    let elems := vs.map valueToString
+    s!"({String.intercalate ", " elems})"
+  | Value.vArr vs     =>
+    let elems := vs.map valueToString
+    s!"[{String.intercalate ", " elems}]"
+  | Value.vClosure n _ _ => s!"<closure {n}>"
+
+instance : Repr Ast.Value where
+  reprPrec v _ := Format.text (valueToString v)
 
 def val_eq : Value → Value → Bool
   | Value.vF p₁ x, Value.vF p₂ y        => p₁ = p₂ ∧ x.val % p₁ = y.val % p₁
