@@ -13,7 +13,7 @@ def σ0 : Env.ValEnv := fun _ => Ast.Value.vStar
 
 -- A helper circuit env with a single identity circuit
 def δ0 : Env.CircuitEnv :=
-  fun _ => { name := "idInt", inputs := [("x", Ast.Ty.int)], output := ("x", Ast.Ty.int),
+  fun _ => { name := "idInt", inputs := ("x", Ast.Ty.int), output := ("x", Ast.Ty.int),
                  body := Ast.Expr.var "x" }
 -- --------------------------------------------------
 -- beq tests
