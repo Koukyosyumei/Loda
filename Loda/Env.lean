@@ -1,24 +1,46 @@
 import Loda.Ast
-import Loda.Circuit
 
+/-!
+  # Environments for Loda
+
+  This module provides:
+  1. A **valuation environment** mapping variable names to runtime values.
+  2. A **circuit environment** mapping circuit names to their declarations.
+  3. A **type environment** mapping variable names to Loda types.
+-/
 namespace Env
 
-/-- Valuation (environment). -/
-def ValEnv := String -> Ast.Value
+/-- A valuation environment: maps variable names to runtime `Value`s. -/
+abbrev ValEnv := String -> Ast.Value
 
-def setVal (σ: ValEnv) (x : String) (v: Ast.Value) : ValEnv :=
-  fun y => if y = x then v else σ y
+/--
+  Extend `σ` by binding `ident` to `val`.
+  When you lookup `ident`, you get `val`; otherwise you delegate to the old `σ`.
+-/
+@[inline]
+def updateVal (σ: ValEnv) (ident: String) (val: Ast.Value) : ValEnv :=
+  fun y => if y = ident then val else σ y
 
-/-- Global circuit definitions; populate this map with your circuits. -/
-def CircuitEnv := String -> Circuit.Circuit
+/-- A circuit environment: maps circuit names to their `Circuit`. -/
+abbrev CircuitEnv := String -> Ast.Circuit
 
-def setCircuit (δ : CircuitEnv) (x : String) (v: Circuit.Circuit) : CircuitEnv :=
-  fun y => if y = x then v else δ y
+/--
+  Extend `δ` by binding `ident` to `circuit`.
+  When you lookup `ident`, you get `circuit`; otherwise you delegate to the old `δ`.
+-/
+@[inline]
+def updateCircuit (δ: CircuitEnv) (ident: String) (circuit: Ast.Circuit) : CircuitEnv :=
+  fun y => if y = ident then circuit else δ y
 
-/-- Type Environment. -/
+/-- A type environment: maps variable names to Loda `Ty`s. -/
 def TyEnv := String -> Ast.Ty
 
-def setTy (Γ : TyEnv) (x : String) (v: Ast.Ty) : TyEnv :=
-  fun y => if y = x then v else Γ y
+/--
+  Extend `Γ` by binding `ident` to `τ`.
+  When you lookup `ident`, you get `τ`; otherwise you delegate to the old `Γ`.
+-/
+@[inline]
+def updateTy (Γ: TyEnv) (ident: String) (τ: Ast.Ty) : TyEnv :=
+  fun y => if y = ident then τ else Γ y
 
 end Env

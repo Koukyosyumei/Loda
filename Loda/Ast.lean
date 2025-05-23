@@ -4,26 +4,34 @@ import Mathlib.Data.ZMod.Basic
 
 import Loda.Field
 
+/-!
+  # Abstract Syntax Tree for Loda Expressions
+
+  This module defines the Abstract Syntax Tree (AST) for Loda, including expression
+  syntax (`Expr`), runtime values (`Value`), and type representations (`Type`).
+  It also provides utilities for pretty-printing and equality checking.
+-/
+
 open Std (Format)
 
 variable {p : ℕ} [Fact p.Prime]
 
 namespace Ast
 
-/-- Field operators =⊙. -/
+/-- Boolean binary operators. -/
 inductive BooleanOp where
   | and   -- ∧
-  | or   -- ∨
+  | or    -- ∨
   deriving DecidableEq, Repr
 
-/-- Field operators =⊕. -/
+/-- Integer binary operators. -/
 inductive IntegerOp where
   | add   -- +
   | sub   -- -
   | mul   -- *
   deriving DecidableEq, Repr
 
-/-- Field operators =⊗. -/
+/-- Field `F p` binary operators. -/
 inductive FieldOp where
   | add   -- +
   | sub   -- -
@@ -31,7 +39,7 @@ inductive FieldOp where
   | div   -- /
   deriving DecidableEq, Repr
 
-/-- Binary relations =⊘. -/
+/-- Relational operators. -/
 inductive RelOp where
   | eq   -- =
   | lt   -- <
@@ -39,60 +47,56 @@ inductive RelOp where
   deriving DecidableEq, Repr
 
 mutual
-  /-- AST of CODA expressions. -/
+  /-- Core expressions syntax for Loda. -/
   inductive Expr where
-    | constF      : ∀ p, F p → Expr                  -- field constant
-    | constInt    : Int → Expr                       -- integer constant
-    | constBool   : Bool → Expr                      -- boolean constant
-    | var         : String → Expr                    -- variable x
-    | wildcard    : Expr                             -- ⋆
-    | assertE     : Expr → Expr → Expr               -- assert e₁ = e₂
-    | boolExpr    : Expr → BooleanOp → Expr → Expr
-    | intExpr     : Expr → IntegerOp → Expr → Expr
-    | fieldExpr   : Expr → FieldOp → Expr → Expr
-    | binRel      : Expr → RelOp → Expr → Expr       -- e₁ ⊘ e₂
-    | circRef     : String → Expr → Expr        -- #C e₁ ... eₙ
-    | arrCons     : Expr → Expr → Expr               -- e₁ :: e₂
-    | arrMap      : Expr → Expr → Expr               -- map e₁ e₂
-    | arrLen      : Expr → Expr                      -- length e
-    | arrIdx      : Expr → Expr → Expr               -- e₁[e₂]
-    | prodCons    : List Expr → Expr                 -- (e₁, ..., eₙ)
-    | prodMatch   : Expr → List String → Expr → Expr -- match e with (x₁,...,xₙ)→e
-    | prodIdx     : Expr → Nat → Expr                -- e.i
-    | lam         : String → Ty → Expr → Expr        -- λx : τ. e
-    | app         : Expr → Expr → Expr               -- e₁ e₂
-    | letIn       : String → Expr → Expr → Expr      -- let x = e₁ in e₂
-    | iter        : Expr → -- start s
-                    Expr → -- end e
-                    Expr → -- step f
-                    Expr → -- acc a
-                    Expr      -- iteration body result
+    | constF      : (p: ℕ) → (x : F p) → Expr                            -- field constant
+    | constInt    : (n: Int) → Expr                                      -- integer constant
+    | constBool   : (b: Bool) → Expr                                     -- boolean constant
+    | var         : (name: String) → Expr                                -- variable x
+    | wildcard    : Expr                                                 -- ⋆
+    | assertE     : (lhs: Expr) → (rhs: Expr) → Expr                     -- assert e₁ = e₂
+    | boolExpr    : (lhs: Expr) → (op: BooleanOp) → (rhs: Expr) → Expr
+    | intExpr     : (lhs: Expr) → (op: IntegerOp) → (rhs: Expr) → Expr
+    | fieldExpr   : (lhs: Expr) → (op: FieldOp) → (rhs: Expr) → Expr
+    | binRel      : (lhs: Expr) → (op: RelOp) → (rhs: Expr) → Expr       -- e₁ ⊘ e₂
+    | circRef     : (name: String) → (arg: Expr) → Expr                  -- #C e₁ ... eₙ
+    | arrCons     : (head: Expr) → (tail: Expr) → Expr                   -- e₁ :: e₂
+    | arrMap      : (f: Expr) → (arr: Expr) → Expr                       -- map e₁ e₂
+    | arrLen      : (arr: Expr) → Expr                                   -- length e
+    | arrIdx      : (arr: Expr) → (idx: Expr) → Expr                     -- e₁[e₂]
+    | prodCons    : (items: List Expr) → Expr                            -- (e₁, ..., eₙ)
+    | prodMatch   : Expr → List String → Expr → Expr                     -- match e with (x₁,...,xₙ)→e
+    | prodIdx     : (tuple: Expr) → (idx: Nat) → Expr                    -- e.i
+    | lam         : (param: String) → (τ: Ty) → (body: Expr) → Expr      -- λx : τ. e
+    | app         : (f: Expr) → (arg: Expr) → Expr                       -- e₁ e₂
+    | letIn       : (name: String) → (val: Expr) → (body: Expr) → Expr   -- let x = e₁ in e₂
+    | iter        : (start: Expr) → (stp: Expr) → (step: Expr) → (acc: Expr) → Expr
 
-  /-- Values of CODA. -/
+  /-- Runtime values in Loda. -/
   inductive Value where
-    | vF       : ∀ p, F p → Value
+    | vF       : (p: ℕ) → (x: F p) → Value
     | vStar    : Value
-    | vInt     : Int → Value
-    | vBool    : Bool → Value
-    | vProd    : List Value → Value
-    | vArr     : List Value → Value
-    | vClosure : String → Expr → (String → Value) → Value
+    | vInt     : (n: Int) → Value
+    | vBool    : (b: Bool) → Value
+    | vProd    : (elems: List Value) → Value
+    | vArr     : (elems: List Value) → Value
+    | vClosure : (param: String) → (body: Expr) → (σ: String → Value) → Value
 
   /-- Basic Types in CODA. -/
   inductive Ty where
     | unit     : Ty
-    | field    : ℕ → Ty                   -- F p
-    | int      : Ty                       -- Int
-    | bool     : Ty                       -- Bool
-    | prod     : List Ty → Ty             -- T₁ × ... × Tₙ (unit is prod [])
-    | arr      : Ty → Ty                  -- [T]
-    | refin    : Ty → Expr → Ty   -- {ν : T | ϕ}
-    | func     : String → Ty → Ty → Ty    -- x: τ₁ → τ₂
+    | field    : (p: ℕ) → Ty                                      -- F p
+    | int      : Ty                                               -- Int
+    | bool     : Ty                                               -- Bool
+    | prod     : (tys: List Ty) → Ty                              -- T₁ × ... × Tₙ (unit is prod [])
+    | arr      : (ty: Ty) → Ty                                    -- [T]
+    | refin    : (ty: Ty) → (prop: Expr) → Ty                     -- {ν : T | ϕ}
+    | func     : (param: String) → (dom: Ty) → (cond: Ty) → Ty    -- x: τ₁ → τ₂
     --deriving DecidableEq, Repr
 end
 
-/-- Convert a `Value` to a `String` by recursion. -/
-def valueToString : Ast.Value → String
+/-- Pretty-print a `Value`. -/
+def valueToString : Value → String
   | Value.vF p x      => s!"F{p}.mk {x.val}"
   | Value.vStar       => "*"
   | Value.vInt i      => toString i
@@ -105,26 +109,34 @@ def valueToString : Ast.Value → String
     s!"[{String.intercalate ", " elems}]"
   | Value.vClosure n _ _ => s!"<closure {n}>"
 
-instance : Repr Ast.Value where
+instance : Repr Value where
   reprPrec v _ := Format.text (valueToString v)
 
-def val_eq : Value → Value → Bool
-  | Value.vF p₁ x, Value.vF p₂ y        => p₁ = p₂ ∧ x.val % p₁ = y.val % p₁
-  | Value.vF _ _, Value.vStar          => true
-  | Value.vStar, Value.vF _ _           => true
-  | Value.vInt i₁, Value.vInt i₂        => i₁ = i₂
-  | Value.vBool b₁, Value.vBool b₂      => b₁ = b₂
-  | Value.vProd _, Value.vProd _        => false --(xs.zip ys).all (fun (x, y) => (x = y))
-  | Value.vArr _, Value.vArr _          => false
+/-- Test for equality of two `Value`s. -/
+def valueEq : Value → Value → Bool
+  | Value.vF p₁ x, Value.vF p₂ y               => p₁ = p₂ ∧ x.val % p₁ = y.val % p₁
+  | Value.vF _ _, Value.vStar                  => true
+  | Value.vStar, Value.vF _ _                  => true
+  | Value.vInt i₁, Value.vInt i₂               => i₁ = i₂
+  | Value.vBool b₁, Value.vBool b₂             => b₁ = b₂
+  | Value.vProd vs₁, Value.vProd vs₂           => false -- vs₁.zip vs₂ |>.all fun (u, v) => valueEq u v
+  | Value.vArr vs₁, Value.vArr vs₂             => false -- vs₁.zip vs₂ |>.all fun (u, v) => valueEq u v
   | Value.vClosure _ _ _, Value.vClosure _ _ _ => false -- closures not comparable
-  | _, _                    => false
+  | _, _                                       => false
 
 instance : BEq Value where
-  beq := val_eq
+  beq := valueEq
 
-def expr_eq (e₁ e₂: Ast.Expr): Ast.Expr :=
-  Ast.Expr.binRel e₁ Ast.RelOp.eq e₂
+/-- Convenience: `exprEq e₁ e₂` builds `e₁ = e₂` as an `Expr`. -/
+def exprEq (e₁ e₂: Expr): Expr :=
+  Expr.binRel e₁ RelOp.eq e₂
 
-def v: Ast.Expr := Ast.Expr.var ".v"
+def v: Expr := Expr.var ".v"
+
+structure Circuit where
+  name    : String
+  inputs  : String × Ast.Ty
+  output  : String × Ast.Ty
+  body    : Ast.Expr
 
 end Ast

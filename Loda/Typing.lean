@@ -1,13 +1,27 @@
 import Loda.Ast
-import Loda.Circuit
 import Loda.Env
 import Loda.Eval
 import Loda.PropSemantics
 
+/-!
+  # Subtyping and Typing Judgments for Loda
+
+  This module defines:
+  1. A **subtyping** relation `SubtypeJudgment`
+     between (optional) Loda types under environments.
+  2. A **typing** relation `TypeJudgment`
+     assigning types to Loda expressions.
+  3. A conversion of a `Circuit` into a `Prop`
+     expressing its correctness w.r.t. its input/output refinements.
+-/
+
 namespace Ty
 
-/-- Subtyping judgment for CODA types -/
-inductive SubtypeJudgment {σ : Env.ValEnv} {δ: Env.CircuitEnv} {Γ: Env.TyEnv} {ctr: ℕ} :
+/--
+  Subtyping judgment between two optional types `τ₁ → τ₂`
+  under valuation `σ`, circuits `δ`, type env `Γ`, and fuel.
+-/
+inductive SubtypeJudgment {fuel: ℕ} {σ : Env.ValEnv} {δ: Env.CircuitEnv} {Γ: Env.TyEnv} :
   Option Ast.Ty → Option Ast.Ty → Prop where
   /-- TSUB-REFL: Reflexivity -/
   | TSub_Refl {τ : Ast.Ty} :
@@ -22,14 +36,14 @@ inductive SubtypeJudgment {σ : Env.ValEnv} {δ: Env.CircuitEnv} {Γ: Env.TyEnv}
   /-- TSUB-REFINE: Refinement subtyping -/
   | TSub_Refine {T₁ T₂ : Ast.Ty} {φ₁ φ₂ : Ast.Expr} :
       SubtypeJudgment (pure T₁) (pure T₂) →
-      (PropSemantics.expr2prop σ δ ctr φ₁ → PropSemantics.expr2prop σ δ ctr φ₂) →
+      (PropSemantics.exprToProp fuel σ δ φ₁ → PropSemantics.exprToProp fuel σ δ φ₂) →
       SubtypeJudgment (pure (Ast.Ty.refin T₁ φ₁)) (pure (Ast.Ty.refin T₂ φ₂))
 
   /-- TSUB-FUN: Function subtyping -/
   | TSub_Fun {x y : String} {z : Ast.Value} {τx τy τr τs : Ast.Ty} :
       SubtypeJudgment (pure τy) (pure τx) →
       -- Using a fresh variable z to avoid capture
-      -- SubtypeJudgment (set (set σ x z) y z) Γ τr τs →
+      -- SubtypeJudgment (update (update σ x z) y z) Γ τr τs →
       SubtypeJudgment (pure τr) (pure τs) →
       SubtypeJudgment (pure (Ast.Ty.func x τx τr)) (pure (Ast.Ty.func y τy τs))
 
@@ -45,131 +59,129 @@ inductive SubtypeJudgment {σ : Env.ValEnv} {δ: Env.CircuitEnv} {Γ: Env.TyEnv}
       (∀ i, i < Ts₁.length → SubtypeJudgment Ts₁[i]? Ts₂[i]?) →
       SubtypeJudgment (pure (Ast.Ty.prod Ts₁)) (pure (Ast.Ty.prod Ts₂))
 
-inductive TypeJudgment {σ: Env.ValEnv} {δ: Env.CircuitEnv} {ctr: ℕ}:
+/--
+  Typing judgment `Γ ⊢ e : τ`: expression `e` has type `τ`
+  under type environment `Γ`, valuation `σ`, circuits `δ`, and fuel.
+-/
+inductive TypeJudgment {fuel: ℕ} {σ: Env.ValEnv} {δ: Env.CircuitEnv}:
   Env.TyEnv → Ast.Expr → Ast.Ty → Prop where
   -- TE-VAR
   | TE_Var {Γ: Env.TyEnv} {x : String} {T: Ast.Ty}:
     ∀ φ: Ast.Expr, Γ x = (Ast.Ty.refin T φ) →
-    TypeJudgment Γ (Ast.Expr.var x) (Ast.Ty.refin T (Ast.expr_eq Ast.v (Ast.Expr.var x)))
+    TypeJudgment Γ (Ast.Expr.var x) (Ast.Ty.refin T (Ast.exprEq Ast.v (Ast.Expr.var x)))
 
   -- TE-VAR-FUNC
-  | T_VarFunc {Γ: Env.TyEnv} {f x : String} {τ₁ τ₂: Ast.Ty}:
+  | TE_VarFunc {Γ: Env.TyEnv} {f x : String} {τ₁ τ₂: Ast.Ty}:
       Γ f = (Ast.Ty.func x τ₁ τ₂) →
       TypeJudgment Γ (Ast.Expr.var f) (Ast.Ty.func x τ₁ τ₂)
 
   -- TE-NONDET
-  | T_Nondet {Γ: Env.TyEnv} {p: ℕ}:
+  | TE_Nondet {Γ: Env.TyEnv} {p: ℕ}:
     TypeJudgment Γ Ast.Expr.wildcard (Ast.Ty.refin (Ast.Ty.field p) (Ast.Expr.constBool true))
 
   -- TE-CONSTF
-  | T_ConstF {Γ: Env.TyEnv} {p: ℕ} {f: F p} :
-    TypeJudgment Γ (Ast.Expr.constF p f) (Ast.Ty.refin (Ast.Ty.field p) (Ast.expr_eq Ast.v (Ast.Expr.constF p f)))
+  | TE_ConstF {Γ: Env.TyEnv} {p: ℕ} {f: F p} :
+    TypeJudgment Γ (Ast.Expr.constF p f) (Ast.Ty.refin (Ast.Ty.field p) (Ast.exprEq Ast.v (Ast.Expr.constF p f)))
 
   -- TE-ASSERT
-  | T_Assert {Γ: Env.TyEnv} {e₁ e₂: Ast.Expr} {p: ℕ}:
+  | TE_Assert {Γ: Env.TyEnv} {e₁ e₂: Ast.Expr} {p: ℕ}:
     TypeJudgment Γ e₁ (Ast.Ty.field p) →
     TypeJudgment Γ e₂ (Ast.Ty.field p) →
-    TypeJudgment Γ (Ast.Expr.assertE e₁ e₂) (Ast.Ty.refin Ast.Ty.unit (Ast.expr_eq e₁ e₂))
+    TypeJudgment Γ (Ast.Expr.assertE e₁ e₂) (Ast.Ty.refin Ast.Ty.unit (Ast.exprEq e₁ e₂))
 
   -- TE-BINOPFIELD
-  | T_BinOpField {Γ: Env.TyEnv} {e₁ e₂: Ast.Expr} {op: Ast.FieldOp} {p: ℕ}:
+  | TE_BinOpField {Γ: Env.TyEnv} {e₁ e₂: Ast.Expr} {op: Ast.FieldOp} {p: ℕ}:
     TypeJudgment Γ e₁ (Ast.Ty.field p) →
     TypeJudgment Γ e₂ (Ast.Ty.field p) →
-    TypeJudgment Γ (Ast.Expr.fieldExpr e₁ op e₂) ((Ast.Ty.refin (Ast.Ty.field p) (Ast.expr_eq Ast.v (Ast.Expr.fieldExpr e₁ op e₂))))
+    TypeJudgment Γ (Ast.Expr.fieldExpr e₁ op e₂) ((Ast.Ty.refin (Ast.Ty.field p) (Ast.exprEq Ast.v (Ast.Expr.fieldExpr e₁ op e₂))))
 
   -- TE-BINOPINT
-  | T_BinOpInt {Γ: Env.TyEnv} {e₁ e₂: Ast.Expr} {op: Ast.IntegerOp} {p: ℕ}:
+  | TE_BinOpInt {Γ: Env.TyEnv} {e₁ e₂: Ast.Expr} {op: Ast.IntegerOp}:
     TypeJudgment Γ e₁ (Ast.Ty.refin Ast.Ty.int (Ast.Expr.constBool true)) →
     TypeJudgment Γ e₂ (Ast.Ty.refin Ast.Ty.int (Ast.Expr.constBool true)) →
-    TypeJudgment Γ (Ast.Expr.intExpr e₁ op e₂) ((Ast.Ty.refin (Ast.Ty.int) (Ast.expr_eq Ast.v (Ast.Expr.intExpr e₁ op e₂))))
+    TypeJudgment Γ (Ast.Expr.intExpr e₁ op e₂) ((Ast.Ty.refin (Ast.Ty.int) (Ast.exprEq Ast.v (Ast.Expr.intExpr e₁ op e₂))))
 
   -- TE-ABS (function abstraction)
-  | T_Abs {Γ: Env.TyEnv} {x: String} {τ₁ τ₂: Ast.Ty} {e: Ast.Expr}:
-    TypeJudgment (Env.setTy Γ x τ₁) e (τ₂) →
+  | TE_Abs {Γ: Env.TyEnv} {x: String} {τ₁ τ₂: Ast.Ty} {e: Ast.Expr}:
+    TypeJudgment (Env.updateTy Γ x τ₁) e (τ₂) →
     TypeJudgment Γ (Ast.Expr.lam x τ₁ e) ((Ast.Ty.func x τ₁ τ₂))
 
   -- TE-APP
-  | T_App {Γ: Env.TyEnv} {x₁ x₂: Ast.Expr} {s: String} {τ₁ τ₂: Ast.Ty} {v: Ast.Value}:
+  | TE_App {Γ: Env.TyEnv} {x₁ x₂: Ast.Expr} {s: String} {τ₁ τ₂: Ast.Ty} {v: Ast.Value}:
     TypeJudgment Γ x₁ (Ast.Ty.func s τ₁ τ₂) →
-    Eval.eval σ δ ctr x₂ = some v →
+    Eval.eval fuel σ δ x₂ = some v →
     TypeJudgment Γ x₂ τ₁ →
     TypeJudgment Γ (Ast.Expr.app x₁ x₂) τ₂
 
   -- TE_SUB
-  | T_SUB {Γ: Env.TyEnv} {e: Ast.Expr} {τ₁ τ₂: Ast.Ty}:
-    @SubtypeJudgment σ δ Γ ctr (pure τ₁) (pure τ₂) →
-    TypeJudgment Γ e τ₁ →
+  | TE_SUB {Γ: Env.TyEnv} {e: Ast.Expr} {τ₁ τ₂: Ast.Ty}
+    (h₀ : @SubtypeJudgment fuel σ δ Γ (some τ₁) (some τ₂))
+    (ht : @TypeJudgment fuel σ δ Γ e τ₁) :
     TypeJudgment Γ e τ₂
 
   -- TE-LETIN
-  | T_LetIn {Γ: Env.TyEnv} {x : String} {e₁ e₂ : Ast.Expr} {τ₁ τ₂ : Ast.Ty}:
-      TypeJudgment Γ e₁ τ₁ →
-      TypeJudgment (Env.setTy Γ x τ₁) e₂ τ₂ →
-      TypeJudgment Γ (Ast.Expr.letIn x e₁ e₂) τ₂
+  | TE_LetIn {Γ: Env.TyEnv} {x : String} {e₁ e₂ : Ast.Expr} {τ₁ τ₂ : Ast.Ty}
+    (h₁: @TypeJudgment fuel σ δ Γ e₁ τ₁)
+    (h₂: @TypeJudgment fuel σ δ (Env.updateTy Γ x τ₁) e₂ τ₂):
+    TypeJudgment Γ (Ast.Expr.letIn x e₁ e₂) τ₂
 
-lemma TE_Var_env {σ : Env.ValEnv} {δ : Env.CircuitEnv} {Γ : Env.TyEnv} {ctr : ℕ} {x : String} {T : Ast.Ty} {φ : Ast.Expr}
-  (hp: PropSemantics.expr2prop σ δ ctr φ) (hΓ : Γ x = Ast.Ty.refin T φ) :
-  @TypeJudgment σ δ ctr Γ (Ast.Expr.var x) (Γ x) := by
-  -- 1) まず TE_Var で {v : T | v = x}
-  have H0 : @TypeJudgment σ δ ctr Γ (Ast.Expr.var x)
-                (Ast.Ty.refin T (Ast.expr_eq Ast.v (Ast.Expr.var x)))
+
+/--
+Specialized soundness theorem for a variable identifier `ident`:
+if `Γ ident = {v : T // φ}` and `φ` holds, then the typing rule for
+`ident` followed by subsumption yields the same refinement, and hence
+`φ` holds by `typeJudgmentRefinementSound`.
+-/
+theorem varRefineSound
+  {fuel : ℕ} {σ : Env.ValEnv} {δ : Env.CircuitEnv} {Γ : Env.TyEnv} {ident : String} {T : Ast.Ty} {φ : Ast.Expr}
+  (hφ: PropSemantics.exprToProp fuel σ δ φ) (hΓ : Γ ident = Ast.Ty.refin T φ) :
+  @TypeJudgment fuel σ δ Γ (Ast.Expr.var ident) (Γ ident) := by
+  have H0 : @TypeJudgment fuel σ δ Γ (Ast.Expr.var ident)
+                (Ast.Ty.refin T (Ast.exprEq Ast.v (Ast.Expr.var ident)))
     := TypeJudgment.TE_Var _ hΓ
   rw[hΓ]
-  -- 2) 次にサブタイピングで expr_eq v x ⇒ φ を使って貼り替え
-  apply TypeJudgment.T_SUB
+  apply TypeJudgment.TE_SUB
     (SubtypeJudgment.TSub_Refine
       SubtypeJudgment.TSub_Refl
-      (by intro _; exact hp))
+      (by intro _; exact hφ))
     H0
 
-axiom IntExprEqImpliesIntVal :
-  ∀ (a b : Ast.Expr) (op : Ast.IntegerOp) (σ : Env.ValEnv) (δ : Env.CircuitEnv) (ctr : ℕ),
-  PropSemantics.expr2prop σ δ ctr (Ast.expr_eq Ast.v (Ast.Expr.intExpr a op b)) →
-  ∃ vv, Eval.eval σ δ ctr Ast.v = some (Ast.Value.vInt vv)
+axiom exprIntVSound :
+  ∀ (a b : Ast.Expr) (op : Ast.IntegerOp) (σ : Env.ValEnv) (δ : Env.CircuitEnv) (fuel : ℕ),
+  PropSemantics.exprToProp fuel σ δ (Ast.exprEq Ast.v (Ast.Expr.intExpr a op b)) →
+  ∃ vv, Eval.eval fuel σ δ Ast.v = some (Ast.Value.vInt vv)
 
-axiom BoolExprEqImpliesBoolVal :
-  ∀ (a b : Ast.Expr) (op : Ast.BooleanOp) (σ : Env.ValEnv) (δ : Env.CircuitEnv) (ctr : ℕ),
-  PropSemantics.expr2prop σ δ ctr (Ast.expr_eq Ast.v (Ast.Expr.boolExpr a op b)) →
-  ∃ vv, Eval.eval σ δ ctr Ast.v = some (Ast.Value.vBool vv)
+axiom exprBoolVSound :
+  ∀ (a b : Ast.Expr) (op : Ast.BooleanOp) (σ : Env.ValEnv) (δ : Env.CircuitEnv) (fuel : ℕ),
+  PropSemantics.exprToProp fuel σ δ (Ast.exprEq Ast.v (Ast.Expr.boolExpr a op b)) →
+  ∃ vv, Eval.eval fuel σ δ Ast.v = some (Ast.Value.vBool vv)
 
-axiom FieldExprEqImpliesFieldVal {p : ℕ} :
-  ∀ (a b : Ast.Expr) (op : Ast.FieldOp) (σ : Env.ValEnv) (δ : Env.CircuitEnv) (ctr : ℕ),
-  PropSemantics.expr2prop σ δ ctr (Ast.expr_eq Ast.v (Ast.Expr.fieldExpr a op b)) →
-  ∃ vv, Eval.eval σ δ ctr Ast.v = some (Ast.Value.vF p vv)
+axiom exprFielVdSound {p : ℕ} :
+  ∀ (a b : Ast.Expr) (op : Ast.FieldOp) (σ : Env.ValEnv) (δ : Env.CircuitEnv) (fuel : ℕ),
+  PropSemantics.exprToProp fuel σ δ (Ast.exprEq Ast.v (Ast.Expr.fieldExpr a op b)) →
+  ∃ vv, Eval.eval fuel σ δ Ast.v = some (Ast.Value.vF p vv)
 
-
--- TODO: this is the soundness theorem that we can prove
-/-
-theorem type_judgment2prop {σ : Env.ValEnv} {δ : Env.CircuitEnv} {Γ : Env.TyEnv} {ctr : ℕ} {τ : Ast.Ty} {e φ : Ast.Expr} :
-  @Ty.TypeJudgment σ δ ctr Γ e (Ast.Ty.refin τ φ) → PropSemantics.expr2prop σ δ ctr φ := by
-  intro h
-  cases h with
-  | TE_Var φ _ => sorry
-  | T_Nondet => simp [PropSemantics.expr2prop]
-  | T_ConstF => sorry
-  | T_Assert _ _ => sorry
-  | T_BinOpField _ _ => sorry
-  | T_BinOpInt _ _ => sorry
-  | T_App _ _ _ => sorry
-  | T_SUB _ _ => sorry
-  | T_LetIn _ _ => sorry
+/--
+If an expression `e` is typed as the refinement `{ v : τ // φ }`,
+then the predicate `φ` holds under `exprToProp`.
+(TODO: this is the soundness theorem that we can prove)
 -/
+axiom typeJudgmentRefinementSound {fuel : ℕ} {σ : Env.ValEnv} {δ : Env.CircuitEnv} {Γ : Env.TyEnv} {τ : Ast.Ty} {e φ : Ast.Expr} :
+  @Ty.TypeJudgment fuel σ δ Γ e (Ast.Ty.refin τ φ) → PropSemantics.exprToProp fuel σ δ φ
 
-axiom type_judgment2prop {σ : Env.ValEnv} {δ : Env.CircuitEnv} {Γ : Env.TyEnv} {ctr : ℕ} {τ : Ast.Ty} {e φ : Ast.Expr} :
-  @Ty.TypeJudgment σ δ ctr Γ e (Ast.Ty.refin τ φ) → PropSemantics.expr2prop σ δ ctr φ
-
-/-- Given a circuit `c`, produce the Prop that says
-1. for any choice of inputs of the correct field type,
-2. evaluating `c.body` yields a value `v`,
-3. and `v` satisfies the refinement predicate in `c.output`. -/
-def circuit2prop (p : ℕ) (δ : Env.CircuitEnv) (c : Circuit.Circuit) : Prop :=
+/--
+  Correctness of a circuit `c`:
+  if the input satisfies its refinement, then evaluating `c.body`
+  yields a value satisfying the output refinement.
+-/
+def circuitCorrect (p : ℕ) (fuel : ℕ) (δ : Env.CircuitEnv) (c : Ast.Circuit) : Prop :=
   ∀ (x : ℕ),
     -- (2) σ, Γ の構築をローカル定義
-    let σ: Env.ValEnv := Env.setVal (fun _ => Ast.Value.vStar) c.inputs.fst (Ast.Value.vInt x)
-    let Γ: Env.TyEnv := Env.setTy (fun _ => Ast.Ty.unit) c.inputs.fst c.inputs.snd
+    let σ: Env.ValEnv := Env.updateVal (fun _ => Ast.Value.vStar) c.inputs.fst (Ast.Value.vInt x)
+    let Γ: Env.TyEnv := Env.updateTy (fun _ => Ast.Ty.unit) c.inputs.fst c.inputs.snd
     -- (3) 全入力が型を満たす仮定
-    PropSemantics.tyenv2prop σ δ 1000 Γ c.inputs.fst →
+    PropSemantics.tyenvToProp fuel σ δ Γ c.inputs.fst →
     -- (4) 型付けを保証する
-    @TypeJudgment σ δ 1000 Γ c.body c.output.snd
+    @TypeJudgment fuel σ δ Γ c.body c.output.snd
 
 end Ty
