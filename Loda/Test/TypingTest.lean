@@ -2,41 +2,6 @@ import Loda.Typing
 
 open Ast
 
--- dummy environments
-def σ0 : Env.ValEnv := fun x =>
-  match x with
-  | "x" => Value.vBool true
-  | "b" => Value.vBool true
-  | "y" => Value.vInt 123
-  | _ => Value.vStar
-def Γ0 : Env.TyEnv := fun x =>
-  match x with
-  | "x" => (Ty.refin Ty.bool (Expr.constBool true))
-  | "b" => (Ty.refin Ty.bool (Expr.constBool true))
-  | "y" => Ty.int
-  | _ => Ty.unit
-def Γ1 := Env.updateTy Γ0 "x" Ty.bool
-def δ0 : Env.CircuitEnv :=
-  fun _ => { name := "idInt", inputs := ("x", Ty.int), output := ("out", Ty.int),
-                 body := Expr.var "x" }
-
-example : @Ty.SubtypeJudgment 123 σ0 δ0 Γ0 (pure Ty.int) (pure Ty.int) :=
-  Ty.SubtypeJudgment.TSub_Refl
-
-example : Γ0 ⊨[σ0, δ0, 12] Ty.int <: Ty.int := Ty.SubtypeJudgment.TSub_Refl
-
--- TE_VAR: assume env maps "b" to {v | v = eval ...}
-example : @Ty.TypeJudgment 123 σ0 δ0 Γ0 (Expr.var "b") (Ty.refin Ty.bool (exprEq v (Expr.var "b"))) := by
-  apply Ty.TypeJudgment.TE_Var
-  simp [Γ0]
-  rfl
-
--- refinement subtyping: {v:int | True} <: {v:int | True}
-example : @Ty.SubtypeJudgment 123 σ0 δ0 Γ0
-  (pure (Ty.refin Ty.int (Expr.constBool true)))
-  (pure (Ty.refin Ty.int (Expr.constBool true))) :=
-  Ty.SubtypeJudgment.TSub_Refl
-
 -- refinement subtyping: {v:int | y + y} <: {v:int | 2 * y}
 -- (Expr.intExpr (Expr.constInt 2) IntegerOp.mul (Expr.var "y"))
 lemma x_plus_x_eq_2_times_x
@@ -139,9 +104,9 @@ def mulCircuit : Ast.Circuit := {
   output := ("out", Ast.Ty.refin (Ast.Ty.int) (Ast.exprEq Ast.v (Ast.Expr.intExpr (Ast.Expr.constInt 2) Ast.IntegerOp.mul (Ast.Expr.var "x")))),
   body   := (Ast.Expr.letIn "out" (Ast.Expr.intExpr (Ast.Expr.var "x") Ast.IntegerOp.add (Ast.Expr.var "x")) (Ast.Expr.var "out"))
 }
-def δ₁ : Env.CircuitEnv := fun nm => if nm = "mul" then mulCircuit else mulCircuit
+def Δ : Env.CircuitEnv := fun nm => if nm = "mul" then mulCircuit else mulCircuit
 
-theorem mulCircuit_correct : (Ty.circuitCorrect 7 1000 δ₁ mulCircuit) := by
+theorem mulCircuit_correct : (Ty.circuitCorrect 7 1000 Δ mulCircuit) := by
   -- circuit2prop の定義展開と前提の整理
   unfold Ty.circuitCorrect
   unfold mulCircuit
@@ -159,22 +124,22 @@ theorem mulCircuit_correct : (Ty.circuitCorrect 7 1000 δ₁ mulCircuit) := by
          (Ast.Expr.var "out"))
       (Ast.Ty.refin Ast.Ty.int
          (Ast.exprEq Ast.v (Ast.Expr.intExpr (Ast.Expr.var "x") Ast.IntegerOp.add (Ast.Expr.var "x")))) := by {
-          apply @let_x_plus_x_y 7 "x" "out" σ δ₁ Γ
+          apply @let_x_plus_x_y 7 "x" "out" σ Δ Γ
           simp [Γ]
           rfl
          }
   have h_sub :
-    @Ty.SubtypeJudgment 1000 σ δ₁ Γ
+    @Ty.SubtypeJudgment 1000 σ Δ Γ
       (pure (Ast.Ty.refin Ast.Ty.int (Ast.exprEq Ast.v (Ast.Expr.intExpr (Ast.Expr.var "x") Ast.IntegerOp.add (Ast.Expr.var "x")))))
       (pure (Ast.Ty.refin Ast.Ty.int (Ast.exprEq Ast.v (Ast.Expr.intExpr (Ast.Expr.constInt 2) Ast.IntegerOp.mul (Ast.Expr.var "x"))))) := by {
-        apply x_plus_x_eq_2_times_x σ δ₁ Γ "x" x
+        apply x_plus_x_eq_2_times_x σ Δ Γ "x" x
         simp [σ]
         rfl
       }
   exact Ty.TypeJudgment.TE_SUB h_sub h_body
 
 
-def σ₁ : Env.ValEnv := fun x =>
+def σ : Env.ValEnv := fun x =>
   if x = "x" then Ast.Value.vInt 5 else Ast.Value.vStar
-def Γ₁ : Env.TyEnv := fun _ => Ast.Ty.refin Ast.Ty.int (Ast.Expr.constBool true)
-#eval Eval.eval 123 σ₁ δ₁ mulCircuit.body
+def Γ : Env.TyEnv := fun _ => Ast.Ty.refin Ast.Ty.int (Ast.Expr.constBool true)
+#eval Eval.eval 1000 σ Δ mulCircuit.body
