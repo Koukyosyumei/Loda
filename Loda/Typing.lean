@@ -163,9 +163,9 @@ axiom type_judgment2prop {σ : Env.ValEnv} {δ : Env.CircuitEnv} {Γ : Env.TyEnv
 2. evaluating `c.body` yields a value `v`,
 3. and `v` satisfies the refinement predicate in `c.output`. -/
 def circuit2prop (p : ℕ) (δ : Env.CircuitEnv) (c : Circuit.Circuit) : Prop :=
-  ∀ (x : ZMod p),
+  ∀ (x : ℕ),
     -- (2) σ, Γ の構築をローカル定義
-    let σ: Env.ValEnv := Env.setVal (fun _ => Ast.Value.vStar) c.inputs.fst (Ast.Value.vF p x)
+    let σ: Env.ValEnv := Env.setVal (fun _ => Ast.Value.vStar) c.inputs.fst (Ast.Value.vInt x)
     let Γ: Env.TyEnv := Env.setTy (fun _ => Ast.Ty.unit) c.inputs.fst c.inputs.snd
     -- (3) 全入力が型を満たす仮定
     PropSemantics.tyenv2prop σ δ 1000 Γ c.inputs.fst →

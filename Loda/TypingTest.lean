@@ -141,7 +141,38 @@ def mulCircuit : Circuit.Circuit := {
 }
 def δ₁ : Env.CircuitEnv := fun nm => if nm = "mul" then mulCircuit else mulCircuit
 
-theorem mulCircuit_correct : (Ty.circuit2prop 7 δ₁ mulCircuit) := by sorry
+theorem mulCircuit_correct : (Ty.circuit2prop 7 δ₁ mulCircuit) := by
+  -- circuit2prop の定義展開と前提の整理
+  unfold Ty.circuit2prop
+  unfold mulCircuit
+  simp_all
+  -- 任意の入力 x と型付け前提 hΓ を仮定
+  intro x hσ
+  set σ := (Env.setVal (fun x ↦ Value.vStar) "x" (Value.vInt x))
+  set Γ := (Env.setTy (fun x ↦ Ty.unit) "x" (Ty.int.refin (Expr.constBool true)))
+  -- let-in レマを呼び出して本体の型付けを得る
+  have h_body :
+    Ty.TypeJudgment
+      (Env.setTy (fun _ => Ast.Ty.unit) "x" (Ast.Ty.refin Ast.Ty.int (Ast.Expr.constBool true)))
+      (Ast.Expr.letIn "out"
+         (Ast.Expr.intExpr (Ast.Expr.var "x") Ast.IntegerOp.add (Ast.Expr.var "x"))
+         (Ast.Expr.var "out"))
+      (Ast.Ty.refin Ast.Ty.int
+         (Ast.expr_eq Ast.v (Ast.Expr.intExpr (Ast.Expr.var "x") Ast.IntegerOp.add (Ast.Expr.var "x")))) := by {
+          apply @let_x_plus_x_y 7 "x" "out" σ δ₁ Γ
+          simp [Γ]
+          rfl
+         }
+  have h_sub :
+    @Ty.SubtypeJudgment σ δ₁ Γ 1000
+      (pure (Ast.Ty.refin Ast.Ty.int (Ast.expr_eq Ast.v (Ast.Expr.intExpr (Ast.Expr.var "x") Ast.IntegerOp.add (Ast.Expr.var "x")))))
+      (pure (Ast.Ty.refin Ast.Ty.int (Ast.expr_eq Ast.v (Ast.Expr.intExpr (Ast.Expr.constInt 2) Ast.IntegerOp.mul (Ast.Expr.var "x"))))) := by {
+        apply x_plus_x_eq_2_times_x σ δ₁ Γ "x" x
+        simp [σ]
+        rfl
+      }
+  exact Ty.TypeJudgment.T_SUB h_sub h_body
+
 
 def σ₁ : Env.ValEnv := fun x =>
   if x = "x" then Ast.Value.vInt 5 else Ast.Value.vStar
