@@ -60,10 +60,13 @@ lemma two_mul_F {p: ℕ}
   rw[two_mul]
   simp_all
 
-
-lemma x_plus_x {p : ℕ} (fuel: ℕ) (x: String) (σ: Env.ValEnv) (δ: Env.CircuitEnv) (Γ: Env.TyEnv) (hΓx: Γ x = Ast.Ty.refin Ast.Ty.int (Ast.Expr.constBool true))
-  : @Ty.TypeJudgment fuel σ δ Γ (Ast.Expr.intExpr (Ast.Expr.var x) Ast.IntegerOp.add (Ast.Expr.var x))
-      (Ty.refin Ty.int (exprEq v (Expr.intExpr (Expr.var x) IntegerOp.add (Expr.var x)))) := by
+lemma typed_int_expr_from_refined_vars
+  (fuel: ℕ) (x y: String) (σ: Env.ValEnv) (δ: Env.CircuitEnv) (Γ: Env.TyEnv)
+  (op: Ast.IntegerOp)
+  (hΓx: Γ x = Ast.Ty.refin Ast.Ty.int (Ast.Expr.constBool true))
+  (hΓy: Γ y = Ast.Ty.refin Ast.Ty.int (Ast.Expr.constBool true))
+  : @Ty.TypeJudgment fuel σ δ Γ (Ast.Expr.intExpr (Ast.Expr.var x) op (Ast.Expr.var y))
+      (Ty.refin Ty.int (exprEq v (Expr.intExpr (Expr.var x) op (Expr.var y)))) := by
   apply Ty.TypeJudgment.TE_BinOpInt
   apply Ty.TypeJudgment.TE_SUB (Ty.SubtypeJudgment.TSub_Refine
                     Ty.SubtypeJudgment.TSub_Refl             -- underlying int <: int
@@ -76,7 +79,7 @@ lemma x_plus_x {p : ℕ} (fuel: ℕ) (x: String) (σ: Env.ValEnv) (δ: Env.Circu
                     (by intro _; trivial)                     -- φ₁ → true
                   )
   apply Ty.TypeJudgment.TE_Var (Ast.Expr.constBool true)
-  simp [hΓx]
+  simp [hΓy]
 
 lemma let_x_plus_x_y {p : ℕ} (fuel: ℕ) (x y: String) (σ: Env.ValEnv) (δ: Env.CircuitEnv) (Γ : Env.TyEnv)
   (hΓx: Γ x =  Ast.Ty.refin Ast.Ty.int (Ast.Expr.constBool true)) :
@@ -108,9 +111,9 @@ lemma let_x_plus_x_y {p : ℕ} (fuel: ℕ) (x y: String) (σ: Env.ValEnv) (δ: E
       (Ast.Ty.refin Ast.Ty.int
       (Ast.exprEq Ast.v
          (Ast.Expr.intExpr (Ast.Expr.var x) Ast.IntegerOp.add (Ast.Expr.var x)))):= by {
-        apply x_plus_x
-        exact p
-        apply hΓx
+        apply typed_int_expr_from_refined_vars
+        exact hΓx
+        exact hΓx
       }
   have hφ :
       (@Ty.TypeJudgment fuel σ δ Γ (Ast.Expr.intExpr (Ast.Expr.var x) Ast.IntegerOp.add (Ast.Expr.var x))

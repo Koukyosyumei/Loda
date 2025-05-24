@@ -133,7 +133,8 @@ if `Γ ident = {v : T // φ}` and `φ` holds, then the typing rule for
 `φ` holds by `typeJudgmentRefinementSound`.
 -/
 theorem varRefineSound
-  {fuel : ℕ} {σ : Env.ValEnv} {δ : Env.CircuitEnv} {Γ : Env.TyEnv} {ident : String} {T : Ast.Ty} {φ : Ast.Expr}
+  {fuel : ℕ} {σ : Env.ValEnv} {δ : Env.CircuitEnv}
+  {Γ : Env.TyEnv} {ident : String} {T : Ast.Ty} {φ : Ast.Expr}
   (hφ: PropSemantics.exprToProp fuel σ δ φ) (hΓ : Γ ident = Ast.Ty.refin T φ) :
   @TypeJudgment fuel σ δ Γ (Ast.Expr.var ident) (Γ ident) := by
   have H0 : @TypeJudgment fuel σ δ Γ (Ast.Expr.var ident)
