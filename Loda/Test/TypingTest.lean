@@ -3,29 +3,6 @@ import Loda.Typing
 open Ast
 
 -- refinement subtyping: {v:int | y + y} <: {v:int | 2 * y}
-lemma two_mul_I_simplified
-  (fuel: ℕ) (σ: Env.ValEnv) (δ: Env.CircuitEnv)
-  (Γ: Env.TyEnv) (x: String) (xv: ℕ) (hσx : σ x = Value.vInt xv)
-  : @Ty.SubtypeJudgment fuel σ δ Γ
-      (pure (Ty.refin Ty.int (exprEq v (Expr.intExpr (Expr.var x) IntegerOp.add (Expr.var x)))))
-      (pure (Ty.refin Ty.int (exprEq v (Expr.intExpr (Expr.constInt 2) IntegerOp.mul (Expr.var x))))) :=
-by
-  apply Ty.SubtypeJudgment.TSub_Refine
-  · exact Ty.SubtypeJudgment.TSub_Refl
-  intro h_prop_v_eq_x_plus_x
-  obtain ⟨v_val, h_eval_v_is_v_val⟩ : ∃ val, Eval.eval fuel σ δ v = some (Value.vInt val) :=
-    Ty.exprIntVSound (Expr.var x) (Expr.var x) IntegerOp.add σ δ fuel h_prop_v_eq_x_plus_x
-  have h_v_val_eq_sum : v_val = xv + xv := by
-    simp only [PropSemantics.exprToProp, exprEq, decide_eq_true, Eval.eval, Eval.evalIntegerOp, hσx] at h_prop_v_eq_x_plus_x
-    rw [h_eval_v_is_v_val] at h_prop_v_eq_x_plus_x
-    simp [decide_eq_true] at h_eval_v_is_v_val ⊢
-    rw[two_mul]
-
-    injection h_prop_v_eq_x_plus_x with h_inj_vInt
-    injection h_inj_vInt -- Extracts v_val = xv + xv from equality of `some (Value.vInt ...)`
-    assumption
-
--- refinement subtyping: {v:int | y + y} <: {v:int | 2 * y}
 -- (Expr.intExpr (Expr.constInt 2) IntegerOp.mul (Expr.var "y"))
 lemma two_mul_I
   (fuel: ℕ) (σ: Env.ValEnv) (δ: Env.CircuitEnv)
