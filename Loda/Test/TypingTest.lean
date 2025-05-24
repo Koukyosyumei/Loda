@@ -24,11 +24,8 @@ lemma two_mul_I
   unfold exprEq at h
   simp [decide_eq_true] at h ⊢
   rw[hσx]
-  rw[hσx] at h
   simp[Eval.evalIntegerOp]
   rw[hv_eq]
-  rw[hv_eq] at h
-  simp_all
   rw[two_mul]
   simp_all
 
@@ -52,77 +49,65 @@ lemma two_mul_F {p: ℕ}
   unfold exprEq at h
   simp [decide_eq_true] at h ⊢
   rw[hσx]
-  rw[hσx] at h
   simp[Eval.evalIntegerOp]
   rw[hv_eq]
-  rw[hv_eq] at h
-  simp_all
   rw[two_mul]
   simp_all
 
 lemma typed_int_expr_from_refined_vars
   (fuel: ℕ) (x y: String) (σ: Env.ValEnv) (δ: Env.CircuitEnv) (Γ: Env.TyEnv)
   (op: Ast.IntegerOp)
-  (hΓx: Γ x = Ast.Ty.refin Ast.Ty.int (Ast.Expr.constBool true))
-  (hΓy: Γ y = Ast.Ty.refin Ast.Ty.int (Ast.Expr.constBool true))
+  (φ₁ φ₂: Ast.Expr)
+  (hΓx: Γ x = Ast.Ty.refin Ast.Ty.int φ₁)
+  (hΓy: Γ y = Ast.Ty.refin Ast.Ty.int φ₂)
   : @Ty.TypeJudgment fuel σ δ Γ (Ast.Expr.intExpr (Ast.Expr.var x) op (Ast.Expr.var y))
       (Ty.refin Ty.int (exprEq v (Expr.intExpr (Expr.var x) op (Expr.var y)))) := by
   apply Ty.TypeJudgment.TE_BinOpInt
-  apply Ty.TypeJudgment.TE_SUB (Ty.SubtypeJudgment.TSub_Refine
-                    Ty.SubtypeJudgment.TSub_Refl             -- underlying int <: int
-                    (by intro _; trivial)                     -- φ₁ → true
-                  )
-  apply Ty.TypeJudgment.TE_Var (Ast.Expr.constBool true)
+  apply Ty.TypeJudgment.TE_Var φ₁
   simp [hΓx]
-  apply Ty.TypeJudgment.TE_SUB (Ty.SubtypeJudgment.TSub_Refine
-                    Ty.SubtypeJudgment.TSub_Refl             -- underlying int <: int
-                    (by intro _; trivial)                     -- φ₁ → true
-                  )
-  apply Ty.TypeJudgment.TE_Var (Ast.Expr.constBool true)
+  apply Ty.TypeJudgment.TE_Var φ₂
   simp [hΓy]
 
-lemma let_x_plus_x_y {p : ℕ} (fuel: ℕ) (x y: String) (σ: Env.ValEnv) (δ: Env.CircuitEnv) (Γ : Env.TyEnv)
-  (hΓx: Γ x =  Ast.Ty.refin Ast.Ty.int (Ast.Expr.constBool true)) :
+lemma let_binding_int_op_type_preservation
+  (fuel: ℕ) (x y z: String) (σ: Env.ValEnv) (δ: Env.CircuitEnv) (Γ : Env.TyEnv)
+  (op: Ast.IntegerOp)
+  (φ₁ φ₂: Ast.Expr)
+  (hΓx: Γ x =  Ast.Ty.refin Ast.Ty.int φ₁) (hΓy: Γ y =  Ast.Ty.refin Ast.Ty.int φ₂) :
   @Ty.TypeJudgment fuel σ δ Γ
-    (Ast.Expr.letIn y
-       (Ast.Expr.intExpr (Ast.Expr.var x) Ast.IntegerOp.add (Ast.Expr.var x))
-       (Ast.Expr.var y))
-    (Ty.refin Ty.int (Ast.exprEq Ast.v (Ast.Expr.intExpr (Ast.Expr.var x) Ast.IntegerOp.add (Ast.Expr.var x))))
+    (Ast.Expr.letIn z
+       (Ast.Expr.intExpr (Ast.Expr.var x) op (Ast.Expr.var y))
+       (Ast.Expr.var z))
+    (Ty.refin Ty.int (Ast.exprEq Ast.v (Ast.Expr.intExpr (Ast.Expr.var x) op (Ast.Expr.var y))))
 := by
   apply Ty.TypeJudgment.TE_LetIn
   · apply Ty.TypeJudgment.TE_BinOpInt
-    · apply Ty.TypeJudgment.TE_SUB (Ty.SubtypeJudgment.TSub_Refine
-                        Ty.SubtypeJudgment.TSub_Refl
-                        (by intro _; trivial))
-      apply Ty.TypeJudgment.TE_Var (Ast.Expr.constBool true)
-      simp [hΓx]
-    · apply Ty.TypeJudgment.TE_SUB (Ty.SubtypeJudgment.TSub_Refine
-                        Ty.SubtypeJudgment.TSub_Refl
-                        (by intro _; trivial))
-      apply Ty.TypeJudgment.TE_Var (Ast.Expr.constBool true)
-      simp [hΓx]
+    . apply Ty.TypeJudgment.TE_Var φ₁
+      exact hΓx
+    . apply Ty.TypeJudgment.TE_Var φ₂
+      exact hΓy
   let sum_ty : Ast.Ty := Ast.Ty.refin Ast.Ty.int
       (Ast.exprEq Ast.v
-         (Ast.Expr.intExpr (Ast.Expr.var x) Ast.IntegerOp.add (Ast.Expr.var x)))
-  set Γ' := (Env.updateTy Γ y (Ty.int.refin (exprEq v ((Expr.var x).intExpr IntegerOp.add (Expr.var x)))))
+         (Ast.Expr.intExpr (Ast.Expr.var x) op (Ast.Expr.var y)))
+  set Γ' := (Env.updateTy Γ z (Ty.int.refin (exprEq v ((Expr.var x).intExpr op (Expr.var y)))))
   have h_sum_ty_judgment :
     @Ty.TypeJudgment fuel σ δ Γ
-      (Ast.Expr.intExpr (Ast.Expr.var x) Ast.IntegerOp.add (Ast.Expr.var x))
+      (Ast.Expr.intExpr (Ast.Expr.var x) op (Ast.Expr.var y))
       (Ast.Ty.refin Ast.Ty.int
-      (Ast.exprEq Ast.v
-         (Ast.Expr.intExpr (Ast.Expr.var x) Ast.IntegerOp.add (Ast.Expr.var x)))):= by {
+      (Ast.exprEq Ast.v (Ast.Expr.intExpr (Ast.Expr.var x) op (Ast.Expr.var y)))):= by {
         apply typed_int_expr_from_refined_vars
         exact hΓx
-        exact hΓx
+        exact hΓy
       }
   have hφ :
-      (@Ty.TypeJudgment fuel σ δ Γ (Ast.Expr.intExpr (Ast.Expr.var x) Ast.IntegerOp.add (Ast.Expr.var x))
-        (Ast.Ty.refin Ast.Ty.int (Ast.exprEq Ast.v (Ast.Expr.intExpr (Ast.Expr.var x) Ast.IntegerOp.add (Ast.Expr.var x)))))
+      (@Ty.TypeJudgment fuel σ δ Γ (Ast.Expr.intExpr (Ast.Expr.var x) op (Ast.Expr.var y))
+        (Ast.Ty.refin Ast.Ty.int (Ast.exprEq Ast.v (Ast.Expr.intExpr (Ast.Expr.var x) op (Ast.Expr.var y)))))
       → PropSemantics.exprToProp fuel σ δ
-          (Ast.exprEq Ast.v (Ast.Expr.intExpr (Ast.Expr.var x) Ast.IntegerOp.add (Ast.Expr.var x))) :=
-      Ty.typeJudgmentRefinementSound Γ Ast.Ty.int (Ast.Expr.intExpr (Ast.Expr.var x) Ast.IntegerOp.add (Ast.Expr.var x)) (Ast.exprEq Ast.v (Ast.Expr.intExpr (Ast.Expr.var x) Ast.IntegerOp.add (Ast.Expr.var x)))
+          (Ast.exprEq Ast.v (Ast.Expr.intExpr (Ast.Expr.var x) op (Ast.Expr.var y))) :=
+      Ty.typeJudgmentRefinementSound Γ Ast.Ty.int
+        (Ast.Expr.intExpr (Ast.Expr.var x) op (Ast.Expr.var y))
+        (Ast.exprEq Ast.v (Ast.Expr.intExpr (Ast.Expr.var x) op (Ast.Expr.var y)))
   apply hφ at h_sum_ty_judgment
-  have hΓout : Γ' y = Ty.int.refin (exprEq v (Expr.intExpr (Expr.var x) IntegerOp.add (Expr.var x))) := by {
+  have hΓout : Γ' z = Ty.int.refin (exprEq v (Expr.intExpr (Expr.var x) op (Expr.var y))) := by {
     simp [Γ']
     unfold Env.updateTy
     simp_all
@@ -140,15 +125,12 @@ def mulCircuit : Ast.Circuit := {
 def Δ : Env.CircuitEnv := fun nm => if nm = "mul" then mulCircuit else mulCircuit
 
 theorem mulCircuit_correct : (Ty.circuitCorrect 7 1000 Δ mulCircuit) := by
-  -- circuit2prop の定義展開と前提の整理
   unfold Ty.circuitCorrect
   unfold mulCircuit
   simp_all
-  -- 任意の入力 x と型付け前提 hΓ を仮定
   intro x hσ
   set σ := (Env.updateVal (fun x ↦ Value.vStar) "x" (Value.vInt x))
   set Γ := (Env.updateTy (fun x ↦ Ty.unit) "x" (Ty.int.refin (Expr.constBool true)))
-  -- let-in レマを呼び出して本体の型付けを得る
   have h_body :
     Ty.TypeJudgment
       (Env.updateTy (fun _ => Ast.Ty.unit) "x" (Ast.Ty.refin Ast.Ty.int (Ast.Expr.constBool true)))
@@ -157,7 +139,9 @@ theorem mulCircuit_correct : (Ty.circuitCorrect 7 1000 Δ mulCircuit) := by
          (Ast.Expr.var "out"))
       (Ast.Ty.refin Ast.Ty.int
          (Ast.exprEq Ast.v (Ast.Expr.intExpr (Ast.Expr.var "x") Ast.IntegerOp.add (Ast.Expr.var "x")))) := by {
-          apply @let_x_plus_x_y 7 1000 "x" "out" σ Δ Γ
+          apply @let_binding_int_op_type_preservation 1000 "x" "x" "out" σ Δ Γ
+          simp [Γ]
+          rfl
           simp [Γ]
           rfl
          }

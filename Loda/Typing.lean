@@ -97,8 +97,8 @@ inductive TypeJudgment {fuel: ℕ} {σ: Env.ValEnv} {δ: Env.CircuitEnv}:
 
   -- TE-BINOPINT
   | TE_BinOpInt {Γ: Env.TyEnv} {e₁ e₂: Ast.Expr} {op: Ast.IntegerOp}:
-    TypeJudgment Γ e₁ (Ast.Ty.refin Ast.Ty.int (Ast.Expr.constBool true)) →
-    TypeJudgment Γ e₂ (Ast.Ty.refin Ast.Ty.int (Ast.Expr.constBool true)) →
+    TypeJudgment Γ e₁ (Ast.Ty.refin Ast.Ty.int _) →
+    TypeJudgment Γ e₂ (Ast.Ty.refin Ast.Ty.int _) →
     TypeJudgment Γ (Ast.Expr.intExpr e₁ op e₂) ((Ast.Ty.refin (Ast.Ty.int) (Ast.exprEq Ast.v (Ast.Expr.intExpr e₁ op e₂))))
 
   -- TE-ABS (function abstraction)
