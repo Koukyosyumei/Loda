@@ -6,7 +6,7 @@ open Ast
 -- (Expr.intExpr (Expr.constInt 2) IntegerOp.mul (Expr.var "y"))
 lemma two_mul_I
   (fuel: ℕ) (σ: Env.ValEnv) (δ: Env.CircuitEnv)
-  (Γ: Env.TyEnv) (x: String) (xv: ℕ) (hσx : σ x = Value.vInt xv)
+  (Γ: Env.TyEnv) (x: String) (xv: ℤ) (hσx : σ x = Value.vInt xv)
   : @Ty.SubtypeJudgment fuel σ δ Γ
       (pure (Ty.refin Ty.int (exprEq v (Expr.intExpr (Expr.var x) IntegerOp.add (Expr.var x)))))
       (pure (Ty.refin Ty.int (exprEq v (Expr.intExpr (Expr.constInt 2) IntegerOp.mul (Expr.var x)))))
@@ -104,12 +104,14 @@ def mulCircuit : Ast.Circuit := {
 }
 def Δ : Env.CircuitEnv := fun nm => if nm = "mul" then mulCircuit else mulCircuit
 
-theorem mulCircuit_correct : (Ty.circuitCorrect 7 1000 Δ mulCircuit) := by
+#eval Value.vStar != Value.vStar
+
+theorem mulCircuit_correct : (Ty.circuitCorrect 1000 Δ mulCircuit) := by
   unfold Ty.circuitCorrect
   unfold mulCircuit
   simp_all
-  intro x hσ
-  set σ := (Env.updateVal (fun x ↦ Value.vStar) "x" (Value.vInt x))
+  intro x hs hσ
+  set σ := (Env.updateVal (fun x ↦ Value.vStar) "x" x)
   set Γ := (Env.updateTy (fun x ↦ Ty.unit) "x" (Ty.int.refin (Expr.constBool true)))
   have h_body :
     Ty.TypeJudgment
@@ -125,12 +127,34 @@ theorem mulCircuit_correct : (Ty.circuitCorrect 7 1000 Δ mulCircuit) := by
           simp [Γ]
           rfl
          }
+  unfold PropSemantics.tyenvToProp at hσ
+  simp [Γ] at hσ
+  have hσ₁ : σ "x" = x := by {
+    simp [σ]
+    rfl
+  }
+  have h : ∃ (a : ℤ), σ "x" = Ast.Value.vInt a := by
+    -- 2) do case‐analysis on `x`
+    cases x with
+    | vInt n =>
+      -- the only live branch: build the existential
+      use n
+    | _ =>
+      -- in every other case `hσ` is already absurd
+      simp [hσ₁] at hσ
+      simp_all
+      cases hσ with
+      | intro left right => {
+        contradiction
+      }
+  obtain ⟨vv, hv_eq⟩ := h
   have h_sub :
     @Ty.SubtypeJudgment 1000 σ Δ Γ
       (pure (Ast.Ty.refin Ast.Ty.int (Ast.exprEq Ast.v (Ast.Expr.intExpr (Ast.Expr.var "x") Ast.IntegerOp.add (Ast.Expr.var "x")))))
       (pure (Ast.Ty.refin Ast.Ty.int (Ast.exprEq Ast.v (Ast.Expr.intExpr (Ast.Expr.constInt 2) Ast.IntegerOp.mul (Ast.Expr.var "x"))))) := by {
-        apply two_mul_I 1000 σ Δ Γ "x" x
+        apply two_mul_I 1000 σ Δ Γ "x" vv
         simp [σ]
+        simp_all
         rfl
       }
   exact Ty.TypeJudgment.TE_SUB h_sub h_body

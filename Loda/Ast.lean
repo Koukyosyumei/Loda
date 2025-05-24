@@ -50,7 +50,7 @@ mutual
   /-- Core expressions syntax for Loda. -/
   inductive Expr where
     | constF      : (p: ℕ) → (x : F p) → Expr                            -- field constant
-    | constInt    : (n: Int) → Expr                                      -- integer constant
+    | constInt    : (n: ℤ) → Expr                                      -- integer constant
     | constBool   : (b: Bool) → Expr                                     -- boolean constant
     | var         : (name: String) → Expr                                -- variable x
     | wildcard    : Expr                                                 -- ⋆
@@ -76,7 +76,7 @@ mutual
   inductive Value where
     | vF       : (p: ℕ) → (x: F p) → Value
     | vStar    : Value
-    | vInt     : (n: Int) → Value
+    | vInt     : (n: ℤ) → Value
     | vBool    : (b: Bool) → Value
     | vProd    : (elems: List Value) → Value
     | vArr     : (elems: List Value) → Value
@@ -117,6 +117,7 @@ def valueEq : Value → Value → Bool
   | Value.vF p₁ x, Value.vF p₂ y               => p₁ = p₂ ∧ x.val % p₁ = y.val % p₁
   | Value.vF _ _, Value.vStar                  => true
   | Value.vStar, Value.vF _ _                  => true
+  | Value.vStar, Value.vStar                   => true
   | Value.vInt i₁, Value.vInt i₂               => i₁ = i₂
   | Value.vBool b₁, Value.vBool b₂             => b₁ = b₂
   | Value.vProd vs₁, Value.vProd vs₂           => false -- vs₁.zip vs₂ |>.all fun (u, v) => valueEq u v

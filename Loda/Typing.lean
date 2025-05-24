@@ -176,10 +176,11 @@ axiom typeJudgmentRefinementSound {fuel : ℕ} {σ : Env.ValEnv} {δ : Env.Circu
   if the input satisfies its refinement, then evaluating `c.body`
   yields a value satisfying the output refinement.
 -/
-def circuitCorrect (p : ℕ) (fuel : ℕ) (δ : Env.CircuitEnv) (c : Ast.Circuit) : Prop :=
-  ∀ (x : ℕ),
+def circuitCorrect (fuel : ℕ) (δ : Env.CircuitEnv) (c : Ast.Circuit) : Prop :=
+  ∀ (x : Ast.Value),
+    x != Ast.Value.vStar →
     -- (2) σ, Γ の構築をローカル定義
-    let σ: Env.ValEnv := Env.updateVal (fun _ => Ast.Value.vStar) c.inputs.fst (Ast.Value.vInt x)
+    let σ: Env.ValEnv := Env.updateVal (fun _ => Ast.Value.vStar) c.inputs.fst x
     let Γ: Env.TyEnv := Env.updateTy (fun _ => Ast.Ty.unit) c.inputs.fst c.inputs.snd
     -- (3) 全入力が型を満たす仮定
     PropSemantics.tyenvToProp fuel σ δ Γ c.inputs.fst →
