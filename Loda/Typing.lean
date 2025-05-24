@@ -166,7 +166,8 @@ If an expression `e` is typed as the refinement `{ v : τ // φ }`,
 then the predicate `φ` holds under `exprToProp`.
 (TODO: this is the soundness theorem that we can prove)
 -/
-axiom typeJudgmentRefinementSound {fuel : ℕ} {σ : Env.ValEnv} {δ : Env.CircuitEnv} {Γ : Env.TyEnv} {τ : Ast.Ty} {e φ : Ast.Expr} :
+axiom typeJudgmentRefinementSound {fuel : ℕ} {σ : Env.ValEnv} {δ : Env.CircuitEnv}
+ (Γ : Env.TyEnv) (τ : Ast.Ty) (e φ : Ast.Expr) :
   @Ty.TypeJudgment fuel σ δ Γ e (Ast.Ty.refin τ φ) → PropSemantics.exprToProp fuel σ δ φ
 
 /--

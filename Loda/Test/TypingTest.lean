@@ -4,16 +4,17 @@ open Ast
 
 -- refinement subtyping: {v:int | y + y} <: {v:int | 2 * y}
 -- (Expr.intExpr (Expr.constInt 2) IntegerOp.mul (Expr.var "y"))
-lemma x_plus_x_eq_2_times_x
-  (σ: Env.ValEnv) (δ: Env.CircuitEnv) (Γ: Env.TyEnv) (x: String) (xv: ℕ) (hσx : σ x = Value.vInt xv)
-  : @Ty.SubtypeJudgment 1000 σ δ Γ
+lemma two_mul_I
+  (fuel: ℕ) (σ: Env.ValEnv) (δ: Env.CircuitEnv)
+  (Γ: Env.TyEnv) (x: String) (xv: ℕ) (hσx : σ x = Value.vInt xv)
+  : @Ty.SubtypeJudgment fuel σ δ Γ
       (pure (Ty.refin Ty.int (exprEq v (Expr.intExpr (Expr.var x) IntegerOp.add (Expr.var x)))))
       (pure (Ty.refin Ty.int (exprEq v (Expr.intExpr (Expr.constInt 2) IntegerOp.mul (Expr.var x)))))
   := by
   apply Ty.SubtypeJudgment.TSub_Refine
   · apply Ty.SubtypeJudgment.TSub_Refl
   intro h
-  have hv : ∃ vv, Eval.eval 1000 σ δ v = some (Value.vInt vv) := by {
+  have hv : ∃ vv, Eval.eval fuel σ δ v = some (Value.vInt vv) := by {
     apply Ty.exprIntVSound at h
     exact h
   }
@@ -29,9 +30,39 @@ lemma x_plus_x_eq_2_times_x
   rw[hv_eq] at h
   simp_all
   rw[two_mul]
+  simp_all
 
-lemma x_plus_x {p : ℕ} (x: String) (σ: Env.ValEnv) (δ: Env.CircuitEnv) (Γ: Env.TyEnv) (hΓx: Γ x = Ast.Ty.refin Ast.Ty.int (Ast.Expr.constBool true))
-  : @Ty.TypeJudgment 1000 σ δ Γ (Ast.Expr.intExpr (Ast.Expr.var x) Ast.IntegerOp.add (Ast.Expr.var x))
+lemma two_mul_F {p: ℕ}
+  (fuel: ℕ) (σ: Env.ValEnv) (δ: Env.CircuitEnv)
+  (Γ: Env.TyEnv) (x: String) (xv: ℕ) (hσx : σ x = Value.vF p xv)
+  : @Ty.SubtypeJudgment fuel σ δ Γ
+      (pure (Ty.refin Ty.int (exprEq v (Expr.fieldExpr (Expr.var x) FieldOp.add (Expr.var x)))))
+      (pure (Ty.refin Ty.int (exprEq v (Expr.fieldExpr (Expr.constF p 2) FieldOp.mul (Expr.var x)))))
+  := by
+  apply Ty.SubtypeJudgment.TSub_Refine
+  · apply Ty.SubtypeJudgment.TSub_Refl
+  intro h
+  have hv : ∃ vv, Eval.eval fuel σ δ v = some (Value.vF p vv) := by {
+    apply Ty.exprFielVdSound at h
+    exact h
+  }
+  obtain ⟨vv, hv_eq⟩ := hv
+  dsimp [PropSemantics.exprToProp, Eval.eval] at h ⊢
+  unfold exprEq
+  unfold exprEq at h
+  simp [decide_eq_true] at h ⊢
+  rw[hσx]
+  rw[hσx] at h
+  simp[Eval.evalIntegerOp]
+  rw[hv_eq]
+  rw[hv_eq] at h
+  simp_all
+  rw[two_mul]
+  simp_all
+
+
+lemma x_plus_x {p : ℕ} (fuel: ℕ) (x: String) (σ: Env.ValEnv) (δ: Env.CircuitEnv) (Γ: Env.TyEnv) (hΓx: Γ x = Ast.Ty.refin Ast.Ty.int (Ast.Expr.constBool true))
+  : @Ty.TypeJudgment fuel σ δ Γ (Ast.Expr.intExpr (Ast.Expr.var x) Ast.IntegerOp.add (Ast.Expr.var x))
       (Ty.refin Ty.int (exprEq v (Expr.intExpr (Expr.var x) IntegerOp.add (Expr.var x)))) := by
   apply Ty.TypeJudgment.TE_BinOpInt
   apply Ty.TypeJudgment.TE_SUB (Ty.SubtypeJudgment.TSub_Refine
@@ -47,9 +78,9 @@ lemma x_plus_x {p : ℕ} (x: String) (σ: Env.ValEnv) (δ: Env.CircuitEnv) (Γ: 
   apply Ty.TypeJudgment.TE_Var (Ast.Expr.constBool true)
   simp [hΓx]
 
-lemma let_x_plus_x_y {p : ℕ} (x y: String) (σ: Env.ValEnv) (δ: Env.CircuitEnv) (Γ : Env.TyEnv)
+lemma let_x_plus_x_y {p : ℕ} (fuel: ℕ) (x y: String) (σ: Env.ValEnv) (δ: Env.CircuitEnv) (Γ : Env.TyEnv)
   (hΓx: Γ x =  Ast.Ty.refin Ast.Ty.int (Ast.Expr.constBool true)) :
-  @Ty.TypeJudgment 1000 σ δ Γ
+  @Ty.TypeJudgment fuel σ δ Γ
     (Ast.Expr.letIn y
        (Ast.Expr.intExpr (Ast.Expr.var x) Ast.IntegerOp.add (Ast.Expr.var x))
        (Ast.Expr.var y))
@@ -72,7 +103,7 @@ lemma let_x_plus_x_y {p : ℕ} (x y: String) (σ: Env.ValEnv) (δ: Env.CircuitEn
          (Ast.Expr.intExpr (Ast.Expr.var x) Ast.IntegerOp.add (Ast.Expr.var x)))
   set Γ' := (Env.updateTy Γ y (Ty.int.refin (exprEq v ((Expr.var x).intExpr IntegerOp.add (Expr.var x)))))
   have h_sum_ty_judgment :
-    @Ty.TypeJudgment 1000 σ δ Γ
+    @Ty.TypeJudgment fuel σ δ Γ
       (Ast.Expr.intExpr (Ast.Expr.var x) Ast.IntegerOp.add (Ast.Expr.var x))
       (Ast.Ty.refin Ast.Ty.int
       (Ast.exprEq Ast.v
@@ -82,13 +113,12 @@ lemma let_x_plus_x_y {p : ℕ} (x y: String) (σ: Env.ValEnv) (δ: Env.CircuitEn
         apply hΓx
       }
   have hφ :
-      (@Ty.TypeJudgment 1000 σ δ Γ (Ast.Expr.intExpr (Ast.Expr.var x) Ast.IntegerOp.add (Ast.Expr.var x))
+      (@Ty.TypeJudgment fuel σ δ Γ (Ast.Expr.intExpr (Ast.Expr.var x) Ast.IntegerOp.add (Ast.Expr.var x))
         (Ast.Ty.refin Ast.Ty.int (Ast.exprEq Ast.v (Ast.Expr.intExpr (Ast.Expr.var x) Ast.IntegerOp.add (Ast.Expr.var x)))))
-      → PropSemantics.exprToProp 1000 σ δ
+      → PropSemantics.exprToProp fuel σ δ
           (Ast.exprEq Ast.v (Ast.Expr.intExpr (Ast.Expr.var x) Ast.IntegerOp.add (Ast.Expr.var x))) :=
-      @Ty.typeJudgmentRefinementSound 1000 σ δ Γ Ast.Ty.int (Ast.Expr.intExpr (Ast.Expr.var x) Ast.IntegerOp.add (Ast.Expr.var x)) (Ast.exprEq Ast.v (Ast.Expr.intExpr (Ast.Expr.var x) Ast.IntegerOp.add (Ast.Expr.var x)))
+      Ty.typeJudgmentRefinementSound Γ Ast.Ty.int (Ast.Expr.intExpr (Ast.Expr.var x) Ast.IntegerOp.add (Ast.Expr.var x)) (Ast.exprEq Ast.v (Ast.Expr.intExpr (Ast.Expr.var x) Ast.IntegerOp.add (Ast.Expr.var x)))
   apply hφ at h_sum_ty_judgment
-  -- ④ ボディ out の型付け（環境に out ↦ {v:int | v = x+x} が入っている）
   have hΓout : Γ' y = Ty.int.refin (exprEq v (Expr.intExpr (Expr.var x) IntegerOp.add (Expr.var x))) := by {
     simp [Γ']
     unfold Env.updateTy
@@ -124,7 +154,7 @@ theorem mulCircuit_correct : (Ty.circuitCorrect 7 1000 Δ mulCircuit) := by
          (Ast.Expr.var "out"))
       (Ast.Ty.refin Ast.Ty.int
          (Ast.exprEq Ast.v (Ast.Expr.intExpr (Ast.Expr.var "x") Ast.IntegerOp.add (Ast.Expr.var "x")))) := by {
-          apply @let_x_plus_x_y 7 "x" "out" σ Δ Γ
+          apply @let_x_plus_x_y 7 1000 "x" "out" σ Δ Γ
           simp [Γ]
           rfl
          }
@@ -132,7 +162,7 @@ theorem mulCircuit_correct : (Ty.circuitCorrect 7 1000 Δ mulCircuit) := by
     @Ty.SubtypeJudgment 1000 σ Δ Γ
       (pure (Ast.Ty.refin Ast.Ty.int (Ast.exprEq Ast.v (Ast.Expr.intExpr (Ast.Expr.var "x") Ast.IntegerOp.add (Ast.Expr.var "x")))))
       (pure (Ast.Ty.refin Ast.Ty.int (Ast.exprEq Ast.v (Ast.Expr.intExpr (Ast.Expr.constInt 2) Ast.IntegerOp.mul (Ast.Expr.var "x"))))) := by {
-        apply x_plus_x_eq_2_times_x σ Δ Γ "x" x
+        apply two_mul_I 1000 σ Δ Γ "x" x
         simp [σ]
         rfl
       }
