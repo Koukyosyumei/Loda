@@ -42,15 +42,25 @@ def exprToProp (fuel : ℕ) (σ : Env.ValEnv) (δ : Env.CircuitEnv) : Ast.Expr �
 | Ast.Expr.constBool true => True
 | _ => False
 
-/--
-  For a type environment `Γ` and variable identifier `ident`, if `Γ ident` is a refinement
-  type `{ν : T // φ}`, then `tyenvToProp fuel σ δ Γ ident` asserts that the
-  predicate `φ` holds (via `exprToProp`) under the current environments.
-  Otherwise, it is always `True`.
--/
-def tyenvToProp (fuel : ℕ) (σ : Env.ValEnv) (δ : Env.CircuitEnv) (Γ: Env.TyEnv) (ident : String): Prop :=
-  match Γ ident with
-  | Ast.Ty.refin _ e => exprToProp fuel σ δ e
-  | _ => True
+def tyenvToProp (fuel : ℕ) (σ : Env.ValEnv) (δ : Env.CircuitEnv) (Γ : Env.TyEnv) (ident : String) : Prop :=
+match Γ ident, σ ident with
+-- refinement types: check base-type match and predicate
+| Ast.Ty.refin baseTy e, val =>
+  (match baseTy, val with
+  | Ast.Ty.field p,  Ast.Value.vF p' _   => p' = p
+  | Ast.Ty.int,      Ast.Value.vInt _    => True
+  | Ast.Ty.bool,     Ast.Value.vBool _   => True
+  | Ast.Ty.prod tys, Ast.Value.vProd vs  => vs.length = tys.length
+  | Ast.Ty.arr _,    Ast.Value.vArr _    => True
+  | _,               Ast.Value.vStar     => True
+  | _,               _                   => False
+  ) ∧
+  exprToProp fuel σ δ e
+-- bare field and int types
+| Ast.Ty.field p, Ast.Value.vF p' _   => p' = p
+| Ast.Ty.int,     Ast.Value.vInt _    => True
+| Ast.Ty.bool,    Ast.Value.vBool _   => True
+-- any other case is false
+| _, _ => False
 
 end PropSemantics
