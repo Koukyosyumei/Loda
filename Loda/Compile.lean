@@ -217,7 +217,7 @@ unsafe def compile (σ: CompEnv) (δ: Env.CircuitEnv) (s: CompState) (e: Ast.Exp
           (s₃, resultVar)
 
   -- Circuit reference
-  | Ast.Expr.circRef name args =>
+  /-| Ast.Expr.circRef name args =>
       -- Compile all arguments
       let compileArgs := fun (acc : CompState × List CompValue) arg =>
           let (state, values) := acc
@@ -254,6 +254,6 @@ unsafe def compile (σ: CompEnv) (δ: Env.CircuitEnv) (s: CompState) (e: Ast.Exp
       let finalState := addConstraint stateWithOutput outputConstraint
 
       (finalState, outputVar)
-
   -- Default for other expressions
+        -/
   | _ => (s, CompValue.unit)

@@ -284,7 +284,7 @@ unsafe def elaborateExpr (stx : Syntax) : MetaM Ast.Expr := do
 
   -- Binary operations
   | `(term| $e1 + $e2) => do
-    let e1Ast ← elaborateExpr e1; let e2Ast ← elaborateExpr e2
+    let e1Ast ← elaborateExpr e1; let e2Ast := elaborateExpr e2
     pure (Ast.Expr.fieldExpr e1Ast Ast.FieldOp.add e2Ast)
   /-
   | `(term| $e1 - $e2) => do
