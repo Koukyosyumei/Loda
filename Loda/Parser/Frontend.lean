@@ -437,23 +437,24 @@ unsafe def elaborateParam (stx : Syntax) : MetaM (String × Ast.Ty) := do
   | _ =>
       throwError "unsupported parameter syntax: {stx}, expected `x : T`"
 
-/-
+-- circuit A (x1, x2, …, xn) -> T {body}
 /-- Given a single `loda_circuit` syntax, produce an `Ast.Circuit`. -/
 unsafe def elaborateCircuit (stx : Syntax) : MetaM Ast.Circuit := do
   match stx with
-  | `(loda_circuit| circuit $name:ident ( $params:sepBy(loda_param, ",") ) -> $retTy:loda_ty { $body:loda_expr } ) => do
+  | `(loda_circuit| circuit $name:ident ( $params,* ) -> $retTy:loda_ty { $body:loda_expr } ) => do
       let nameStr  := name.getId.toString
-      let paramStx := params.getElems
+      let paramStx := params.getElems.toList
       let params₁  ← paramStx.mapM elaborateParam
       let retTy'   ← elaborateType retTy
       let body'    ← elaborateExpr body
-      pure {
-        Ast.Circuit. name   := nameStr,
-        inputs  := params₁.toList,
-        output  := ("output", retTy'),
-        body    := body'
+      match params₁.head? with
+      | some p =>       pure {
+        name   := nameStr,
+        inputs := p,
+        output := ("output", retTy'),
+        body   := body'
       }
+      | _ => throwError "invalid `circuit …` syntax: {stx}"
   | _ => throwError "invalid `circuit …` syntax: {stx}"
--/
 
 end Frontend
