@@ -468,5 +468,24 @@ unsafe def elabLodaCircuit : Elab.Command.CommandElab := fun stx =>
         logInfo m!"Successfully elaborated circuit" --{repr ast}
   | _ => Elab.throwUnsupportedSyntax
 
+/-- A “file” of Loda is one or more `circuit` declarations. -/
+unsafe def elabLodaFile (stx : Syntax) : MetaM (Array Ast.Circuit) := do
+  match stx with
+  | `(loda_file| $[$cs:loda_circuit]*) =>
+      cs.mapM fun c => elaborateCircuit c
+  | _ => throwError "invalid Loda file syntax"
+
+/--
+  If you ever want to parse a string in MetaM (outside of the “command” front‐end),
+  you can do something like this:
+-/
+unsafe def parseLodaProgram (content : String) : MetaM (List Ast.Circuit) := do
+  let env ← getEnv
+  let fname := `anonymous
+  match Lean.Parser.runParserCategory env `loda_file content fname.toString with
+  | Except.error err => throwError err
+  | Except.ok stx   =>
+      let cs ← elabLodaFile stx
+      pure cs.toList
 
 end Frontend
