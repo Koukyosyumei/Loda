@@ -2,6 +2,7 @@ import Lean
 import Lean.Meta
 import Lean.Elab.Command
 import Lean.Parser
+import Lean.Elab
 
 import Loda.Ast
 import Loda.Typing
@@ -130,7 +131,7 @@ syntax "circuit" ident "(" sepBy(loda_param, ",") ")" "->" loda_ty "{" loda_expr
 declare_syntax_cat loda_file
 syntax (loda_circuit)+                               : loda_file
 
-syntax "loda_circuit" loda_circuit                    : command
+syntax (name := load_loda) loda_circuit                    : command
 
 namespace Frontend
 
@@ -456,5 +457,16 @@ unsafe def elaborateCircuit (stx : Syntax) : MetaM Ast.Circuit := do
       }
       | _ => throwError "invalid `circuit …` syntax: {stx}"
   | _ => throwError "invalid `circuit …` syntax: {stx}"
+
+@[command_elab load_loda]
+unsafe def elabLodaCircuit : Elab.Command.CommandElab := fun stx =>
+  match stx with
+  | `(command| $circ:loda_circuit) =>
+      Elab.Command.runTermElabM fun _ => do
+        let ast ← elaborateCircuit circ
+        -- For demonstration, we log the resulting AST.
+        logInfo m!"Successfully elaborated circuit" --{repr ast}
+  | _ => Elab.throwUnsupportedSyntax
+
 
 end Frontend
