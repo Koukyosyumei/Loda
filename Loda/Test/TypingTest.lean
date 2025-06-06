@@ -134,13 +134,10 @@ theorem mulCircuit_correct : (Ty.circuitCorrect 1000 Δ mulCircuit) := by
     rfl
   }
   have h : ∃ (a : ℤ), σ "x" = Ast.Value.vInt a := by
-    -- 2) do case‐analysis on `x`
     cases x with
     | vInt n =>
-      -- the only live branch: build the existential
       use n
     | _ =>
-      -- in every other case `hσ` is already absurd
       simp [hσ₁] at hσ
       simp_all
       cases hσ with
