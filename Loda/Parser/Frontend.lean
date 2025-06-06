@@ -82,8 +82,8 @@ syntax loda_expr "<=" loda_expr                     : loda_expr
 -- Assert: “assert e1 = e2”
 syntax "assert" loda_expr "=" loda_expr             : loda_expr
 
--- Circuit reference:  “#Name e₁ e₂ … eₙ”
-syntax "#" ident (loda_expr)+                       : loda_expr
+-- Circuit reference:  “#Name (e₁, e₂, … ,eₙ)”
+syntax "#" ident "(" sepBy1(loda_expr, ",") ")"              : loda_expr
 
 -- Array cons: “e₁ :: e₂”
 syntax loda_expr "::" loda_expr                     : loda_expr
@@ -107,21 +107,24 @@ syntax "match" loda_expr "with" "(" sepBy1(ident, ",") ")" "=>" loda_expr : loda
 -- Tuple indexing: “e.1”  “e.2” … etc.
 syntax loda_expr "." num                              : loda_expr
 
--- Lambda:  “λ x : T => e”   or “\\x: T => e”
-syntax "\\" ident ":" loda_ty "=>" loda_expr          : loda_expr
+-- Lambda:  “lam x: T => e”
+syntax "lam" ident ":" loda_ty "=>" loda_expr         : loda_expr
 
 -- Application (juxtaposition) is “f a” or you can rely on precedence of “loda_expr loda_expr” by default.
+syntax loda_expr "(" loda_expr ")"                    : loda_expr
 
 -- Let‐binding: “let x = e₁ in e₂”
 syntax "let" ident "=" loda_expr "in" loda_expr       : loda_expr
 
--- Iteration:  “iter init cond (step) (acc) inv: ( λx . T )”
-syntax "iter" loda_expr loda_expr "(" loda_expr ")" "(" loda_expr ")" "inv:" "(" "\\" ident "." loda_ty ")" : loda_expr
+-- Iteration:  “iter init cond {step} acc”
+syntax "iter" loda_expr loda_expr "{" loda_expr "}" loda_expr : loda_expr
 
 declare_syntax_cat loda_param
 syntax ident ":" loda_ty                              : loda_param
 
 declare_syntax_cat loda_circuit
+
+-- circuit A (x1, x2, …, xn) -> T {body}
 syntax "circuit" ident "(" sepBy(loda_param, ",") ")" "->" loda_ty "{" loda_expr "}" : loda_circuit
 
 declare_syntax_cat loda_file
@@ -341,18 +344,17 @@ unsafe def elaborateExpr (stx : Syntax) : MetaM Ast.Expr := do
       let e2' ← elaborateExpr e2
       pure (Ast.Expr.binRel e1' Ast.RelOp.le e2')
 
-  -- Circuit reference: “#C e1 e2 … eN”
-  /-
-  | `(loda_expr| # $C:ident $args*) => do
+  -- $ts,*
+  -- Circuit reference: “#C (e1, e2, …, eN)”
+  | `(loda_expr| # $C:ident ($args:loda_expr,*)) => do
       let name := C.getId.toString
       -- We only support a single‐argument circRef in AST, so if there are multiple args,
       -- you might want to nest them or wrap them in a tuple. For now, assume 1:
-      match args.getElems with
+      match args.getElems.toList with
       | [a] =>
         let a'  ← elaborateExpr a
         pure (Ast.Expr.circRef name a')
-      | _   => throwError "only single‐arg circuit calls supported, got {args.getElems.length}"
-  -/
+      | _   => throwError "only single‐arg circuit calls supported, got {args.getElems.toList.length}"
 
   -- Array “cons”:  “e1 :: e2”
   | `(loda_expr| $h :: $t) => do
@@ -379,20 +381,16 @@ unsafe def elaborateExpr (stx : Syntax) : MetaM Ast.Expr := do
 
   -- Tuple “( )” or “( e1 , e2 , … )”
   | `(loda_expr| ( ) ) => pure (Ast.Expr.prodCons [])   -- empty tuple
-  /-
-  | `(loda_expr| ( $es:sepBy(_ , ",") ) ) => do
-      let elems ← es.getElems.mapM elaborateExpr
+  | `(loda_expr| ( $es,* ) ) => do
+      let elems ← es.getElems.toList.mapM elaborateExpr
       pure (Ast.Expr.prodCons elems)
-  -/
 
   -- Match on tuple: “match e with ( x1 , x2 , … ) => body”
-  /-
-  | `(loda_expr| match $e with ( $xs:sepBy(ident, ",") ) => $body) => do
+  | `(loda_expr| match $e with ( $xs,* ) => $body) => do
       let e'    ← elaborateExpr e
-      let names := xs.getElems.map fun x => x.getId.toString
+      let names := xs.getElems.toList.map fun x => x.getId.toString
       let b'    ← elaborateExpr body
       pure (Ast.Expr.prodMatch e' names b')
-  -/
 
   -- Tuple‐indexing: “e . i”
   | `(loda_expr| $e . $i:num ) => do
@@ -400,21 +398,17 @@ unsafe def elaborateExpr (stx : Syntax) : MetaM Ast.Expr := do
       let idx := i.getNat
       pure (Ast.Expr.prodIdx e' idx)
 
-  -- Lambda:  “\\ x : T => body”
-  /-
-  | `(loda_expr| "\\" $x:ident ":" $T:loda_ty "=>" $body) => do
+  -- Lambda:  “lam x : T => body”
+  | `(loda_expr| lam $x:ident : $T:loda_ty => $body) => do
       let T'   ← elaborateType T
       let b'   ← elaborateExpr body
       pure (Ast.Expr.lam x.getId.toString T' b')
-  -/
 
-  -- Application “f a”
-  /-
-  | `(loda_expr| $f $a) => do
+  -- Application “f (a)”
+  | `(loda_expr| $f ($a)) => do
       let f' ← elaborateExpr f
       let a' ← elaborateExpr a
       pure (Ast.Expr.app f' a')
-  -/
 
   -- Let‐binding: “let x = v in body”
   | `(loda_expr| let $x:ident = $v in $body) => do
@@ -422,17 +416,14 @@ unsafe def elaborateExpr (stx : Syntax) : MetaM Ast.Expr := do
       let b' ← elaborateExpr body
       pure (Ast.Expr.letIn x.getId.toString v' b')
 
-  /-
-  -- Iteration: “iter start cond (step) (acc) inv:( \\x . T )”
-  | `(loda_expr| iter $s $c "(" $st:_) "(" $acc:_) inv:( "\\" $x:ident "." $T:loda_ty ")" ) => do
+  -- Iteration: “iter start cond {step} acc”
+  | `(loda_expr| iter $s $c {$st} $acc) => do
       let s'   ← elaborateExpr s
       let c'   ← elaborateExpr c
       let st'  ← elaborateExpr st
       let acc' ← elaborateExpr acc
-      let T'   ← elaborateType T
       -- We currently ignore the invariant–variable name `x`, but you could store it if you like.
       pure (Ast.Expr.iter s' c' st' acc')
-  -/
 
   -- Catch‐all
   | _ => throwError "unsupported expression syntax: {stx}"
