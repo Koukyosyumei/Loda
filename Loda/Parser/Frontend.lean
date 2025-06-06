@@ -1,358 +1,468 @@
 import Lean
 import Lean.Meta
 import Lean.Elab.Command
+import Lean.Parser
 
 import Loda.Ast
 import Loda.Typing
-import Loda.Compile
+import Loda.Field
 
+open Lean Parser
 open Lean Meta
 
--- Main syntax categories
-declare_syntax_cat loda_file
-declare_syntax_cat loda_circuit
-declare_syntax_cat loda_param
+---------------------------------------------
+--------------- Declare Types ---------------
+---------------------------------------------
+
 declare_syntax_cat loda_ty
+
+-- Bracketed “unit” or empty‐tuple:
+syntax "Unit" : loda_ty
+
+-- Field type with a prime: “F p”
+syntax "F" num : loda_ty
+
+-- Built‐in Int and Bool
+syntax "Int"  : loda_ty
+syntax "Bool" : loda_ty
+
+-- Product types: “(T1 , T2 , … , Tn)” or “()” for unit
+syntax "()"                                        : loda_ty  -- empty product = unit
+syntax "(" loda_ty,+ ")"                    : loda_ty
+
+-- Array types: “[T]”
+syntax "[" loda_ty "]"                                : loda_ty
+
+-- Refinement types: “{ x : T | φ }”
+syntax "{" ident ":" loda_ty "|" term "}"              : loda_ty
+
+-- Function‐type arrow: “(x : T1) → T2”
+syntax "(" ident ":" loda_ty ")" "→" loda_ty           : loda_ty
+
+---------------------------------------------------
+--------------- Declare Expressions ---------------
+---------------------------------------------------
+
 declare_syntax_cat loda_expr
 
-/-- A CODA file consists of one or more circuit declarations -/
-syntax (loda_circuit)+ : loda_file
+-- Constants:
+syntax num                                       : loda_expr  -- integer literal
+syntax "true"                                    : loda_expr
+syntax "false"                                   : loda_expr
+syntax num "." num                                : loda_expr  -- “p.x” for field literal: x ∈ F p
 
--- Type syntax
-syntax "F" : loda_ty
-syntax "Int" : loda_ty
-syntax "Bool" : loda_ty
-syntax "{" ident ":" loda_ty "|" term "}" : loda_ty  -- Refinement type
-syntax "[" loda_ty "]" : loda_ty                     -- Array type
-syntax loda_ty "^" term : loda_ty                    -- Size-indexed array
-syntax "(" sepBy(loda_ty, ",") ")" : loda_ty         -- Product type
+-- Wildcard “*”
+syntax "*"                                       : loda_expr
 
--- Expression syntax
-syntax ident : loda_expr                             -- Variables
-syntax num : loda_expr                               -- Numbers
-syntax "*" : loda_expr                               -- Wildcard
-syntax "assert" loda_expr "=" loda_expr : loda_expr  -- Assertions
-syntax "#" ident loda_expr* : loda_expr              -- Circuit references
-syntax loda_expr "[" loda_expr "]" : loda_expr       -- Array indexing
-syntax "\\" ident "." loda_expr : loda_expr          -- Lambda expressions
-syntax "let" ident "=" loda_expr "in" loda_expr : loda_expr  -- Let bindings
+-- Variables (any identifier)
+syntax ident                                     : loda_expr
 
--- Iterator with invariant annotation
-syntax "iter" loda_expr loda_expr "(" loda_expr ")" "(" loda_expr ")"
-       "inv:" "(" "\\" ident "." loda_ty ")" : loda_expr
+-- Boolean‐operators: “e1 ∧ e2” or “e1 && e2”, “e1 ∨ e2” or “e1 || e2”
+syntax loda_expr "&&" loda_expr                   : loda_expr
+syntax loda_expr "||" loda_expr                   : loda_expr
+syntax loda_expr "and" loda_expr                   : loda_expr  -- alternative keyword
+syntax loda_expr "or"  loda_expr                   : loda_expr
 
--- Circuit declarations
-syntax "circuit" ident
-       "(" sepBy(loda_param, ",") ")"
-       "->" loda_ty "{" loda_expr "}" : loda_circuit
+-- Integer ops:  “e1 + e2”  “e1 - e2”  “e1 * e2”
+syntax loda_expr "+" loda_expr                     : loda_expr
+syntax loda_expr "-" loda_expr                     : loda_expr
+syntax loda_expr "*" loda_expr                     : loda_expr
 
--- Parameter syntax
-syntax ident ":" loda_ty : loda_param
+-- Field ops: “e1 +ₓ e2”, “e1 -ₓ e2”, “e1 *ₓ e2”, “e1 /ₓ e2”  (use subscript X or “fadd fsub fmul fdiv”)
+syntax loda_expr "fadd" loda_expr : loda_expr      -- interpret as FieldOp.add
+syntax loda_expr "fsub" loda_expr : loda_expr
+syntax loda_expr "fmul" loda_expr : loda_expr
+syntax loda_expr "fdiv" loda_expr : loda_expr
 
--- Make it usable as a command
-syntax "loda_circuit" loda_circuit : command
+-- Relational:  “e1 == e2”  “e1 < e2”  “e1 <= e2”
+syntax loda_expr "==" loda_expr                     : loda_expr
+syntax loda_expr "<"  loda_expr                     : loda_expr
+syntax loda_expr "<=" loda_expr                     : loda_expr
 
--- Helper function to convert a Lean term to an Ast.Value (incomplete)
---  This is a simplified version.  You'll need to expand this significantly
---  to handle the full range of possible Lean expressions that might appear
---  in your Loda programs.
-unsafe def elaborateTerm (stx : Syntax) (expectedType : Option Expr) : MetaM Expr := do
-  match stx with
-  | `(term| $i:ident) => do
-    -- Resolve the identifier to a Lean expression.  This could be a
-    -- variable, a constant, or a function.
-    let expr ← elaborateTerm i none
-    --  Optionally check the type.
-    match expectedType with
-    | some expected =>
-      let actual ← inferType expr
-      unless ← isDefEq expected actual do
-        throwError "Type mismatch: expected {expected}, got {actual} for {i}"
-    | none => pure ()
-    return expr
-  | `(term| $n:num) => do
-    --  Handle numeric literals.  The type of the literal will be inferred
-    --  by Lean, but we could optionally check it against an expectedType.
-    let expr ← elaborateTerm n none
-    match expectedType with
-    | some expected =>
-      let actual ← inferType expr
-      unless ← isDefEq expected actual do
-        throwError "Type mismatch: expected {expected}, got {actual} for {n}"
-    | none => pure ()
-    return expr
-  | `(term| True) =>
-    return mkConst ``True
-  | `(term| False) =>
-    return mkConst ``False
-  | `(term| $b:term && $c:term) => do
-    let b_expr ← elaborateTerm b none
-    let c_expr ← elaborateTerm c none
-    return mkApp2 (mkConst ``And) b_expr c_expr
-  | `(term| $b:term || $c:term) => do
-    let b_expr ← elaborateTerm b none
-    let c_expr ← elaborateTerm c none
-    return mkApp2 (mkConst ``Or) b_expr c_expr
-  | `(term| ! $b:term) => do
-    let b_expr ← elaborateTerm b none
-    return mkApp (mkConst ``Not) b_expr
-  | `(term| $f:term $arg:term) => do
-    --  Handle function application.  Elaborate the function and the argument,
-    --  and then apply the function to the argument.
-    let f_expr ← elaborateTerm f none
-    let arg_expr ← elaborateTerm arg none
-    return mkApp f_expr arg_expr
-  /-
-  | `(term| $x:ident : $T:term => $b:term) => do
-    let T_expr ← elaborateType T
-     -- Introduce a bound variable with the specified type
-    withLocalDecl x.getId (typeToType T_expr) BinderInfo.implicit fun x_var => do
-      -- Elaborate the body of the lambda under the binding
-      let b_expr ← elaborateTerm b none
-      -- Construct the lambda expression
-      return mkLambda x.getId T_expr b_expr
-  -/
-  | _ =>
-    throwError "Unsupported term syntax: {stx}"
+-- Assert: “assert e1 = e2”
+syntax "assert" loda_expr "=" loda_expr             : loda_expr
 
--- Function to elaborate a Lean term into an Ast.Prop (incomplete)
+-- Circuit reference:  “#Name e₁ e₂ … eₙ”
+syntax "#" ident (loda_expr)+                       : loda_expr
+
+-- Array cons: “e₁ :: e₂”
+syntax loda_expr "::" loda_expr                     : loda_expr
+
+-- Array map: “map f a”
+syntax "map" loda_expr loda_expr                     : loda_expr
+
+-- Array length: “length a”
+syntax "length" loda_expr                           : loda_expr
+
+-- Array indexing: “a[e]”
+syntax loda_expr "[" loda_expr "]"                   : loda_expr
+
+-- Tuples: “( e₁ , e₂ , … , eₙ )”
+syntax "(" ")"                                        : loda_expr  -- unit‐tuple
+syntax "(" sepBy1(loda_expr, ",") ")"                 : loda_expr
+
+-- Tuple match: “match e with (x1 , x2 , … , xn) => eBody”
+syntax "match" loda_expr "with" "(" sepBy1(ident, ",") ")" "=>" loda_expr : loda_expr
+
+-- Tuple indexing: “e.1”  “e.2” … etc.
+syntax loda_expr "." num                              : loda_expr
+
+-- Lambda:  “λ x : T => e”   or “\\x: T => e”
+syntax "\\" ident ":" loda_ty "=>" loda_expr          : loda_expr
+
+-- Application (juxtaposition) is “f a” or you can rely on precedence of “loda_expr loda_expr” by default.
+
+-- Let‐binding: “let x = e₁ in e₂”
+syntax "let" ident "=" loda_expr "in" loda_expr       : loda_expr
+
+-- Iteration:  “iter init cond (step) (acc) inv: ( λx . T )”
+syntax "iter" loda_expr loda_expr "(" loda_expr ")" "(" loda_expr ")" "inv:" "(" "\\" ident "." loda_ty ")" : loda_expr
+
+declare_syntax_cat loda_param
+syntax ident ":" loda_ty                              : loda_param
+
+declare_syntax_cat loda_circuit
+syntax "circuit" ident "(" sepBy(loda_param, ",") ")" "->" loda_ty "{" loda_expr "}" : loda_circuit
+
+declare_syntax_cat loda_file
+syntax (loda_circuit)+                               : loda_file
+
+syntax "loda_circuit" loda_circuit                    : command
+
+namespace Frontend
+
 unsafe def elaborateProp (stx : Syntax) : MetaM Ast.Expr := do
-    --  This is the *core* of the problem.  We need to convert a Lean
-    --  term (which represents a logical proposition) into a Lean `Prop`.
-    --  This is generally *impossible* to do automatically in full generality,
-    --  because Lean's term language is much richer than the language of
-    --  propositions.  However, for a *restricted* subset of Lean terms,
-    --  we can do it.
-    --
-    --  Here's a very basic starting point.  You will need to extend this
-    --  significantly to handle the kinds of propositions that you expect
-    --  to see in your Loda programs.
-    match stx with
-    | `(term| $b:term && $c:term) => do
-      let bProp ← elaborateProp b
-      let cProp ← elaborateProp c
-      pure (Ast.Expr.boolExpr bProp Ast.BooleanOp.and cProp)
-    | `(term| $b:term || $c:term) => do
-      let bProp ← elaborateProp b
-      let cProp ← elaborateProp c
-      pure (Ast.Expr.boolExpr bProp Ast.BooleanOp.or cProp)
-    /-
-    | `(term| ! $b:term) => do
-      let bProp ← elaborateProp b
-      pure (¬bProp)
-    | `(term| $x:term = $y:term) => do
-      let xVal ← elaborateTerm x none
-      let yVal ← elaborateTerm y none
-      pure (expr_eq xVal yVal)  --  VERY simplified.  Assumes decidable equality.
-    | `(term| $p:ident) => do
-        -- Try to resolve the identifier as a proposition
-        let pExpr ←  elaborateTerm p none
-        -- Check if the type of pExpr is Prop
-        let pType ← inferType pExpr
-        if pType == mkSort levelZero then
-          -- If it is a Prop, return it.
-          return True
-        else
-          -- Otherwise, it's not a proposition.
-          throwError "Expected a proposition, but got {p} of type {pType}"
-    -/
-    | `(term| True) =>  pure (Ast.Expr.constBool true)
-    | `(term| False) => pure (Ast.Expr.constBool false)
-    /-
-    | `(term| forall $x:ident : $T:term, $p:term) => do
-        let T_expr ← elaborateType T
-        -- Introduce a bound variable with the specified type
-        withLocalDecl x.getId (typeToType T_expr) BinderInfo.implicit fun x_var => do
-          -- Elaborate the body of the forall under the binding
-          let p_prop ← elaborateProp p
-          -- Construct the forall proposition
-          pure (forall x_var, p_prop)
-    | `(term| exists $x:ident : $T:term, $p:term) => do
-        let T_expr ← elaborateType T
-        -- Introduce a bound variable with the specified type
-        withLocalDecl x.getId (typeToType T_expr) BinderInfo.implicit fun x_var => do
-          -- Elaborate the body of the exists under the binding
-          let p_prop ← elaborateProp p
-          -- Construct the exists proposition
-          pure (Exists fun x_var => p_prop)
-    -/
-    | _ =>
-      --  This is the catch-all case.  For a real compiler, you would
-      --  either:
-      --    1.  Handle more cases (e.g., function application, etc.)
-      --    2.  Restrict the allowed syntax for propositions in Loda (and
-      --        give a good error message here).
-      --    3.  Use Lean's metaprogramming facilities to try to *prove*
-      --        the proposition (this is very advanced, and might not
-      --        always be possible).
-      --    4.  Represent the proposition in your AST as an uninterpreted
-      --        term, and handle it later in your compiler pipeline.
-      throwError "Unsupported proposition syntax: {stx}"
+  match stx with
+  -- Boolean literals
+  | `(term| True)  => pure (Ast.Expr.constBool True)
+  | `(term| False) => pure (Ast.Expr.constBool False)
 
+  -- Boolean variables (identifiers)  — we treat `p` as a Bool var
+  | `(term| $x:ident) => pure (Ast.Expr.var x.getId.toString)
+
+  -- ¬ φ
+  | `(term| ! $φ:term) => do
+      let φ' ← elaborateProp φ
+      -- You could encode “¬ φ” as `boolExpr φ Not φ`, but you don’t currently have a `UnaryOp`.
+      -- For now, we can say “(φ == false)”
+      pure (Ast.Expr.binRel φ' Ast.RelOp.eq (Ast.Expr.constBool False))
+
+  -- φ && ψ  or φ ∧ ψ
+  | `(term| $φ:term && $ψ:term) => do
+      let φ' ← elaborateProp φ
+      let ψ' ← elaborateProp ψ
+      pure (Ast.Expr.boolExpr φ' Ast.BooleanOp.and ψ')
+
+  | `(term| $φ:term "and" $ψ:term) => do
+      let φ' ← elaborateProp φ
+      let ψ' ← elaborateProp ψ
+      pure (Ast.Expr.boolExpr φ' Ast.BooleanOp.and ψ')
+
+  -- φ || ψ  or φ ∨ ψ
+  | `(term| $φ:term || $ψ:term) => do
+      let φ' ← elaborateProp φ
+      let ψ' ← elaborateProp ψ
+      pure (Ast.Expr.boolExpr φ' Ast.BooleanOp.or ψ')
+
+  | `(term| $φ:term "or" $ψ:term) => do
+      let φ' ← elaborateProp φ
+      let ψ' ← elaborateProp ψ
+      pure (Ast.Expr.boolExpr φ' Ast.BooleanOp.or ψ')
+
+  -- φ == ψ
+  | `(term| $φ:term == $ψ:term) => do
+      let φ' ← elaborateProp φ
+      let ψ' ← elaborateProp ψ
+      pure (Ast.Expr.binRel φ' Ast.RelOp.eq ψ')
+
+  -- φ < ψ
+  | `(term| $φ:term < $ψ:term) => do
+      let φ' ← elaborateProp φ
+      let ψ' ← elaborateProp ψ
+      pure (Ast.Expr.binRel φ' Ast.RelOp.lt ψ')
+
+  -- φ <= ψ
+  | `(term| $φ:term <= $ψ:term) => do
+      let φ' ← elaborateProp φ
+      let ψ' ← elaborateProp ψ
+      pure (Ast.Expr.binRel φ' Ast.RelOp.le ψ')
+
+  | _ => throwError "unsupported proposition syntax: {stx}"
+
+
+/-- Given a `Syntax` of category `loda_ty`, return the corresponding `Ast.Ty`. -/
 unsafe def elaborateType (stx : Syntax) : MetaM Ast.Ty := do
   match stx with
-  | `(loda_ty| F) =>
-    -- You might need to specify which field (which prime p)
-    pure (Ast.Ty.field 0) -- Replace with appropriate prime
-  | `(loda_ty| Int) =>
-    pure Ast.Ty.int
-  | `(loda_ty| Bool) =>
-    pure Ast.Ty.bool
-  | `(loda_ty| { $v:ident : $t:loda_ty | $phi:term }) => do
-    let tAst ← elaborateType t
-    let vName := v.getId.toString
-    -- Convert phi to a Prop; this is challenging and requires special handling
-    let phiProp ← elaborateProp phi
-    -- Create a dummy value for the refinement
-    let dummyValue := Ast.Value.vStar -- This might need to be improved
-    pure (Ast.Ty.refin tAst phiProp)
-  -- Handle other type forms...
-  | _ => throwError "Unsupported type syntax"
+  -- Unit type “()` or “Unit”
+  | `(loda_ty| Unit)       => pure Ast.Ty.unit
+  | `(loda_ty| () )   => pure Ast.Ty.unit
 
+  -- Field type “F p”
+  | `(loda_ty| F $p:num) => do
+      let pVal := p.getNat
+      pure (Ast.Ty.field pVal)
+
+  -- Int and Bool
+  | `(loda_ty| Int)        => pure Ast.Ty.int
+  | `(loda_ty| Bool)       => pure Ast.Ty.bool
+
+  -- Product types: “( T1 , T2 , … )”
+  | `(loda_ty| ( $ts,* ) ) => do
+      let tys ← ts.getElems.toList.mapM fun elem => elaborateType elem
+      match tys with
+      | []      => pure Ast.Ty.unit
+      | _       => pure (Ast.Ty.prod tys)
+
+  -- Array type: “[T]”
+  | `(loda_ty| [ $t:loda_ty ]) => do
+      let t' ← elaborateType t
+      pure (Ast.Ty.arr t')
+
+  -- Refinement: “{ x : T | φ }”
+  | `(loda_ty| { $_:ident : $T:loda_ty | $φ:term } ) => do
+      let T'   ← elaborateType T
+      -- We want to turn `φ` (a Lean `term`) into an `Ast.Expr` (of Boolean sort).
+      let φ'   ← elaborateProp φ
+      pure (Ast.Ty.refin T' φ')
+
+  -- Function type: “(x : T1) → T2”
+  | `(loda_ty| ( $x:ident : $Tdom:loda_ty ) → $Tcod:loda_ty ) => do
+      let dom ← elaborateType Tdom
+      let cod ← elaborateType Tcod
+      pure (Ast.Ty.func x.getId.toString dom cod)
+
+  | _ => throwError "unsupported type syntax: {stx}"
+
+/--
+  `elaborateExpr` turns a `Syntax` node of category `loda_expr` into an `Ast.Expr`.
+  We match eagerly on every concrete‐syntax pattern we declared above.
+-/
 unsafe def elaborateExpr (stx : Syntax) : MetaM Ast.Expr := do
   match stx with
-  -- Numeric literal: match on a numeric literal syntax
+  -- Integer literal “123”: → `constInt 123`
+  | `(loda_expr| $n:num) => do
+      let v := n.getNat
+      pure (Ast.Expr.constInt v)
+
+  -- Field literal “p.x”   where `p` and `x` are both numeral tokens
+  | `(loda_expr| $p:num . $x:num) => do
+      let pVal := p.getNat
+      let xVal := x.getNat
+      pure (Ast.Expr.constF pVal xVal)
+
+  -- Boolean literals
+  | `(loda_expr| true)  => pure (Ast.Expr.constBool True)
+  | `(loda_expr| false) => pure (Ast.Expr.constBool False)
+
+  -- Wildcard “*”
+  | `(loda_expr| *) => pure Ast.Expr.wildcard
+
+  -- Variables (ident): “x”, “y”, etc.
+  | `(loda_expr| $x:ident) => pure (Ast.Expr.var x.getId.toString)
+
+  -- assert e1 = e2
+  | `(loda_expr| assert $e1 = $e2) => do
+      let e1' ← elaborateExpr e1
+      let e2' ← elaborateExpr e2
+      pure (Ast.Expr.assertE e1' e2')
+
+  -- Boolean “e1 && e2”
+  | `(loda_expr| $e1 && $e2) => do
+      let e1' ← elaborateExpr e1
+      let e2' ← elaborateExpr e2
+      pure (Ast.Expr.boolExpr e1' Ast.BooleanOp.and e2')
+
+  | `(loda_expr| $e1 and $e2) => do
+      let e1' ← elaborateExpr e1
+      let e2' ← elaborateExpr e2
+      pure (Ast.Expr.boolExpr e1' Ast.BooleanOp.and e2')
+
+  -- Boolean “e1 || e2”
+  | `(loda_expr| $e1 || $e2) => do
+      let e1' ← elaborateExpr e1
+      let e2' ← elaborateExpr e2
+      pure (Ast.Expr.boolExpr e1' Ast.BooleanOp.or e2')
+
+  | `(loda_expr| $e1 or $e2) => do
+      let e1' ← elaborateExpr e1
+      let e2' ← elaborateExpr e2
+      pure (Ast.Expr.boolExpr e1' Ast.BooleanOp.or e2')
+
+  -- Integer arithmetic: “e1 + e2”  “e1 - e2”  “e1 * e2”
+  | `(loda_expr| $e1 + $e2) => do
+      let e1' ← elaborateExpr e1
+      let e2' ← elaborateExpr e2
+      pure (Ast.Expr.intExpr e1' Ast.IntegerOp.add e2')
+
+  | `(loda_expr| $e1 - $e2) => do
+      let e1' ← elaborateExpr e1
+      let e2' ← elaborateExpr e2
+      pure (Ast.Expr.intExpr e1' Ast.IntegerOp.sub e2')
+
+  | `(loda_expr| $e1 * $e2) => do
+      let e1' ← elaborateExpr e1
+      let e2' ← elaborateExpr e2
+      pure (Ast.Expr.intExpr e1' Ast.IntegerOp.mul e2')
+
+  -- Field operations: “fadd e1 e2”, “fsub e1 e2”, “fmul e1 e2”, “fdiv e1 e2”
+  | `(loda_expr| $e1 fadd $e2) => do
+      let e1' ← elaborateExpr e1
+      let e2' ← elaborateExpr e2
+      pure (Ast.Expr.fieldExpr e1' Ast.FieldOp.add e2')
+
+  | `(loda_expr| $e1 fsub $e2) => do
+      let e1' ← elaborateExpr e1
+      let e2' ← elaborateExpr e2
+      pure (Ast.Expr.fieldExpr e1' Ast.FieldOp.sub e2')
+
+  | `(loda_expr| $e1 fmul $e2) => do
+      let e1' ← elaborateExpr e1
+      let e2' ← elaborateExpr e2
+      pure (Ast.Expr.fieldExpr e1' Ast.FieldOp.mul e2')
+
+  | `(loda_expr| $e1 fdiv $e2) => do
+      let e1' ← elaborateExpr e1
+      let e2' ← elaborateExpr e2
+      pure (Ast.Expr.fieldExpr e1' Ast.FieldOp.div e2')
+
+  -- Relational: “e1 == e2”, “e1 < e2”, “e1 <= e2”
+  | `(loda_expr| $e1 == $e2) => do
+      let e1' ← elaborateExpr e1
+      let e2' ← elaborateExpr e2
+      pure (Ast.Expr.binRel e1' Ast.RelOp.eq e2')
+
+  | `(loda_expr| $e1 < $e2) => do
+      let e1' ← elaborateExpr e1
+      let e2' ← elaborateExpr e2
+      pure (Ast.Expr.binRel e1' Ast.RelOp.lt e2')
+
+  | `(loda_expr| $e1 <= $e2) => do
+      let e1' ← elaborateExpr e1
+      let e2' ← elaborateExpr e2
+      pure (Ast.Expr.binRel e1' Ast.RelOp.le e2')
+
+  -- Circuit reference: “#C e1 e2 … eN”
   /-
-  | `(term| $n) =>
-    if let some num := n.isNatLit? then
-      pure (Expr.constInt (Int.ofNat num))
-    else
-      throwError "Invalid number literal"
+  | `(loda_expr| # $C:ident $args*) => do
+      let name := C.getId.toString
+      -- We only support a single‐argument circRef in AST, so if there are multiple args,
+      -- you might want to nest them or wrap them in a tuple. For now, assume 1:
+      match args.getElems with
+      | [a] =>
+        let a'  ← elaborateExpr a
+        pure (Ast.Expr.circRef name a')
+      | _   => throwError "only single‐arg circuit calls supported, got {args.getElems.length}"
   -/
 
-  -- Identifier variable
-  | `(term| $x:ident) =>
-    pure (Ast.Expr.var x.getId.toString)
+  -- Array “cons”:  “e1 :: e2”
+  | `(loda_expr| $h :: $t) => do
+      let h' ← elaborateExpr h
+      let t' ← elaborateExpr t
+      pure (Ast.Expr.arrCons h' t')
 
-  -- Wildcard `_`
-  | `(term| _) =>
-    pure Ast.Expr.wildcard
+  -- Array map:  “map f a”
+  | `(loda_expr| map $f $a) => do
+      let f' ← elaborateExpr f
+      let a' ← elaborateExpr a
+      pure (Ast.Expr.arrMap f' a')
 
-  -- Assertion: match any ident, then check if 'assert'
-  | `(term| `assert $e1:term = $e2:term) => do
-    let e1Ast ← elaborateExpr e1
-    let e2Ast ← elaborateExpr e2
-    pure (Ast.Expr.assertE e1Ast e2Ast)
+  -- Array length: “length a”
+  | `(loda_expr| length $a) => do
+      let a' ← elaborateExpr a
+      pure (Ast.Expr.arrLen a')
 
-  -- Circuit call prefixed by `#`
+  -- Array indexing: “a[e]”
+  | `(loda_expr| $a [ $i ] ) => do
+      let a' ← elaborateExpr a
+      let i' ← elaborateExpr i
+      pure (Ast.Expr.arrIdx a' i')
+
+  -- Tuple “( )” or “( e1 , e2 , … )”
+  | `(loda_expr| ( ) ) => pure (Ast.Expr.prodCons [])   -- empty tuple
   /-
-  | `(term| "#" $c:ident $args*) => do
-    let cName := c.getId.toString
-    let argsAst ← args.mapM elaborateExpr
-    pure (Ast.Expr.circRef cName argsAst)
+  | `(loda_expr| ( $es:sepBy(_ , ",") ) ) => do
+      let elems ← es.getElems.mapM elaborateExpr
+      pure (Ast.Expr.prodCons elems)
   -/
 
-  -- Array indexing: arr[idx]
+  -- Match on tuple: “match e with ( x1 , x2 , … ) => body”
   /-
-  | `(term| $arr:term [ $idx:term ]) => do
-    let arrAst ← elaborateExpr arr
-    let idxAst ← elaborateExpr idx
-    pure (Expr.mkApp (Expr.mkProj ``Array.get 0 arrAst) #[idxAst])
+  | `(loda_expr| match $e with ( $xs:sepBy(ident, ",") ) => $body) => do
+      let e'    ← elaborateExpr e
+      let names := xs.getElems.map fun x => x.getId.toString
+      let b'    ← elaborateExpr body
+      pure (Ast.Expr.prodMatch e' names b')
   -/
 
-  -- Lambda abstraction: \x. body
-  | `(term| "\\" $x:ident ":" $ty "=>" $body) => do
-    let tyAst ← elaborateType ty
-    let bodyAst ← elaborateExpr body
-    pure (Ast.Expr.lam x.getId.toString tyAst bodyAst)
+  -- Tuple‐indexing: “e . i”
+  | `(loda_expr| $e . $i:num ) => do
+      let e' ← elaborateExpr e
+      let idx := i.getNat
+      pure (Ast.Expr.prodIdx e' idx)
 
-  -- Let-binding: let x = val in body
+  -- Lambda:  “\\ x : T => body”
   /-
-  | `(term| let $x:ident := $val; $body) => do
-    let valAst ← elaborateExpr val
-    let bodyAst ← elaborateExpr body
-    pure (Expr.letE x.getId.toString valAst bodyAst)
+  | `(loda_expr| "\\" $x:ident ":" $T:loda_ty "=>" $body) => do
+      let T'   ← elaborateType T
+      let b'   ← elaborateExpr body
+      pure (Ast.Expr.lam x.getId.toString T' b')
   -/
 
-  -- Iteration: iter init cond (step) (body) inv:(inv)
+  -- Application “f a”
   /-
-  | `(term| `iter $init $cond ($step) ($body) `inv:( $inv ) ) => do
-    let initAst ← elaborateExpr init
-    let condAst ← elaborateExpr cond
-    let stepAst ← elaborateExpr step
-    let bodyAst ← elaborateExpr body
-    let invAst  ← elaborateProp inv
-    pure (Expr.mkIter initAst condAst stepAst bodyAst invAst)
+  | `(loda_expr| $f $a) => do
+      let f' ← elaborateExpr f
+      let a' ← elaborateExpr a
+      pure (Ast.Expr.app f' a')
   -/
 
-  -- Unary negation
-  /-
-  | `(term| - $e) => do
-    let eAst ← elaborateExpr e
-    pure (Expr.unOp "-" eAst)
-  -/
-
-  -- Binary operations
-  | `(term| $e1 + $e2) => do
-    let e1Ast ← elaborateExpr e1; let e2Ast := elaborateExpr e2
-    pure (Ast.Expr.fieldExpr e1Ast Ast.FieldOp.add e2Ast)
-  /-
-  | `(term| $e1 - $e2) => do
-    let e1Ast ← elaborateExpr e1; let e2Ast ← elaborateExpr e2
-    pure (Expr.binOp "-" e1Ast e2Ast)
-  | `(term| $e1 * $e2) => do
-    let e1Ast ← elaborateExpr e1; let e2Ast ← elaborateExpr e2
-    pure (Expr.binOp "*" e1Ast e2Ast)
-  | `(term| $e1 / $e2) => do
-    let e1Ast ← elaborateExpr e1; let e2Ast ← elaborateExpr e2
-    pure (Expr.binOp "/" e1Ast e2Ast)
-  | `(term| $e1 % $e2) => do
-    let e1Ast ← elaborateExpr e1; let e2Ast ← elaborateExpr e2
-    pure (Expr.binOp "%" e1Ast e2Ast)
-  -/
-
-  -- Tuple: (e1, e2, ...)
-  /-
-  | `(term| ( $`[$es:term`],* )) => do
-    let esAst ← es.getElems.mapM elaborateExpr
-    pure (Expr.mkAppN (Expr.const ``Prod.mk []) esAst)
-  -/
+  -- Let‐binding: “let x = v in body”
+  | `(loda_expr| let $x:ident = $v in $body) => do
+      let v' ← elaborateExpr v
+      let b' ← elaborateExpr body
+      pure (Ast.Expr.letIn x.getId.toString v' b')
 
   /-
-  -- Field projection: e.f
-  | `(term| $e:term . $f:ident) => do
-    let eAst ← elaborateExpr e
-    pure (Expr.app (Expr.mkProj (← getConstName f.getId) 1) #[eAst])
-
-  -- Cast: e : ty
-  | `(term| $e:term ":" $ty:term) => do
-    let eAst  ← elaborateExpr e
-    let tyAst ← elaborateType ty
-    pure (Expr.cast eAst tyAst)
+  -- Iteration: “iter start cond (step) (acc) inv:( \\x . T )”
+  | `(loda_expr| iter $s $c "(" $st:_) "(" $acc:_) inv:( "\\" $x:ident "." $T:loda_ty ")" ) => do
+      let s'   ← elaborateExpr s
+      let c'   ← elaborateExpr c
+      let st'  ← elaborateExpr st
+      let acc' ← elaborateExpr acc
+      let T'   ← elaborateType T
+      -- We currently ignore the invariant–variable name `x`, but you could store it if you like.
+      pure (Ast.Expr.iter s' c' st' acc')
   -/
 
-  | _ => throwError "Unsupported expression syntax: {stx}"
+  -- Catch‐all
+  | _ => throwError "unsupported expression syntax: {stx}"
 
--- Elaborate a single parameter: `(param| x : T)
+/-- Helper: elaborate a single parameter syntax `(x : T)` into `(String × Ast.Ty)`. -/
 unsafe def elaborateParam (stx : Syntax) : MetaM (String × Ast.Ty) := do
   match stx with
-  | `(term| $x:ident ":" $ty:term) => do
-    let tyAst ← elaborateType ty
-    pure (x.getId.toString, tyAst)
+  | `(loda_param| $x:ident : $T:loda_ty) => do
+      let T' ← elaborateType T
+      pure (x.getId.toString, T')
   | _ =>
-    throwError "Unsupported parameter syntax: {stx}, expected `x : T`"
-
-unsafe def elaborateCircuit (stx : Syntax) : MetaM Circuit.Circuit := do
-  match stx with
-  | `(loda_circuit| circuit $name:ident ($params:loda_param,*) -> $retTy:loda_ty {$body:loda_expr}) => do
-    let nameStr := name.getId.toString
-    let paramsList ← params.getElems.mapM elaborateParam
-    let retTyAst ← elaborateType retTy
-    let bodyAst ← elaborateExpr body
-    pure { name := nameStr, inputs := paramsList.toList, output := ("output", retTyAst), body := bodyAst }
-  | _ => throwError "Invalid circuit syntax"
-
-/-- Elaborate a CODA file into a list of Circuits -/
-unsafe def elabLodaFile : Syntax → MetaM (Array Circuit.Circuit)
-  | `(loda_file| $[$circuits]*) => circuits.mapM elaborateCircuit
-  | _ => throwError "Invalid CODA file syntax"
+      throwError "unsupported parameter syntax: {stx}, expected `x : T`"
 
 /-
-@[command_elab "loda_circuit"] def elabCodaCircuit : CommandElab
-  | `(loda_circuit $circ) => do
-    let ast ← elaborateCircuit circ
-    -- Register the circuit in an environment
-    addCodaCircuit ast
-    -- You might also want to output the circuit definition
-    pure ()
+/-- Given a single `loda_circuit` syntax, produce an `Ast.Circuit`. -/
+unsafe def elaborateCircuit (stx : Syntax) : MetaM Ast.Circuit := do
+  match stx with
+  | `(loda_circuit| circuit $name:ident ( $params:sepBy(loda_param, ",") ) -> $retTy:loda_ty { $body:loda_expr } ) => do
+      let nameStr  := name.getId.toString
+      let paramStx := params.getElems
+      let params₁  ← paramStx.mapM elaborateParam
+      let retTy'   ← elaborateType retTy
+      let body'    ← elaborateExpr body
+      pure {
+        Ast.Circuit. name   := nameStr,
+        inputs  := params₁.toList,
+        output  := ("output", retTy'),
+        body    := body'
+      }
+  | _ => throwError "invalid `circuit …` syntax: {stx}"
 -/
+
+end Frontend
