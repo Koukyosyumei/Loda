@@ -47,6 +47,10 @@ initialize circuitExt : Lean.SimplePersistentEnvExtension CircuitEntry CircuitEn
 def addCircuitToEnv (name : String) (circuit : Ast.Circuit) : Lean.CoreM Unit := do
   Lean.modifyEnv (circuitExt.addEntry · (name, circuit))
 
+def getCircuitEnv : Lean.CoreM CircuitEnv := do
+  let env ← Lean.getEnv
+  return circuitExt.getState env
+
 def getCircuitFromEnv (name : String) : Lean.CoreM (Option Ast.Circuit) := do
   let env ← Lean.getEnv
   return (circuitExt.getState env).get? name
