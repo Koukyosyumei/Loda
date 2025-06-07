@@ -459,17 +459,6 @@ unsafe def elaborateCircuit (stx : Syntax) : MetaM Ast.Circuit := do
       | _ => throwError "invalid `circuit …` syntax: {stx}"
   | _ => throwError "invalid `circuit …` syntax: {stx}"
 
-syntax (name := loda_check) "#loda_check" loda_circuit : command
-
-@[command_elab loda_check]
-unsafe def elabLodaCircuitCheck : Elab.Command.CommandElab := fun stx =>
-  match stx with
-  | `(command| #loda_check $circ:loda_circuit) =>
-      Elab.Command.runTermElabM fun _ => do
-        let ast ← elaborateCircuit circ
-        logInfo m!"Successfully elaborated circuit {repr ast}"
-  | _ => Elab.throwUnsupportedSyntax
-
 syntax (name := loda_register) "#loda_register" loda_circuit : command
 
 builtin_initialize tempCircuitRef : IO.Ref (Option Ast.Circuit) ← IO.mkRef none
@@ -483,6 +472,16 @@ unsafe def elabLodaCircuitRegister : Elab.Command.CommandElab := fun stx =>
         logInfo m!"Successfully elaborated circuit {repr ast}"
         Env.addCircuitToEnv ast.name ast
         logInfo m!"Successfully registered circuit '{ast.name}'."
+  | _ => Elab.throwUnsupportedSyntax
+
+syntax (name := loda_check) "#loda_check" ident : command
+
+@[command_elab loda_check]
+unsafe def elabLodaCircuitCheck : Elab.Command.CommandElab
+  | `(command| #loda_check $cName:ident) => do
+    let Δ ← Elab.Command.liftCoreM Env.getCircuitEnv
+    let circ := Δ.get! cName.getId.toString
+    logInfo m!"Successfully elaborated circuit {repr circ}"
   | _ => Elab.throwUnsupportedSyntax
 
 syntax (name := loda_eval) "#loda_eval" ident (ident "=" loda_expr)* : command
