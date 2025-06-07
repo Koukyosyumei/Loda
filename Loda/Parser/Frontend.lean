@@ -16,43 +16,39 @@ open Lean Meta
 ---------------------------------------------
 --------------- Declare Types ---------------
 ---------------------------------------------
-
 declare_syntax_cat loda_ty
 
 -- Bracketed “unit” or empty‐tuple:
-syntax "Unit" : loda_ty
-
+syntax "Unit"                                  : loda_ty
 -- Field type with a prime: “F p”
-syntax "F" num : loda_ty
-
+syntax "F" num                                 : loda_ty
 -- Built‐in Int and Bool
-syntax "Int"  : loda_ty
-syntax "Bool" : loda_ty
+syntax "Int"                                   : loda_ty
+syntax "Bool"                                  : loda_ty
 
 -- Product types: “(T1 , T2 , … , Tn)” or “()” for unit
-syntax "()"                                        : loda_ty  -- empty product = unit
-syntax "(" loda_ty,+ ")"                    : loda_ty
+syntax "()"                                    : loda_ty  -- empty product = unit
+syntax "(" loda_ty,+ ")"                       : loda_ty
 
 -- Array types: “[T]”
-syntax "[" loda_ty "]"                                : loda_ty
+syntax "[" loda_ty "]"                         : loda_ty
 
 -- Refinement types: “{ x : T | φ }”
-syntax "{" ident ":" loda_ty "|" term "}"              : loda_ty
+syntax "{" ident ":" loda_ty "|" term "}"      : loda_ty
 
 -- Function‐type arrow: “(x : T1) → T2”
-syntax "(" ident ":" loda_ty ")" "→" loda_ty           : loda_ty
+syntax "(" ident ":" loda_ty ")" "→" loda_ty   : loda_ty
 
 ---------------------------------------------------
 --------------- Declare Expressions ---------------
 ---------------------------------------------------
-
 declare_syntax_cat loda_expr
 
 -- Constants:
 syntax num                                       : loda_expr  -- integer literal
 syntax "true"                                    : loda_expr
 syntax "false"                                   : loda_expr
-syntax num "." num                                : loda_expr  -- “p.x” for field literal: x ∈ F p
+syntax num "." num                               : loda_expr  -- “p.x” for field literal: x ∈ F p
 
 -- Wildcard “*”
 syntax "*"                                       : loda_expr
@@ -61,77 +57,82 @@ syntax "*"                                       : loda_expr
 syntax ident                                     : loda_expr
 
 -- Boolean‐operators: “e1 ∧ e2” or “e1 && e2”, “e1 ∨ e2” or “e1 || e2”
-syntax loda_expr "&&" loda_expr                   : loda_expr
-syntax loda_expr "||" loda_expr                   : loda_expr
-syntax loda_expr "and" loda_expr                   : loda_expr  -- alternative keyword
-syntax loda_expr "or"  loda_expr                   : loda_expr
+syntax loda_expr "&&" loda_expr                  : loda_expr
+syntax loda_expr "||" loda_expr                  : loda_expr
+syntax loda_expr "and" loda_expr                 : loda_expr  -- alternative keyword
+syntax loda_expr "or"  loda_expr                 : loda_expr
 
 -- Integer ops:  “e1 + e2”  “e1 - e2”  “e1 * e2”
-syntax loda_expr "+" loda_expr                     : loda_expr
-syntax loda_expr "-" loda_expr                     : loda_expr
-syntax loda_expr "*" loda_expr                     : loda_expr
+syntax loda_expr "+" loda_expr                   : loda_expr
+syntax loda_expr "-" loda_expr                   : loda_expr
+syntax loda_expr "*" loda_expr                   : loda_expr
 
 -- Field ops: “e1 +ₓ e2”, “e1 -ₓ e2”, “e1 *ₓ e2”, “e1 /ₓ e2”  (use subscript X or “fadd fsub fmul fdiv”)
-syntax loda_expr "fadd" loda_expr : loda_expr      -- interpret as FieldOp.add
-syntax loda_expr "fsub" loda_expr : loda_expr
-syntax loda_expr "fmul" loda_expr : loda_expr
-syntax loda_expr "fdiv" loda_expr : loda_expr
+syntax loda_expr "fadd" loda_expr                : loda_expr
+syntax loda_expr "fsub" loda_expr                : loda_expr
+syntax loda_expr "fmul" loda_expr                : loda_expr
+syntax loda_expr "fdiv" loda_expr                : loda_expr
 
 -- Relational:  “e1 == e2”  “e1 < e2”  “e1 <= e2”
-syntax loda_expr "==" loda_expr                     : loda_expr
-syntax loda_expr "<"  loda_expr                     : loda_expr
-syntax loda_expr "<=" loda_expr                     : loda_expr
+syntax loda_expr "==" loda_expr                  : loda_expr
+syntax loda_expr "<"  loda_expr                  : loda_expr
+syntax loda_expr "<=" loda_expr                  : loda_expr
 
 -- Assert: “assert e1 = e2”
-syntax "assert" loda_expr "=" loda_expr             : loda_expr
+syntax "assert" loda_expr "=" loda_expr          : loda_expr
 
 -- Circuit reference:  “#Name (e₁, e₂, … ,eₙ)”
-syntax "#" ident "(" sepBy1(loda_expr, ",") ")"              : loda_expr
+syntax "#" ident "(" sepBy1(loda_expr, ",") ")"  : loda_expr
 
 -- Array cons: “e₁ :: e₂”
-syntax loda_expr "::" loda_expr                     : loda_expr
-
+syntax loda_expr "::" loda_expr                  : loda_expr
 -- Array map: “map f a”
-syntax "map" loda_expr loda_expr                     : loda_expr
-
+syntax "map" loda_expr loda_expr                 : loda_expr
 -- Array length: “length a”
-syntax "length" loda_expr                           : loda_expr
-
+syntax "length" loda_expr                        : loda_expr
 -- Array indexing: “a[e]”
-syntax loda_expr "[" loda_expr "]"                   : loda_expr
+syntax loda_expr "[" loda_expr "]"               : loda_expr
 
 -- Tuples: “( e₁ , e₂ , … , eₙ )”
-syntax "(" ")"                                        : loda_expr  -- unit‐tuple
-syntax "(" sepBy1(loda_expr, ",") ")"                 : loda_expr
-
+syntax "(" ")"                                   : loda_expr  -- unit‐tuple
+syntax "(" sepBy1(loda_expr, ",") ")"            : loda_expr
 -- Tuple match: “match e with (x1 , x2 , … , xn) => eBody”
 syntax "match" loda_expr "with" "(" sepBy1(ident, ",") ")" "=>" loda_expr : loda_expr
-
 -- Tuple indexing: “e.1”  “e.2” … etc.
-syntax loda_expr "." num                              : loda_expr
+syntax loda_expr "." num                         : loda_expr
 
 -- Lambda:  “lam x: T => e”
-syntax "lam" ident ":" loda_ty "=>" loda_expr         : loda_expr
+syntax "lam" ident ":" loda_ty "=>" loda_expr    : loda_expr
 
 -- Application (juxtaposition) is “f a” or you can rely on precedence of “loda_expr loda_expr” by default.
-syntax loda_expr "(" loda_expr ")"                    : loda_expr
+syntax loda_expr "(" loda_expr ")"               : loda_expr
 
 -- Let‐binding: “let x = e₁ in e₂”
-syntax "let" ident "=" loda_expr "in" loda_expr       : loda_expr
+syntax "let" ident "=" loda_expr "in" loda_expr  : loda_expr
 
 -- Iteration:  “iter init cond {step} acc”
-syntax "iter" loda_expr loda_expr "{" loda_expr "}" loda_expr : loda_expr
+syntax "iter" loda_expr loda_expr "{" loda_expr "}" loda_expr  : loda_expr
 
+---------------------------------------------------
+--------------- Declare Param ---------------------
+---------------------------------------------------
 declare_syntax_cat loda_param
-syntax ident ":" loda_ty                              : loda_param
+syntax ident ":" loda_ty : loda_param
 
+---------------------------------------------------
+--------------- Declare Circuit -------------------
+---------------------------------------------------
 declare_syntax_cat loda_circuit
 
 -- circuit A (x1, x2, …, xn) -> T {body}
 syntax "circuit" ident "(" sepBy(loda_param, ",") ")" "->" loda_ty "{" loda_expr "}" : loda_circuit
 
+---------------------------------------------------
+--------------- Declare File ----------------------
+---------------------------------------------------
+
 declare_syntax_cat loda_file
-syntax (loda_circuit)+                               : loda_file
+syntax (loda_circuit)+ : loda_file
 
 namespace Frontend
 
@@ -147,7 +148,7 @@ unsafe def elaborateProp (stx : Syntax) : MetaM Ast.Expr := do
   -- ¬ φ
   | `(term| ! $φ:term) => do
       let φ' ← elaborateProp φ
-      -- You could encode “¬ φ” as `boolExpr φ Not φ`, but you don’t currently have a `UnaryOp`.
+      -- We could encode “¬ φ” as `boolExpr φ Not φ`, but we don’t currently have a `UnaryOp`.
       -- For now, we can say “(φ == false)”
       pure (Ast.Expr.binRel φ' Ast.RelOp.eq (Ast.Expr.constBool False))
 
