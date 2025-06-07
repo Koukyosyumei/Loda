@@ -465,7 +465,7 @@ unsafe def elabLodaCircuit : Elab.Command.CommandElab := fun stx =>
       Elab.Command.runTermElabM fun _ => do
         let ast ← elaborateCircuit circ
         -- For demonstration, we log the resulting AST.
-        logInfo m!"Successfully elaborated circuit" --{repr ast}
+        logInfo m!"Successfully elaborated circuit {repr ast}"
   | _ => Elab.throwUnsupportedSyntax
 
 /-- A “file” of Loda is one or more `circuit` declarations. -/

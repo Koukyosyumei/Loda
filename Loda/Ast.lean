@@ -95,23 +95,6 @@ mutual
     --deriving DecidableEq, Repr
 end
 
-/-- Pretty-print a `Value`. -/
-def valueToString : Value → String
-  | Value.vF p x      => s!"F{p}.mk {x.val}"
-  | Value.vStar       => "*"
-  | Value.vInt i      => toString i
-  | Value.vBool b     => toString b
-  | Value.vProd vs    =>
-    let elems := vs.map valueToString
-    s!"({String.intercalate ", " elems})"
-  | Value.vArr vs     =>
-    let elems := vs.map valueToString
-    s!"[{String.intercalate ", " elems}]"
-  | Value.vClosure n _ _ => s!"<closure {n}>"
-
-instance : Repr Value where
-  reprPrec v _ := Format.text (valueToString v)
-
 /-- Test for equality of two `Value`s. -/
 def valueEq : Value → Value → Bool
   | Value.vF p₁ x, Value.vF p₂ y               => p₁ = p₂ ∧ x.val % p₁ = y.val % p₁
@@ -139,5 +122,110 @@ structure Circuit where
   inputs  : String × Ast.Ty
   output  : String × Ast.Ty
   body    : Ast.Expr
+
+instance : Repr BooleanOp where
+  reprPrec
+    | BooleanOp.and, _ => Format.text "∧"
+    | BooleanOp.or, _  => Format.text "∨"
+
+instance : Repr IntegerOp where
+  reprPrec
+    | IntegerOp.add, _ => Format.text "+"
+    | IntegerOp.sub, _ => Format.text "-"
+    | IntegerOp.mul, _ => Format.text "*"
+
+instance : Repr FieldOp where
+  reprPrec
+    | FieldOp.add, _ => Format.text "+"
+    | FieldOp.sub, _ => Format.text "-"
+    | FieldOp.mul, _ => Format.text "*"
+    | FieldOp.div, _ => Format.text "/"
+
+instance : Repr RelOp where
+  reprPrec
+    | RelOp.eq, _ => Format.text "="
+    | RelOp.lt, _ => Format.text "<"
+    | RelOp.le, _ => Format.text "≤"
+
+mutual
+  partial def exprToString : Expr → String
+    | Expr.constF p x        => s!"F{p}.mk {x.val}"
+    | Expr.constInt n        => toString n
+    | Expr.constBool b       => toString b
+    | Expr.var name          => name
+    | Expr.wildcard          => "⋆"
+    | Expr.assertE l r       => s!"assert {exprToString l} = {exprToString r}"
+    | Expr.boolExpr l op r   => s!"({exprToString l} {repr op} {exprToString r})"
+    | Expr.intExpr l op r    => s!"({exprToString l} {repr op} {exprToString r})"
+    | Expr.fieldExpr l op r  => s!"({exprToString l} {repr op} {exprToString r})"
+    | Expr.binRel l op r     => s!"({exprToString l} {repr op} {exprToString r})"
+    | Expr.circRef name arg  => s!"#{name} {exprToString arg}"
+    | Expr.arrCons h t       => s!"{exprToString h} :: {exprToString t}"
+    | Expr.arrMap f a        => s!"map {exprToString f} {exprToString a}"
+    | Expr.arrLen a          => s!"length {exprToString a}"
+    | Expr.arrIdx a i        => s!"{exprToString a}[{exprToString i}]"
+    | Expr.prodCons items    =>
+        let strs := items.map exprToString
+        s!"({String.intercalate ", " strs})"
+    | Expr.prodMatch e names body =>
+        let pat := "(" ++ String.intercalate ", " names ++ ")"
+        s!"match {exprToString e} with {pat} → {exprToString body}"
+    | Expr.prodIdx t i       => s!"{exprToString t}.{i}"
+    | Expr.lam param τ body  => s!"λ{param} : {tyToString τ}. {exprToString body}"
+    | Expr.app f arg         => s!"{exprToString f} {exprToString arg}"
+    | Expr.letIn n v b       => s!"let {n} = {exprToString v} in {exprToString b}"
+    | Expr.iter s e step acc =>
+        s!"iter {exprToString s} {exprToString e} {exprToString step} {exprToString acc}"
+
+  partial def tyToString : Ty → String
+    | Ty.unit           => "unit"
+    | Ty.field p        => s!"F{p}"
+    | Ty.int            => "Int"
+    | Ty.bool           => "Bool"
+    | Ty.prod tys       =>
+        match tys with
+        | [] => "unit"
+        | [t] => tyToString t
+        | _ => "(" ++ String.intercalate " × " (tys.map tyToString) ++ ")"
+    | Ty.arr t          => s!"[{tyToString t}]"
+    | Ty.refin t e      => s!"{tyToString t} | {exprToString e}"
+    | Ty.func x d c     => s!"({x} : {tyToString d}) → {tyToString c}"
+end
+
+instance : Repr Expr where
+  reprPrec e _ := Format.text (exprToString e)
+
+instance : Repr Ty where
+  reprPrec e _ := Format.text (tyToString e)
+
+/-- Pretty-print a `Value`. -/
+def valueToString : Value → String
+  | Value.vF p x      => s!"F{p}.mk {x.val}"
+  | Value.vStar       => "*"
+  | Value.vInt i      => toString i
+  | Value.vBool b     => toString b
+  | Value.vProd vs    =>
+    let elems := vs.map valueToString
+    s!"({String.intercalate ", " elems})"
+  | Value.vArr vs     =>
+    let elems := vs.map valueToString
+    s!"[{String.intercalate ", " elems}]"
+  | Value.vClosure n _ _ => s!"<closure {n}>"
+
+instance : Repr Value where
+  reprPrec v _ := Format.text (valueToString v)
+
+instance : Repr Circuit where
+  reprPrec c _ :=
+    let (inName, inTy) := c.inputs
+    let (outName, outTy) := c.output
+    Format.text s!
+"Circuit \{
+  name   := \"{c.name}\",
+  input  := ({inName} : {repr inTy}),
+  output := ({outName} : {repr outTy}),
+  body   := {repr c.body}
+}"
+
 
 end Ast
