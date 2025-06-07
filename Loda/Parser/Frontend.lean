@@ -459,14 +459,25 @@ unsafe def elaborateCircuit (stx : Syntax) : MetaM Ast.Circuit := do
       | _ => throwError "invalid `circuit …` syntax: {stx}"
   | _ => throwError "invalid `circuit …` syntax: {stx}"
 
-syntax (name := loda_load) "#loda_load" loda_circuit : command
+syntax (name := loda_check) "#loda_check" loda_circuit : command
+
+@[command_elab loda_check]
+unsafe def elabLodaCircuitCheck : Elab.Command.CommandElab := fun stx =>
+  match stx with
+  | `(command| #loda_check $circ:loda_circuit) =>
+      Elab.Command.runTermElabM fun _ => do
+        let ast ← elaborateCircuit circ
+        logInfo m!"Successfully elaborated circuit {repr ast}"
+  | _ => Elab.throwUnsupportedSyntax
+
+syntax (name := loda_register) "#loda_register" loda_circuit : command
 
 builtin_initialize tempCircuitRef : IO.Ref (Option Ast.Circuit) ← IO.mkRef none
 
-@[command_elab loda_load]
-unsafe def elabLodaCircuit : Elab.Command.CommandElab := fun stx =>
+@[command_elab loda_register]
+unsafe def elabLodaCircuitRegister : Elab.Command.CommandElab := fun stx =>
   match stx with
-  | `(command| #loda_load $circ:loda_circuit) =>
+  | `(command| #loda_register $circ:loda_circuit) =>
       Elab.Command.runTermElabM fun _ => do
         let ast ← elaborateCircuit circ
         logInfo m!"Successfully elaborated circuit {repr ast}"
