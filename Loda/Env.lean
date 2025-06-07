@@ -37,22 +37,19 @@ def updateCircuit (Δ: CircuitEnv) (ident: String) (circuit: Ast.Circuit) : Circ
 
 abbrev CircuitEntry := String × Ast.Circuit
 
-builtin_initialize circuitExt : Lean.SimpleScopedEnvExtension CircuitEntry CircuitEnv ←
-  Lean.registerSimpleScopedEnvExtension {
-    name         := `circuits
-    addEntry     := fun map (name, circuit) => map.insert name circuit
-    initial      := {}
+initialize circuitExt : Lean.SimplePersistentEnvExtension CircuitEntry CircuitEnv ←
+  Lean.registerSimplePersistentEnvExtension {
+    addImportedFn := fun as => (Std.HashMap.emptyWithCapacity),
+    addEntryFn := fun m (name, circuit) => m.insert name circuit,
+    toArrayFn := fun m => m.toArray
   }
 
-builtin_initialize circuitEnvRef : IO.Ref CircuitEnv ← IO.mkRef {}
-builtin_initialize lastCircuitRef: IO.Ref (Option Ast.Circuit) ← IO.mkRef none
+def addCircuitToEnv (name : String) (circuit : Ast.Circuit) : Lean.CoreM Unit := do
+  Lean.modifyEnv (circuitExt.addEntry · (name, circuit))
 
-/-- Get the current circuit env. -/
-def getCircuitEnv : IO CircuitEnv := circuitEnvRef.get
-
-/-- Register a new circuit. -/
-def registerCircuit (name : String) (c : Ast.Circuit) : IO Unit :=
-  circuitEnvRef.modify (fun env => env.insert name c)
+def getCircuitFromEnv (name : String) : Lean.CoreM (Option Ast.Circuit) := do
+  let env ← Lean.getEnv
+  return (circuitExt.getState env).get? name
 
 /-- A type environment: maps variable names to Loda `Ty`s. -/
 def TyEnv := String -> Ast.Ty

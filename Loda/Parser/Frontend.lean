@@ -471,8 +471,9 @@ unsafe def elabLodaCircuit : Elab.Command.CommandElab := fun stx =>
         -- For demonstration, we log the resulting AST.
         logInfo m!"Successfully elaborated circuit {repr ast}"
         --tempCircuitRef.set (some ast)
-        let env := Env.circuitExt.addEntry (← getEnv) (ast.name, ast)
-        setEnv env
+        Env.addCircuitToEnv ast.name ast
+        --let env := Env.circuitExt.addEntry (← getEnv) (ast.name, ast)
+        --setEnv env
         -- 現在の環境を、新しい回路が追加された環境に更新する
         --setEnv env
         --tempCircuitRef.set none -- 一時Refをクリア
@@ -483,6 +484,7 @@ unsafe def elabLodaCircuit : Elab.Command.CommandElab := fun stx =>
 
 syntax (name := loda_eval) "#loda_eval" ident (ident "=" term)* : command
 
+/-
 @[command_elab loda_eval]
 unsafe def elabLodaEval : Elab.Command.CommandElab
   | `(command| #loda_eval $cName:ident $[$xs:ident = $ts:term]*) => do
@@ -503,6 +505,7 @@ unsafe def elabLodaEval : Elab.Command.CommandElab
     | some output => logInfo m!"→ {repr output}"
     | _ => Elab.throwUnsupportedSyntax
   | _ => Elab.throwUnsupportedSyntax
+-/
 
 /-- A “file” of Loda is one or more `circuit` declarations. -/
 unsafe def elabLodaFile (stx : Syntax) : MetaM (Array Ast.Circuit) := do

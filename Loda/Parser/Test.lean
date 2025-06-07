@@ -9,9 +9,6 @@ open Env
 
 #loda_load circuit Adder(x : Int, y : Int) -> Int {x + y}
 
-
-#check Env.circuitEnvRef
-
 #eval do
   let adder : Ast.Circuit := {
     name   := "Adder",
