@@ -227,5 +227,14 @@ instance : Repr Circuit where
   body   := {repr c.body}
 }"
 
+def DefaultCircuit : Circuit := {
+    name := "dummy"
+    inputs := ("_", Ty.unit)
+    output := ("_", Ty.unit)
+    body := Expr.wildcard
+  }
+
+instance : Inhabited Circuit where
+  default := DefaultCircuit
 
 end Ast

@@ -1,4 +1,7 @@
 import Loda.Ast
+import Std.Data.HashMap.Basic
+import Lean.Environment
+import Lean
 
 /-!
   # Environments for Loda
@@ -22,15 +25,34 @@ def updateVal (σ: ValEnv) (ident: String) (val: Ast.Value) : ValEnv :=
   fun y => if y = ident then val else σ y
 
 /-- A circuit environment: maps circuit names to their `Circuit`. -/
-abbrev CircuitEnv := String -> Ast.Circuit
+abbrev CircuitEnv := Std.HashMap String Ast.Circuit
 
 /--
   Extend `δ` by binding `ident` to `circuit`.
   When you lookup `ident`, you get `circuit`; otherwise you delegate to the old `δ`.
 -/
 @[inline]
-def updateCircuit (δ: CircuitEnv) (ident: String) (circuit: Ast.Circuit) : CircuitEnv :=
-  fun y => if y = ident then circuit else δ y
+def updateCircuit (Δ: CircuitEnv) (ident: String) (circuit: Ast.Circuit) : CircuitEnv :=
+  Δ.insert ident circuit
+
+abbrev CircuitEntry := String × Ast.Circuit
+
+builtin_initialize circuitExt : Lean.SimpleScopedEnvExtension CircuitEntry CircuitEnv ←
+  Lean.registerSimpleScopedEnvExtension {
+    name         := `circuits
+    addEntry     := fun map (name, circuit) => map.insert name circuit
+    initial      := {}
+  }
+
+builtin_initialize circuitEnvRef : IO.Ref CircuitEnv ← IO.mkRef {}
+builtin_initialize lastCircuitRef: IO.Ref (Option Ast.Circuit) ← IO.mkRef none
+
+/-- Get the current circuit env. -/
+def getCircuitEnv : IO CircuitEnv := circuitEnvRef.get
+
+/-- Register a new circuit. -/
+def registerCircuit (name : String) (c : Ast.Circuit) : IO Unit :=
+  circuitEnvRef.modify (fun env => env.insert name c)
 
 /-- A type environment: maps variable names to Loda `Ty`s. -/
 def TyEnv := String -> Ast.Ty

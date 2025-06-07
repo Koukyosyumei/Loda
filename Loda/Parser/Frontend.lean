@@ -7,6 +7,8 @@ import Lean.Elab
 import Loda.Ast
 import Loda.Typing
 import Loda.Field
+import Loda.Env
+import Loda.Eval
 
 open Lean Parser
 open Lean Meta
@@ -130,8 +132,6 @@ syntax "circuit" ident "(" sepBy(loda_param, ",") ")" "->" loda_ty "{" loda_expr
 
 declare_syntax_cat loda_file
 syntax (loda_circuit)+                               : loda_file
-
-syntax (name := load_loda) loda_circuit                    : command
 
 namespace Frontend
 
@@ -458,14 +458,50 @@ unsafe def elaborateCircuit (stx : Syntax) : MetaM Ast.Circuit := do
       | _ => throwError "invalid `circuit …` syntax: {stx}"
   | _ => throwError "invalid `circuit …` syntax: {stx}"
 
-@[command_elab load_loda]
+syntax (name := loda_load) "#loda_load" loda_circuit : command
+
+builtin_initialize tempCircuitRef : IO.Ref (Option Ast.Circuit) ← IO.mkRef none
+
+@[command_elab loda_load]
 unsafe def elabLodaCircuit : Elab.Command.CommandElab := fun stx =>
   match stx with
-  | `(command| $circ:loda_circuit) =>
+  | `(command| #loda_load $circ:loda_circuit) =>
       Elab.Command.runTermElabM fun _ => do
         let ast ← elaborateCircuit circ
         -- For demonstration, we log the resulting AST.
         logInfo m!"Successfully elaborated circuit {repr ast}"
+        --tempCircuitRef.set (some ast)
+        let env := Env.circuitExt.addEntry (← getEnv) (ast.name, ast)
+        setEnv env
+        -- 現在の環境を、新しい回路が追加された環境に更新する
+        --setEnv env
+        --tempCircuitRef.set none -- 一時Refをクリア
+        --Env.lastCircuitRef.set (some ast)
+        --Env.circuitEnvRef.modify (fun env => env.insert ast.name ast)
+        --logInfo m!"Successfully registered circuit '{ast.name}'."
+  | _ => Elab.throwUnsupportedSyntax
+
+syntax (name := loda_eval) "#loda_eval" ident (ident "=" term)* : command
+
+@[command_elab loda_eval]
+unsafe def elabLodaEval : Elab.Command.CommandElab
+  | `(command| #loda_eval $cName:ident $[$xs:ident = $ts:term]*) => do
+    -- 1) Lookup the AST.Circuit by name in your Env.CircuitEnv
+    let Δ ← Env.getCircuitEnv
+    let circ := Δ.get! cName.getId.toString
+    -- 2) Build a ValEnv from the `x=5 y=7 …`
+    let σ₀: Env.ValEnv := fun _ => Ast.Value.vStar
+    let σ₁ ← (xs.zip ts).foldlM (init := σ₀) fun env (x, t) => do
+        let e ← Elab.Command.liftTermElabM <| elaborateExpr t.raw
+        let vOpt := Eval.eval 1000 env Δ e
+        match vOpt with
+        | some v => pure <| Env.updateVal env x.getId.toString v
+        | none   => pure <| Env.updateVal env x.getId.toString Ast.Value.vStar
+    -- 3) Evaluate
+    let res := Eval.eval 1000 σ₁ Δ circ.body
+    match res with
+    | some output => logInfo m!"→ {repr output}"
+    | _ => Elab.throwUnsupportedSyntax
   | _ => Elab.throwUnsupportedSyntax
 
 /-- A “file” of Loda is one or more `circuit` declarations. -/
