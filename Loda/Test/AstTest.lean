@@ -9,9 +9,7 @@ import Loda.PropSemantics
 -- tests
 
 def σ₀ : Env.ValEnv := fun _ => Ast.Value.vStar
-def δ₀ : Env.CircuitEnv :=
-  fun _ => { name := "idInt", inputs := ("x", Ast.Ty.int), output := ("x", Ast.Ty.int),
-                 body := Ast.Expr.var "x" }
+def δ₀ : Env.CircuitEnv := Std.HashMap.ofList []
 
 -- --------------------------------------------------
 -- beq tests
