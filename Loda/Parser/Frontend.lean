@@ -493,8 +493,7 @@ unsafe def elabLodaEval : Elab.Command.CommandElab
     let Δ ← Elab.Command.liftCoreM Env.getCircuitEnv
     let circ := Δ.get! cName.getId.toString
     -- 2) Build a ValEnv from the `x=5 y=7 …`
-    let σ₀: Env.ValEnv := fun _ => Ast.Value.vStar
-    let σ₁ ← (xs.zip ts).foldlM (init := σ₀) fun env (x, t) => do
+    let σ₁ ← (xs.zip ts).foldlM (init := []) fun env (x, t) => do
         let e ← Elab.Command.liftTermElabM <| elaborateExpr t.raw
         let vOpt := Eval.eval 1000 env Δ e
         match vOpt with
