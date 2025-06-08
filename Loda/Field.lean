@@ -21,3 +21,11 @@ instance (p : ℕ) [Fact p.Prime] : Inhabited (F p) := ⟨0⟩
 instance (p : ℕ) : CommRing (F p) := ZMod.commRing p
 instance (p : ℕ) [Fact p.Prime] : Repr (F p) where
   reprPrec x _ := "F" ++ toString p ++ ".mk " ++ toString x.val
+
+instance (p : ℕ) : Lean.ToExpr (F p) where
+  toExpr x :=
+    let fpType := Lean.mkApp (Lean.mkConst ``F) (Lean.toExpr p)
+    let natVal := Lean.toExpr x.val
+    Lean.mkApp3 (Lean.mkConst ``OfNat.ofNat) fpType natVal
+      (Lean.mkApp (Lean.mkConst ``instOfNat) natVal)
+  toTypeExpr := Lean.mkApp (Lean.mkConst ``F) (Lean.toExpr p)

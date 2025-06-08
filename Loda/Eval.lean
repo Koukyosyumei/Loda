@@ -82,7 +82,7 @@ def eval (fuel: ℕ) (σ : ValEnv) (δ : CircuitEnv) : Expr → Option (Value)
   | Expr.constBool b     => pure (Value.vBool b)
 
   -- E-VAR
-  | Expr.var x           => pure (σ x)
+  | Expr.var x           => pure (lookupVal σ x)
 
   -- E-LAM
   | Expr.lam x _ e       => pure (Value.vClosure x e σ)

@@ -8,7 +8,7 @@ import Loda.PropSemantics
 
 -- tests
 
-def σ₀ : Env.ValEnv := fun _ => Ast.Value.vStar
+def σ₀ : Env.ValEnv := []
 def δ₀ : Env.CircuitEnv := Std.HashMap.ofList []
 
 -- --------------------------------------------------
@@ -39,6 +39,7 @@ example : Eval.eval 123 σ₁ δ₀ (Ast.Expr.var "y") = some (Ast.Value.vInt 99
    simp [Eval.eval]
    simp [σ₁]
    unfold Env.updateVal
+   unfold Env.lookupVal
    simp_all
 
 example :
@@ -46,6 +47,7 @@ example :
   = some (Ast.Value.vInt 21) := by
     simp [Eval.eval]
     unfold Env.updateVal
+    unfold Env.lookupVal
     simp_all
 
 #eval Eval.eval 123 σ₀ δ₀ (Ast.Expr.letIn "z" (Ast.Expr.constF 5 7) (Ast.Expr.fieldExpr (Ast.Expr.var "z") Ast.FieldOp.mul (Ast.Expr.constF 5 3)))
@@ -56,6 +58,7 @@ example :
   = some (Ast.Value.vF 5 1) := by
     simp [Eval.eval]
     unfold Env.updateVal
+    unfold Env.lookupVal
     simp_all
     decide
 
@@ -107,4 +110,5 @@ example : Eval.eval 123 σ₀ δ₀ sumIter = some (Ast.Value.vInt 6) := by
   simp_all
   unfold Eval.eval.loop
   unfold Env.updateVal
+  unfold Env.lookupVal
   simp_all

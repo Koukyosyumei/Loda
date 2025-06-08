@@ -2,6 +2,12 @@ import Mathlib.Algebra.Field.ZMod
 import Mathlib.Algebra.Field.Basic
 import Mathlib.Data.ZMod.Basic
 
+import Lean
+import Lean.Meta
+import Lean.Elab.Command
+
+import Std.Data.HashMap.Basic
+
 import Loda.Field
 
 /-!
@@ -22,14 +28,14 @@ namespace Ast
 inductive BooleanOp where
   | and   -- ∧
   | or    -- ∨
-  deriving DecidableEq, Repr
+  deriving DecidableEq, Repr, Lean.ToExpr
 
 /-- Integer binary operators. -/
 inductive IntegerOp where
   | add   -- +
   | sub   -- -
   | mul   -- *
-  deriving DecidableEq, Repr
+  deriving DecidableEq, Repr, Lean.ToExpr
 
 /-- Field `F p` binary operators. -/
 inductive FieldOp where
@@ -37,14 +43,14 @@ inductive FieldOp where
   | sub   -- -
   | mul   -- *
   | div   -- /
-  deriving DecidableEq, Repr
+  deriving DecidableEq, Repr, Lean.ToExpr
 
 /-- Relational operators. -/
 inductive RelOp where
   | eq   -- =
   | lt   -- <
   | le   -- ≤
-  deriving DecidableEq, Repr
+  deriving DecidableEq, Repr, Lean.ToExpr
 
 mutual
   /-- Core expressions syntax for Loda. -/
@@ -71,6 +77,7 @@ mutual
     | app         : (f: Expr) → (arg: Expr) → Expr                       -- e₁ e₂
     | letIn       : (name: String) → (val: Expr) → (body: Expr) → Expr   -- let x = e₁ in e₂
     | iter        : (start: Expr) → (stp: Expr) → (step: Expr) → (acc: Expr) → Expr
+    deriving Lean.ToExpr
 
   /-- Runtime values in Loda. -/
   inductive Value where
@@ -80,7 +87,8 @@ mutual
     | vBool    : (b: Bool) → Value
     | vProd    : (elems: List Value) → Value
     | vArr     : (elems: List Value) → Value
-    | vClosure : (param: String) → (body: Expr) → (σ: String → Value) → Value
+    | vClosure : (param: String) → (body: Expr) → (σ: List (String × Value)) → Value
+    deriving Lean.ToExpr
 
   /-- Basic Types in CODA. -/
   inductive Ty where
@@ -93,6 +101,7 @@ mutual
     | refin    : (ty: Ty) → (prop: Expr) → Ty                     -- {ν : T | ϕ}
     | func     : (param: String) → (dom: Ty) → (cond: Ty) → Ty    -- x: τ₁ → τ₂
     --deriving DecidableEq, Repr
+    deriving Lean.ToExpr
 end
 
 /-- Test for equality of two `Value`s. -/
@@ -105,7 +114,7 @@ def valueEq : Value → Value → Bool
   | Value.vBool b₁, Value.vBool b₂             => b₁ = b₂
   | Value.vProd vs₁, Value.vProd vs₂           => false -- vs₁.zip vs₂ |>.all fun (u, v) => valueEq u v
   | Value.vArr vs₁, Value.vArr vs₂             => false -- vs₁.zip vs₂ |>.all fun (u, v) => valueEq u v
-  | Value.vClosure _ _ _, Value.vClosure _ _ _ => false -- closures not comparable
+  --| Value.vClosure _ _ _, Value.vClosure _ _ _ => false -- closures not comparable
   | _, _                                       => false
 
 instance : BEq Value where
@@ -122,6 +131,7 @@ structure Circuit where
   inputs  : String × Ast.Ty
   output  : String × Ast.Ty
   body    : Ast.Expr
+deriving Lean.ToExpr
 
 instance : Repr BooleanOp where
   reprPrec

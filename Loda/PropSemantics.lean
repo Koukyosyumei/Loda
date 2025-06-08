@@ -43,7 +43,7 @@ def exprToProp (fuel : ℕ) (σ : Env.ValEnv) (δ : Env.CircuitEnv) : Ast.Expr �
 | _ => False
 
 def tyenvToProp (fuel : ℕ) (σ : Env.ValEnv) (δ : Env.CircuitEnv) (Γ : Env.TyEnv) (ident : String) : Prop :=
-match Γ ident, σ ident with
+match Γ ident, Env.lookupVal σ ident with
 -- refinement types: check base-type match and predicate
 | Ast.Ty.refin baseTy e, val =>
   (match baseTy, val with

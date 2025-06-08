@@ -1,6 +1,5 @@
 import Loda.Ast
 import Std.Data.HashMap.Basic
-import Lean.Environment
 import Lean
 
 /-!
@@ -14,15 +13,25 @@ import Lean
 namespace Env
 
 /-- A valuation environment: maps variable names to runtime `Value`s. -/
-abbrev ValEnv := String -> Ast.Value
+abbrev ValEnv := List (String × Ast.Value)
 
 /--
   Extend `σ` by binding `ident` to `val`.
   When you lookup `ident`, you get `val`; otherwise you delegate to the old `σ`.
 -/
+--@[inline]
+--def updateVal (σ: ValEnv) (ident: String) (val: Ast.Value) : ValEnv :=
+--  fun y => if y = ident then val else σ y
+
 @[inline]
-def updateVal (σ: ValEnv) (ident: String) (val: Ast.Value) : ValEnv :=
-  fun y => if y = ident then val else σ y
+def lookupVal (σ : ValEnv) (ident : String) : Ast.Value :=
+  match σ.find? (·.1 = ident) with
+  | some (_, v) => v
+  | none        => Ast.Value.vStar
+
+@[inline]
+def updateVal (σ : ValEnv) (ident : String) (val : Ast.Value) : ValEnv :=
+  (ident, val) :: σ
 
 /-- A circuit environment: maps circuit names to their `Circuit`. -/
 abbrev CircuitEnv := Std.HashMap String Ast.Circuit

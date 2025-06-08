@@ -6,7 +6,7 @@ open Ast
 -- (Expr.intExpr (Expr.constInt 2) IntegerOp.mul (Expr.var "y"))
 lemma two_mul_I
   (fuel: ℕ) (σ: Env.ValEnv) (δ: Env.CircuitEnv)
-  (Γ: Env.TyEnv) (x: String) (xv: ℤ) (hσx : σ x = Value.vInt xv)
+  (Γ: Env.TyEnv) (x: String) (xv: ℤ) (hσx : Env.lookupVal σ x = Value.vInt xv)
   : @Ty.SubtypeJudgment fuel σ δ Γ
       (pure (Ty.refin Ty.int (exprEq v (Expr.intExpr (Expr.var x) IntegerOp.add (Expr.var x)))))
       (pure (Ty.refin Ty.int (exprEq v (Expr.intExpr (Expr.constInt 2) IntegerOp.mul (Expr.var x)))))
@@ -31,7 +31,7 @@ lemma two_mul_I
 
 lemma two_mul_F {p: ℕ}
   (fuel: ℕ) (σ: Env.ValEnv) (δ: Env.CircuitEnv)
-  (Γ: Env.TyEnv) (x: String) (xv: ℕ) (hσx : σ x = Value.vF p xv)
+  (Γ: Env.TyEnv) (x: String) (xv: ℕ) (hσx : Env.lookupVal σ x = Value.vF p xv)
   : @Ty.SubtypeJudgment fuel σ δ Γ
       (pure (Ty.refin Ty.int (exprEq v (Expr.fieldExpr (Expr.var x) FieldOp.add (Expr.var x)))))
       (pure (Ty.refin Ty.int (exprEq v (Expr.fieldExpr (Expr.constF p 2) FieldOp.mul (Expr.var x)))))
@@ -111,7 +111,7 @@ theorem mulCircuit_correct : (Ty.circuitCorrect 1000 Δ mulCircuit) := by
   unfold mulCircuit
   simp_all
   intro x hs hσ
-  set σ := (Env.updateVal (fun x ↦ Value.vStar) "x" x)
+  set σ := (Env.updateVal [] "x" x)
   set Γ := (Env.updateTy (fun x ↦ Ty.unit) "x" (Ty.int.refin (Expr.constBool true)))
   have h_body :
     Ty.TypeJudgment
@@ -129,11 +129,11 @@ theorem mulCircuit_correct : (Ty.circuitCorrect 1000 Δ mulCircuit) := by
          }
   unfold PropSemantics.tyenvToProp at hσ
   simp [Γ] at hσ
-  have hσ₁ : σ "x" = x := by {
+  have hσ₁ : Env.lookupVal σ "x" = x := by {
     simp [σ]
     rfl
   }
-  have h : ∃ (a : ℤ), σ "x" = Ast.Value.vInt a := by
+  have h : ∃ (a : ℤ), Env.lookupVal σ "x" = Ast.Value.vInt a := by
     cases x with
     | vInt n =>
       use n
@@ -157,7 +157,6 @@ theorem mulCircuit_correct : (Ty.circuitCorrect 1000 Δ mulCircuit) := by
   exact Ty.TypeJudgment.TE_SUB h_sub h_body
 
 
-def σ : Env.ValEnv := fun x =>
-  if x = "x" then Ast.Value.vInt 5 else Ast.Value.vStar
+def σ : Env.ValEnv := [("x", Ast.Value.vInt 5)]
 def Γ : Env.TyEnv := fun _ => Ast.Ty.refin Ast.Ty.int (Ast.Expr.constBool true)
 #eval Eval.eval 1000 σ Δ mulCircuit.body
