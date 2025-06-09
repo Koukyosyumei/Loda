@@ -9,7 +9,7 @@ import Loda.PropSemantics
 -- tests
 
 def σ₀ : Env.ValEnv := []
-def δ₀ : Env.CircuitEnv := Std.HashMap.ofList []
+def δ₀ : Env.CircuitEnv := []
 
 -- --------------------------------------------------
 -- beq tests

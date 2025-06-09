@@ -480,7 +480,7 @@ syntax (name := loda_check) "#loda_check" ident : command
 unsafe def elabLodaCircuitCheck : Elab.Command.CommandElab
   | `(command| #loda_check $cName:ident) => do
     let Δ ← Elab.Command.liftCoreM Env.getCircuitEnv
-    let circ := Δ.get! cName.getId.toString
+    let circ := Env.lookupCircuit Δ cName.getId.toString
     logInfo m!"Successfully elaborated circuit {repr circ}"
   | _ => Elab.throwUnsupportedSyntax
 
@@ -491,7 +491,7 @@ unsafe def elabLodaEval : Elab.Command.CommandElab
   | `(command| #loda_eval $cName:ident $[$xs:ident = $ts:loda_expr]*) => do
     -- 1) Lookup the AST.Circuit by name in your Env.CircuitEnv
     let Δ ← Elab.Command.liftCoreM Env.getCircuitEnv
-    let circ := Δ.get! cName.getId.toString
+    let circ := Env.lookupCircuit Δ cName.getId.toString
     -- 2) Build a ValEnv from the `x=5 y=7 …`
     let σ₁ ← (xs.zip ts).foldlM (init := []) fun env (x, t) => do
         let e ← Elab.Command.liftTermElabM <| elaborateExpr t.raw
@@ -504,6 +504,45 @@ unsafe def elabLodaEval : Elab.Command.CommandElab
     match res with
     | some output => logInfo m!"→ {repr output}"
     | _ => Elab.throwUnsupportedSyntax
+  | _ => Elab.throwUnsupportedSyntax
+
+syntax (name := loda_verify) "#loda_verify" ident : command
+
+
+@[command_elab loda_verify]
+unsafe def elabLodaVerify : Elab.Command.CommandElab
+  | `(command| #loda_verify $cName:ident) => do
+    -- Get the circuit from environment
+    let Δ ← Elab.Command.liftCoreM Env.getCircuitEnv
+    let circ := Env.lookupCircuit Δ cName.getId.toString
+
+    let circExpr := toExpr circ
+    let deltaExpr := toExpr Δ
+
+    let circTerm ← Elab.Command.liftTermElabM $ PrettyPrinter.delab circExpr
+    let deltaTerm ← Elab.Command.liftTermElabM $ PrettyPrinter.delab deltaExpr
+
+    -- Generate theorem name
+    let theoremName := cName.getId.toString ++ "_correct"
+    let theoremIdent := mkIdent (Name.mkSimple theoremName)
+
+    -- Generate the theorem syntax
+    let theoremStx ← `(command|
+      theorem $theoremIdent : (Ty.circuitCorrect 1000 $deltaTerm $circTerm) := by
+        unfold Ty.circuitCorrect
+        -- We cannot unfold cName directly here if it's not a definition.
+        -- Assuming you have a definition with the same name.
+        -- If not, you might need a different proof strategy.
+        simp_all
+        sorry  -- placeholder for manual proof
+    )
+
+    -- Elaborate the generated theorem command
+    Elab.Command.elabCommand theoremStx
+
+    logInfo m!"Generated correctness theorem '{theoremName}' for circuit '{cName.getId}'"
+    logInfo m!"Please complete the proof by replacing 'sorry' with appropriate tactics."
+
   | _ => Elab.throwUnsupportedSyntax
 
 /-- A “file” of Loda is one or more `circuit` declarations. -/

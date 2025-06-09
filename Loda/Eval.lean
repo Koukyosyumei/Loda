@@ -221,7 +221,7 @@ def eval (fuel: ℕ) (σ : ValEnv) (δ : CircuitEnv) : Expr → Option (Value)
       if fuel > 0 then
         --let vs ← args.mapM (eval (fuel - 1) σ δ )
         let v := eval (fuel - 1) σ δ  arg
-        let c := δ.get! name
+        let c := Env.lookupCircuit δ name
         --let σ' := (c.inputs.zip vs).foldl (fun env (⟨x,_⟩,v) => updateVal env x v) σ
         match v with
         | some vv => eval (fuel - 1) (updateVal σ name vv) δ c.body

@@ -2,6 +2,13 @@ import Loda.Ast
 import Std.Data.HashMap.Basic
 import Lean
 
+import Lean.Elab
+import Lean.Meta
+
+open Lean
+open Lean.Elab
+open Lean.Meta
+
 /-!
   # Environments for Loda
 
@@ -34,7 +41,14 @@ def updateVal (σ : ValEnv) (ident : String) (val : Ast.Value) : ValEnv :=
   (ident, val) :: σ
 
 /-- A circuit environment: maps circuit names to their `Circuit`. -/
-abbrev CircuitEnv := Std.HashMap String Ast.Circuit
+abbrev CircuitEnv := List (String × Ast.Circuit)
+deriving instance ToExpr for CircuitEnv
+
+@[inline]
+def lookupCircuit (Δ : CircuitEnv) (ident : String) : Ast.Circuit :=
+  match Δ.find? (·.1 = ident) with
+  | some (_, v) => v
+  | none        => Ast.DefaultCircuit
 
 /--
   Extend `δ` by binding `ident` to `circuit`.
@@ -42,14 +56,14 @@ abbrev CircuitEnv := Std.HashMap String Ast.Circuit
 -/
 @[inline]
 def updateCircuit (Δ: CircuitEnv) (ident: String) (circuit: Ast.Circuit) : CircuitEnv :=
-  Δ.insert ident circuit
+  (ident, circuit) :: Δ
 
 abbrev CircuitEntry := String × Ast.Circuit
 
 initialize circuitExt : Lean.SimplePersistentEnvExtension CircuitEntry CircuitEnv ←
   Lean.registerSimplePersistentEnvExtension {
-    addImportedFn := fun as => (Std.HashMap.emptyWithCapacity),
-    addEntryFn := fun m (name, circuit) => m.insert name circuit,
+    addImportedFn := fun as => [],
+    addEntryFn := fun m (name, circuit) => (name, circuit) :: m,
     toArrayFn := fun m => m.toArray
   }
 
@@ -62,7 +76,7 @@ def getCircuitEnv : Lean.CoreM CircuitEnv := do
 
 def getCircuitFromEnv (name : String) : Lean.CoreM (Option Ast.Circuit) := do
   let env ← Lean.getEnv
-  return (circuitExt.getState env).get? name
+  return lookupCircuit (circuitExt.getState env) name
 
 /-- A type environment: maps variable names to Loda `Ty`s. -/
 def TyEnv := String -> Ast.Ty

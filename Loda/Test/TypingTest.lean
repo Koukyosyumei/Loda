@@ -102,7 +102,7 @@ def mulCircuit : Ast.Circuit := {
   output := ("out", Ast.Ty.refin (Ast.Ty.int) (Ast.exprEq Ast.v (Ast.Expr.intExpr (Ast.Expr.constInt 2) Ast.IntegerOp.mul (Ast.Expr.var "x")))),
   body   := (Ast.Expr.letIn "out" (Ast.Expr.intExpr (Ast.Expr.var "x") Ast.IntegerOp.add (Ast.Expr.var "x")) (Ast.Expr.var "out"))
 }
-def Δ : Env.CircuitEnv := Std.HashMap.ofList [("mul", mulCircuit)]
+def Δ : Env.CircuitEnv := [("mul", mulCircuit)]
 
 #eval Value.vStar != Value.vStar
 
