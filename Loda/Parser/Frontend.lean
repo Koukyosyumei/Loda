@@ -530,7 +530,7 @@ unsafe def elabLodaProve : Elab.Command.CommandElab
     let theoremStx ← `(command|
       theorem $theoremIdent : (Ty.circuitCorrect 1000 $deltaTerm $circTerm) := by $proof
     )
-
+    logInfo m!"Proof state opened for '{theoremName}' - continue with tactics!"
     -- Elaborate the generated theorem command
     Elab.Command.elabCommand theoremStx
   | _ => Elab.throwUnsupportedSyntax
