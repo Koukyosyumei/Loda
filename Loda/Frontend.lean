@@ -34,7 +34,7 @@ syntax "(" loda_ty,+ ")"                       : loda_ty
 syntax "[" loda_ty "]"                         : loda_ty
 
 -- Refinement types: “{ x : T | φ }”
-syntax "{" ident ":" loda_ty "|" term "}"      : loda_ty
+syntax "{" loda_ty "|" term "}"      : loda_ty
 
 -- Function‐type arrow: “(x : T1) → T2”
 syntax "(" ident ":" loda_ty ")" "→" loda_ty   : loda_ty
@@ -138,6 +138,10 @@ namespace Frontend
 
 unsafe def elaborateProp (stx : Syntax) : MetaM Ast.Expr := do
   match stx with
+  | `(term| $n:num) => do
+      let v := n.getNat
+      pure (Ast.Expr.constInt v)
+
   -- Boolean literals
   | `(term| True)  => pure (Ast.Expr.constBool True)
   | `(term| False) => pure (Ast.Expr.constBool False)
@@ -151,6 +155,16 @@ unsafe def elaborateProp (stx : Syntax) : MetaM Ast.Expr := do
       -- We could encode “¬ φ” as `boolExpr φ Not φ`, but we don’t currently have a `UnaryOp`.
       -- For now, we can say “(φ == false)”
       pure (Ast.Expr.binRel φ' Ast.RelOp.eq (Ast.Expr.constBool False))
+
+  | `(term| $e1:term + $e2:term) => do
+      let e1' ← elaborateProp e1
+      let e2' ← elaborateProp e2
+      pure (Ast.Expr.intExpr e1' Ast.IntegerOp.add e2')
+
+  | `(term| $e1:term * $e2:term) => do
+      let e1' ← elaborateProp e1
+      let e2' ← elaborateProp e2
+      pure (Ast.Expr.intExpr e1' Ast.IntegerOp.mul e2')
 
   -- φ && ψ  or φ ∧ ψ
   | `(term| $φ:term && $ψ:term) => do
@@ -199,7 +213,7 @@ unsafe def elaborateProp (stx : Syntax) : MetaM Ast.Expr := do
 unsafe def elaborateType (stx : Syntax) : MetaM Ast.Ty := do
   match stx with
   -- Unit type “()` or “Unit”
-  | `(loda_ty| Unit)       => pure Ast.Ty.unit
+  | `(loda_ty| Unit)  => pure (Ast.Ty.refin Ast.Ty.unit (Ast.Expr.constBool True))
   | `(loda_ty| () )   => pure Ast.Ty.unit
 
   -- Field type “F p”
@@ -208,7 +222,7 @@ unsafe def elaborateType (stx : Syntax) : MetaM Ast.Ty := do
       pure (Ast.Ty.field pVal)
 
   -- Int and Bool
-  | `(loda_ty| Int)        => pure Ast.Ty.int
+  | `(loda_ty| Int)        => pure (Ast.Ty.refin Ast.Ty.int (Ast.Expr.constBool True))
   | `(loda_ty| Bool)       => pure Ast.Ty.bool
 
   -- Product types: “( T1 , T2 , … )”
@@ -224,11 +238,14 @@ unsafe def elaborateType (stx : Syntax) : MetaM Ast.Ty := do
       pure (Ast.Ty.arr t')
 
   -- Refinement: “{ x : T | φ }”
-  | `(loda_ty| { $_:ident : $T:loda_ty | $φ:term } ) => do
-      let T'   ← elaborateType T
+  | `(loda_ty| { $T:loda_ty | $φ:term } ) => do
+      let T' ← match T with
+      | `(loda_ty| Int) => pure Ast.Ty.int
+      | `(loda_ty| Bool) => pure Ast.Ty.bool
+      | _ => throwError "unsupported type syntax: {stx}"
       -- We want to turn `φ` (a Lean `term`) into an `Ast.Expr` (of Boolean sort).
       let φ'   ← elaborateProp φ
-      pure (Ast.Ty.refin T' φ')
+      pure (Ast.Ty.refin T' (Ast.exprEq Ast.v φ'))
 
   -- Function type: “(x : T1) → T2”
   | `(loda_ty| ( $x:ident : $Tdom:loda_ty ) → $Tcod:loda_ty ) => do
