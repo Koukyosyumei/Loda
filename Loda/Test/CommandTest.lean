@@ -1,4 +1,4 @@
-import Loda.Parser.Frontend
+import Loda.Command
 import Loda.Env
 import Loda.Ast
 import Loda.Typing
