@@ -545,6 +545,20 @@ unsafe def elabLodaVerify : Elab.Command.CommandElab
 
   | _ => Elab.throwUnsupportedSyntax
 
+syntax (name := loda_verify_proof) "loda_verify" ident : command
+
+@[macro loda_verify_proof]
+def expandLodaVerifyProof : Macro
+  | `(command| loda_verify $cName:ident) => do
+    let theoremName := mkIdent (Name.mkSimple (cName.getId.toString ++ "_correct"))
+    `(command|
+      theorem $theoremName : (Ty.circuitCorrect 1000 (← Env.getCircuitEnv)
+        ((← Env.getCircuitEnv).get! $(quote cName.getId.toString))) := by
+        unfold Ty.circuitCorrect
+        intro x h_not_vstar h_tyenv_prop
+    )
+  | _ => Macro.throwUnsupported
+
 /-- A “file” of Loda is one or more `circuit` declarations. -/
 unsafe def elabLodaFile (stx : Syntax) : MetaM (Array Ast.Circuit) := do
   match stx with
