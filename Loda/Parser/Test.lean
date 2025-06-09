@@ -13,18 +13,8 @@ open Lean.Meta
 #loda_check Adder
 #loda_eval Adder x=2 y=12
 
-#loda_verify Adder
-#print Adder_correct
-
-#check Adder_correct
-
-def myAdderProof : Lean.CoreM String := do
-  -- CoreM モナドの計算を実行し、結果の CircuitEnv を Δ に束縛する
-  let Δ ← Env.getCircuitEnv
-  let circ := Env.lookupCircuit Δ "Adder"
-  let myTheorem : Ty.circuitCorrect 1000 Δ circ := by {
-    unfold Ty.circuitCorrect
-    -- Std.HashMap.get! at circ
-    sorry
-  }
-  return "Proof constructed successfully."
+#loda_prove Adder := by {
+  intro x
+  intro y
+  sorry
+}

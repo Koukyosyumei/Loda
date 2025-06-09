@@ -506,12 +506,12 @@ unsafe def elabLodaEval : Elab.Command.CommandElab
     | _ => Elab.throwUnsupportedSyntax
   | _ => Elab.throwUnsupportedSyntax
 
-syntax (name := loda_verify) "#loda_verify" ident : command
+syntax (name := loda_prove) "#loda_prove" ident ":=" "by" tacticSeq: command
 
 
-@[command_elab loda_verify]
-unsafe def elabLodaVerify : Elab.Command.CommandElab
-  | `(command| #loda_verify $cName:ident) => do
+@[command_elab loda_prove]
+unsafe def elabLodaProve : Elab.Command.CommandElab
+  | `(command| #loda_prove $cName:ident := by $proof:tacticSeq) => do
     -- Get the circuit from environment
     let Δ ← Elab.Command.liftCoreM Env.getCircuitEnv
     let circ := Env.lookupCircuit Δ cName.getId.toString
@@ -528,36 +528,12 @@ unsafe def elabLodaVerify : Elab.Command.CommandElab
 
     -- Generate the theorem syntax
     let theoremStx ← `(command|
-      theorem $theoremIdent : (Ty.circuitCorrect 1000 $deltaTerm $circTerm) := by
-        unfold Ty.circuitCorrect
-        -- We cannot unfold cName directly here if it's not a definition.
-        -- Assuming you have a definition with the same name.
-        -- If not, you might need a different proof strategy.
-        simp_all
-        sorry  -- placeholder for manual proof
+      theorem $theoremIdent : (Ty.circuitCorrect 1000 $deltaTerm $circTerm) := by $proof
     )
 
     -- Elaborate the generated theorem command
     Elab.Command.elabCommand theoremStx
-
-    logInfo m!"Generated correctness theorem '{theoremName}' for circuit '{cName.getId}'"
-    logInfo m!"Please complete the proof by replacing 'sorry' with appropriate tactics."
-
   | _ => Elab.throwUnsupportedSyntax
-
-syntax (name := loda_verify_proof) "loda_verify" ident : command
-
-@[macro loda_verify_proof]
-def expandLodaVerifyProof : Macro
-  | `(command| loda_verify $cName:ident) => do
-    let theoremName := mkIdent (Name.mkSimple (cName.getId.toString ++ "_correct"))
-    `(command|
-      theorem $theoremName : (Ty.circuitCorrect 1000 (← Env.getCircuitEnv)
-        ((← Env.getCircuitEnv).get! $(quote cName.getId.toString))) := by
-        unfold Ty.circuitCorrect
-        intro x h_not_vstar h_tyenv_prop
-    )
-  | _ => Macro.throwUnsupported
 
 /-- A “file” of Loda is one or more `circuit` declarations. -/
 unsafe def elabLodaFile (stx : Syntax) : MetaM (Array Ast.Circuit) := do
