@@ -1,15 +1,11 @@
+import Loda.Ast
 import Loda.Command
 import Loda.Env
-import Loda.Ast
 import Loda.Typing
 import Loda.Test.TypingTest
 
-import Lean.Meta
-
 open Ast
-open Frontend
 open Env
-open Lean.Meta
 
 #loda_register circuit Adder(x : Int) -> {Int | 2*x} {let out = x + x in out}
 #loda_check Adder
