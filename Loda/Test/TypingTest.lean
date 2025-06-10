@@ -19,14 +19,8 @@ lemma two_mul_I
     exact h
   }
   obtain ⟨vv, hv_eq⟩ := hv
-  dsimp [PropSemantics.exprToProp, Eval.eval] at h ⊢
-  unfold exprEq
-  unfold exprEq at h
-  simp [decide_eq_true] at h ⊢
-  rw[hσx]
-  simp[Eval.evalIntegerOp]
-  rw[hv_eq]
-  rw[two_mul]
+  dsimp [PropSemantics.exprToProp, Eval.eval, exprEq, decide_eq_true] at h ⊢
+  simp[hσx, Eval.evalIntegerOp, hv_eq, two_mul]
   simp_all
 
 lemma two_mul_F {p: ℕ}
@@ -44,14 +38,8 @@ lemma two_mul_F {p: ℕ}
     exact h
   }
   obtain ⟨vv, hv_eq⟩ := hv
-  dsimp [PropSemantics.exprToProp, Eval.eval] at h ⊢
-  unfold exprEq
-  unfold exprEq at h
-  simp [decide_eq_true] at h ⊢
-  rw[hσx]
-  simp[Eval.evalIntegerOp]
-  rw[hv_eq]
-  rw[two_mul]
+  dsimp [PropSemantics.exprToProp, Eval.eval, exprEq, decide_eq_true] at h ⊢
+  simp[hσx, Eval.evalIntegerOp, hv_eq, two_mul]
   simp_all
 
 lemma typed_int_expr_from_refined_vars
