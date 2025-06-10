@@ -27,7 +27,7 @@ open Env
   set Γ := (Env.updateTy (fun x ↦ Ty.unit) "x" (Ty.int.refin (Expr.constBool True)))
   have h_body :
     Ty.TypeJudgment
-      (Env.updateTy (fun _ => Ast.Ty.unit) "x" (Ast.Ty.refin Ast.Ty.int (Ast.Expr.constBool True)))
+      Γ
       (Ast.Expr.letIn "out"
          (Ast.Expr.intExpr (Ast.Expr.var "x") Ast.IntegerOp.add (Ast.Expr.var "x"))
          (Ast.Expr.var "out"))
@@ -67,11 +67,8 @@ open Env
         rfl
       }
   unfold Ast.exprEq at h_sub
-  unfold Δ at h_sub
-  unfold Γ at h_sub
-  unfold Ast.v at h_sub
-  unfold Δ at h_body
-  unfold Ast.v at h_body
+  simp [Δ, Γ, Ast.v] at h_sub
+  simp [Δ, Ast.v] at h_body
   exact Ty.TypeJudgment.TE_SUB h_sub h_body
 }
 
