@@ -1,7 +1,6 @@
 import Loda.Ast
 import Loda.Command
 import Loda.Env
-import Loda.Typing
 import Loda.Test.TypingTest
 
 open Ast
@@ -12,15 +11,8 @@ open Env
 #loda_eval Adder x=2
 
 #loda_prove Adder := by {
+  rename_i Δ h_delta
   unfold Ty.circuitCorrect
-  set Δ: Env.CircuitEnv := [("Adder",
-            { name := "Adder",
-              inputs := ("x", Ty.int.refin (Expr.constBool «true»)),
-              output :=
-                ("output",
-                  Ty.int.refin
-                    ((Expr.var ".v").binRel RelOp.eq ((Expr.constInt 2).intExpr IntegerOp.mul (Expr.var "x")))),
-              body := Expr.letIn "out" ((Expr.var "x").intExpr IntegerOp.add (Expr.var "x")) (Expr.var "out") })]
   simp_all
   intro x hs hσ
   set σ := (Env.updateVal [] "x" x)
@@ -67,8 +59,8 @@ open Env
         rfl
       }
   unfold Ast.exprEq at h_sub
-  simp [Δ, Γ, Ast.v] at h_sub
-  simp [Δ, Ast.v] at h_body
+  simp [h_delta, Γ, Ast.v] at h_sub
+  simp [h_delta, Ast.v] at h_body
   exact Ty.TypeJudgment.TE_SUB h_sub h_body
 }
 
