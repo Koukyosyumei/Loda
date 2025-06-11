@@ -14,11 +14,8 @@ lemma two_mul_I
   apply Ty.SubtypeJudgment.TSub_Refine
   · apply Ty.SubtypeJudgment.TSub_Refl
   intro h
-  have hv : ∃ vv, Eval.eval fuel σ δ v = some (Value.vInt vv) := by {
-    apply Ty.exprIntVSound at h
-    exact h
-  }
-  obtain ⟨vv, hv_eq⟩ := hv
+  obtain ⟨vv, hv_eq⟩ : ∃ vv, Eval.eval fuel σ δ v = some (Value.vInt vv) := by
+    apply Ty.exprIntVSound at h; exact h
   dsimp [PropSemantics.exprToProp, Eval.eval, exprEq, decide_eq_true] at h ⊢
   simp[hσx, Eval.evalIntegerOp, hv_eq, two_mul]
   simp_all
@@ -33,21 +30,16 @@ lemma two_mul_F {p: ℕ}
   apply Ty.SubtypeJudgment.TSub_Refine
   · apply Ty.SubtypeJudgment.TSub_Refl
   intro h
-  have hv : ∃ vv, Eval.eval fuel σ δ v = some (Value.vF p vv) := by {
-    apply Ty.exprFielVdSound at h
-    exact h
-  }
-  obtain ⟨vv, hv_eq⟩ := hv
+  obtain ⟨vv, hv_eq⟩ : ∃ vv, Eval.eval fuel σ δ v = some (Value.vF p vv) := by
+    apply Ty.exprFielVdSound at h; exact h
   dsimp [PropSemantics.exprToProp, Eval.eval, exprEq, decide_eq_true] at h ⊢
   simp[hσx, Eval.evalIntegerOp, hv_eq, two_mul]
   simp_all
 
 lemma typed_int_expr_from_refined_vars
   (fuel: ℕ) (x y: String) (σ: Env.ValEnv) (δ: Env.CircuitEnv) (Γ: Env.TyEnv)
-  (op: Ast.IntegerOp)
-  (φ₁ φ₂: Ast.Expr)
-  (hΓx: Γ x = Ast.Ty.refin Ast.Ty.int φ₁)
-  (hΓy: Γ y = Ast.Ty.refin Ast.Ty.int φ₂)
+  (op: Ast.IntegerOp) (φ₁ φ₂: Ast.Expr)
+  (hΓx: Γ x = Ast.Ty.refin Ast.Ty.int φ₁) (hΓy: Γ y = Ast.Ty.refin Ast.Ty.int φ₂)
   : @Ty.TypeJudgment fuel σ δ Γ (Ast.Expr.intExpr (Ast.Expr.var x) op (Ast.Expr.var y))
       (Ty.refin Ty.int (exprEq v (Expr.intExpr (Expr.var x) op (Expr.var y)))) := by
   apply Ty.TypeJudgment.TE_BinOpInt
@@ -58,13 +50,10 @@ lemma typed_int_expr_from_refined_vars
 
 lemma let_binding_int_op_type_preservation
   (fuel: ℕ) (x y z: String) (σ: Env.ValEnv) (δ: Env.CircuitEnv) (Γ : Env.TyEnv)
-  (op: Ast.IntegerOp)
-  (φ₁ φ₂: Ast.Expr)
+  (op: Ast.IntegerOp) (φ₁ φ₂: Ast.Expr)
   (hΓx: Γ x = Ast.Ty.refin Ast.Ty.int φ₁) (hΓy: Γ y = Ast.Ty.refin Ast.Ty.int φ₂) :
   @Ty.TypeJudgment fuel σ δ Γ
-    (Ast.Expr.letIn z
-      (Ast.Expr.intExpr (Ast.Expr.var x) op (Ast.Expr.var y))
-      (Ast.Expr.var z))
+    (Ast.Expr.letIn z (Ast.Expr.intExpr (Ast.Expr.var x) op (Ast.Expr.var y)) (Ast.Expr.var z))
     (Ty.refin Ty.int (Ast.exprEq Ast.v (Ast.Expr.intExpr (Ast.Expr.var x) op (Ast.Expr.var y)))) :=
 by
   set e1 := Ast.Expr.intExpr (Ast.Expr.var x) op (Ast.Expr.var y)
@@ -92,7 +81,25 @@ def mulCircuit : Ast.Circuit := {
 }
 def Δ : Env.CircuitEnv := [("mul", mulCircuit)]
 
-#eval Value.vStar != Value.vStar
+/-
+PropSemantics.tyenvToProp 1000 (Env.updateVal [] "x" x) Δ
+  (Env.updateTy (fun x ↦ Ty.unit) "x" (Ty.int.refin (Expr.constBool true))) "x"
+
+axiom exprIntVSound :
+  ∀ (a b : Ast.Expr) (op : Ast.IntegerOp) (σ : Env.ValEnv) (δ : Env.CircuitEnv) (fuel : ℕ),
+  PropSemantics.exprToProp fuel σ δ (Ast.exprEq Ast.v (Ast.Expr.intExpr a op b)) →
+  ∃ vv, Eval.eval fuel σ δ Ast.v = some (Ast.Value.vInt vv)
+-/
+
+lemma intRefinTypeImpliesExistsIntValue (fuel: ℕ) (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv) (x: String) (e: Expr)
+  : (Γ x = Ty.int.refin e) → PropSemantics.tyenvToProp fuel σ Δ Γ x → ∃ (a: ℤ), Env.lookupVal σ x = Ast.Value.vInt a := by
+  intro hx
+  unfold PropSemantics.tyenvToProp
+  simp_all
+  set val := Env.lookupVal σ x
+  cases val with
+  | vInt n => simp_all
+  | _ => intro hσ; simp_all
 
 theorem mulCircuit_correct : (Ty.circuitCorrect 1000 Δ mulCircuit) := by
   unfold Ty.circuitCorrect
@@ -101,49 +108,12 @@ theorem mulCircuit_correct : (Ty.circuitCorrect 1000 Δ mulCircuit) := by
   intro x hs hσ
   set σ := (Env.updateVal [] "x" x)
   set Γ := (Env.updateTy (fun x ↦ Ty.unit) "x" (Ty.int.refin (Expr.constBool true)))
-  have h_body :
-    Ty.TypeJudgment
-      (Env.updateTy (fun _ => Ast.Ty.unit) "x" (Ast.Ty.refin Ast.Ty.int (Ast.Expr.constBool true)))
-      (Ast.Expr.letIn "out"
-         (Ast.Expr.intExpr (Ast.Expr.var "x") Ast.IntegerOp.add (Ast.Expr.var "x"))
-         (Ast.Expr.var "out"))
-      (Ast.Ty.refin Ast.Ty.int
-         (Ast.exprEq Ast.v (Ast.Expr.intExpr (Ast.Expr.var "x") Ast.IntegerOp.add (Ast.Expr.var "x")))) := by {
-          apply @let_binding_int_op_type_preservation 1000 "x" "x" "out" σ Δ Γ
-          simp [Γ]
-          rfl
-          simp [Γ]
-          rfl
-         }
-  unfold PropSemantics.tyenvToProp at hσ
-  simp [Γ] at hσ
-  have hσ₁ : Env.lookupVal σ "x" = x := by {
-    simp [σ]
-    rfl
-  }
-  have h : ∃ (a : ℤ), Env.lookupVal σ "x" = Ast.Value.vInt a := by
-    cases x with
-    | vInt n =>
-      use n
-    | _ =>
-      simp [hσ₁] at hσ
-      simp_all
-      cases hσ with
-      | intro left right => {
-        contradiction
-      }
-  obtain ⟨vv, hv_eq⟩ := h
-  have h_sub :
-    @Ty.SubtypeJudgment 1000 σ Δ Γ
-      (pure (Ast.Ty.refin Ast.Ty.int (Ast.exprEq Ast.v (Ast.Expr.intExpr (Ast.Expr.var "x") Ast.IntegerOp.add (Ast.Expr.var "x")))))
-      (pure (Ast.Ty.refin Ast.Ty.int (Ast.exprEq Ast.v (Ast.Expr.intExpr (Ast.Expr.constInt 2) Ast.IntegerOp.mul (Ast.Expr.var "x"))))) := by {
-        apply two_mul_I 1000 σ Δ Γ "x" vv
-        simp [σ]
-        simp_all
-        rfl
-      }
+  have hΓ : Γ "x" = (Ty.int.refin (Expr.constBool true)) := rfl
+  have h_body := @let_binding_int_op_type_preservation 1000 "x" "x" "out" σ Δ Γ
+              Ast.IntegerOp.add (Ast.Expr.constBool true) (Ast.Expr.constBool true) hΓ hΓ
+  obtain ⟨vv, hv_eq⟩ := intRefinTypeImpliesExistsIntValue 1000 σ Δ Γ "x" (Expr.constBool true) hΓ hσ
+  have h_sub := two_mul_I 1000 σ Δ Γ "x" vv hv_eq
   exact Ty.TypeJudgment.TE_SUB h_sub h_body
-
 
 def σ : Env.ValEnv := [("x", Ast.Value.vInt 5)]
 def Γ : Env.TyEnv := fun _ => Ast.Ty.refin Ast.Ty.int (Ast.Expr.constBool true)

@@ -52,7 +52,7 @@ match Γ ident, Env.lookupVal σ ident with
   | Ast.Ty.bool,     Ast.Value.vBool _   => True
   | Ast.Ty.prod tys, Ast.Value.vProd vs  => vs.length = tys.length
   | Ast.Ty.arr _,    Ast.Value.vArr _    => True
-  | _,               Ast.Value.vStar     => True
+  --| _,               Ast.Value.vStar     => True
   | _,               _                   => False
   ) ∧
   exprToProp fuel σ δ e

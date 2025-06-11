@@ -179,12 +179,9 @@ axiom typeJudgmentRefinementSound {fuel : ℕ} {σ : Env.ValEnv} {δ : Env.Circu
 def circuitCorrect (fuel : ℕ) (δ : Env.CircuitEnv) (c : Ast.Circuit) : Prop :=
   ∀ (x : Ast.Value),
     x != Ast.Value.vStar →
-    -- (2) σ, Γ の構築をローカル定義
     let σ: Env.ValEnv := Env.updateVal [] c.inputs.fst x
     let Γ: Env.TyEnv := Env.updateTy (fun _ => Ast.Ty.unit) c.inputs.fst c.inputs.snd
-    -- (3) 全入力が型を満たす仮定
     PropSemantics.tyenvToProp fuel σ δ Γ c.inputs.fst →
-    -- (4) 型付けを保証する
     @TypeJudgment fuel σ δ Γ c.body c.output.snd
 
 end Ty
