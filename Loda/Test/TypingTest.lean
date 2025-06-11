@@ -81,16 +81,6 @@ def mulCircuit : Ast.Circuit := {
 }
 def Δ : Env.CircuitEnv := [("mul", mulCircuit)]
 
-/-
-PropSemantics.tyenvToProp 1000 (Env.updateVal [] "x" x) Δ
-  (Env.updateTy (fun x ↦ Ty.unit) "x" (Ty.int.refin (Expr.constBool true))) "x"
-
-axiom exprIntVSound :
-  ∀ (a b : Ast.Expr) (op : Ast.IntegerOp) (σ : Env.ValEnv) (δ : Env.CircuitEnv) (fuel : ℕ),
-  PropSemantics.exprToProp fuel σ δ (Ast.exprEq Ast.v (Ast.Expr.intExpr a op b)) →
-  ∃ vv, Eval.eval fuel σ δ Ast.v = some (Ast.Value.vInt vv)
--/
-
 lemma intRefinTypeImpliesExistsIntValue (fuel: ℕ) (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv) (x: String) (e: Expr)
   : (Γ x = Ty.int.refin e) → PropSemantics.tyenvToProp fuel σ Δ Γ x → ∃ (a: ℤ), Env.lookupVal σ x = Ast.Value.vInt a := by
   intro hx
