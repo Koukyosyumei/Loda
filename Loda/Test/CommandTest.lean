@@ -1,6 +1,7 @@
 import Loda.Ast
 import Loda.Command
 import Loda.Env
+import Loda.Gadget
 import Loda.Test.TypingTest
 
 open Ast
