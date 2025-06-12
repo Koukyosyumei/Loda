@@ -74,11 +74,11 @@ def evalBoolOp (op : BooleanOp) : Value → Value → Option Bool
 
 /--
   Evaluate an expression `e` under a valuation environment `σ`,
-  a circuit environment `δ`, and a fuel bound `fuel`.
+  a circuit environment `Δ`, and a fuel bound `fuel`.
   Returns `none` if evaluation gets stuck or fuel is exhausted.
 -/
 @[simp]
-def eval (fuel: ℕ) (σ : ValEnv) (δ : CircuitEnv) : Expr → Option (Value)
+def eval_with_fuel (fuel: ℕ) (σ : ValEnv) (Δ : CircuitEnv) : Expr → Option (Value)
   -- E-VALUE
   | Expr.constF p v      => pure (Value.vF p v)
   | Expr.constInt i      => pure (Value.vInt i)
@@ -92,21 +92,21 @@ def eval (fuel: ℕ) (σ : ValEnv) (δ : CircuitEnv) : Expr → Option (Value)
 
   | Expr.letIn x e₁ e₂   => do
     if fuel > 0 then
-      let v₁ ← eval (fuel -1) σ δ  e₁
+      let v₁ ← eval_with_fuel (fuel -1) σ Δ  e₁
       let σ' := updateVal σ x v₁
-      eval (fuel -1) σ' δ e₂
+      eval_with_fuel (fuel -1) σ' Δ e₂
     else
       none
 
   -- E-APP
   | Expr.app f e         => do
       if fuel > 0 then
-        let vf ← eval (fuel -1) σ δ  f
-        let va ← eval (fuel -1) σ δ  e
+        let vf ← eval_with_fuel (fuel -1) σ Δ  f
+        let va ← eval_with_fuel (fuel -1) σ Δ  e
         match vf with
         | Value.vClosure x body σ' =>
           let σ'' := updateVal σ' x va
-          eval (fuel -1) σ'' δ body
+          eval_with_fuel (fuel -1) σ'' Δ body
         | _ => none
       else
         none
@@ -114,24 +114,24 @@ def eval (fuel: ℕ) (σ : ValEnv) (δ : CircuitEnv) : Expr → Option (Value)
   -- E-FBINOP
   | Expr.fieldExpr e₁ op e₂ => do
       if fuel > 0 then
-        let v₁ ← eval (fuel - 1) σ δ  e₁
-        let v₂ ← eval (fuel - 1) σ δ  e₂
+        let v₁ ← eval_with_fuel (fuel - 1) σ Δ  e₁
+        let v₂ ← eval_with_fuel (fuel - 1) σ Δ  e₂
         evalFieldOp op v₁ v₂
       else
         none
 
   | Expr.intExpr e₁ op e₂ => do
       if fuel > 0 then
-        let v₁ ← eval (fuel - 1) σ δ  e₁
-        let v₂ ← eval (fuel - 1) σ δ  e₂
+        let v₁ ← eval_with_fuel (fuel - 1) σ Δ  e₁
+        let v₂ ← eval_with_fuel (fuel - 1) σ Δ  e₂
         evalIntegerOp op v₁ v₂
       else
         none
 
   | Expr.binRel e₁ op e₂ => do
       if fuel > 0 then
-        let v₁ ← eval (fuel - 1) σ δ  e₁
-        let v₂ ← eval (fuel - 1) σ δ  e₂
+        let v₁ ← eval_with_fuel (fuel - 1) σ Δ  e₁
+        let v₂ ← eval_with_fuel (fuel - 1) σ Δ  e₂
         let b ← evalRelOp op v₁ v₂
         pure (Value.vBool b)
       else
@@ -140,14 +140,14 @@ def eval (fuel: ℕ) (σ : ValEnv) (δ : CircuitEnv) : Expr → Option (Value)
   -- E-PRODCONS
   | Expr.prodCons es     => do
       if fuel > 0 then
-        let vs ← es.mapM (eval (fuel - 1) σ δ )
+        let vs ← es.mapM (eval_with_fuel (fuel - 1) σ Δ )
         pure (Value.vProd vs)
       else
         none
 
   | Expr.prodIdx e i     => do
       if fuel > 0 then
-        let v ← eval (fuel - 1) σ δ  e
+        let v ← eval_with_fuel (fuel - 1) σ Δ  e
         match v with
         | Value.vProd vs => vs[i]?
         | _              => none
@@ -156,8 +156,8 @@ def eval (fuel: ℕ) (σ : ValEnv) (δ : CircuitEnv) : Expr → Option (Value)
 
   | Expr.arrCons h t     => do
       if fuel > 0 then
-        let vh ← eval (fuel - 1) σ δ  h
-        let vt ← eval (fuel - 1) σ δ  t
+        let vh ← eval_with_fuel (fuel - 1) σ Δ  h
+        let vt ← eval_with_fuel (fuel - 1) σ Δ  t
         match vt with
         | Value.vArr vs => pure (Value.vArr (vh :: vs))
         | _             => pure (Value.vArr ([vh, vt]))
@@ -166,7 +166,7 @@ def eval (fuel: ℕ) (σ : ValEnv) (δ : CircuitEnv) : Expr → Option (Value)
 
   | Expr.arrLen e        => do
       if fuel > 0 then
-        let v ← eval (fuel - 1) σ δ  e
+        let v ← eval_with_fuel (fuel - 1) σ Δ  e
         match v with
         | Value.vArr vs => pure (Value.vInt vs.length)
         | _             => none
@@ -175,8 +175,8 @@ def eval (fuel: ℕ) (σ : ValEnv) (δ : CircuitEnv) : Expr → Option (Value)
 
   | Expr.arrIdx a i      => do
       if fuel > 0 then
-        let va ← eval (fuel - 1) σ δ  a
-        let vi ← eval (fuel - 1) σ δ  i
+        let va ← eval_with_fuel (fuel - 1) σ Δ  a
+        let vi ← eval_with_fuel (fuel - 1) σ Δ  i
         match va, vi with
         | Value.vArr vs, Value.vInt j => vs[j.toNat]?
         | _, _                        => none
@@ -186,12 +186,12 @@ def eval (fuel: ℕ) (σ : ValEnv) (δ : CircuitEnv) : Expr → Option (Value)
   -- E-ITER
   | Expr.iter sExpr eExpr fExpr accExpr => do
       if fuel > 0 then
-        let sVal ← eval (fuel - 1) σ δ  sExpr
-        let eVal ← eval (fuel - 1) σ δ  eExpr
+        let sVal ← eval_with_fuel (fuel - 1) σ Δ  sExpr
+        let eVal ← eval_with_fuel (fuel - 1) σ Δ  eExpr
         match sVal, eVal with
         | Value.vInt s, Value.vInt e => do
-            let fVal ← eval (fuel - 1) σ δ  fExpr
-            let aVal ← eval (fuel - 1) σ δ  accExpr
+            let fVal ← eval_with_fuel (fuel - 1) σ Δ  fExpr
+            let aVal ← eval_with_fuel (fuel - 1) σ Δ  accExpr
             let rec loop (i : ℤ) (fuel': ℕ) (acc : Value) : Option Value :=
               if fuel' = 0 then
                 none
@@ -202,12 +202,12 @@ def eval (fuel: ℕ) (σ : ValEnv) (δ : CircuitEnv) : Expr → Option (Value)
                   | Value.vClosure x body σ' => do
                       -- apply f to index i
                       let σ₁ := updateVal σ' x (Value.vInt i)
-                      let fInner ← eval (fuel' - 1) σ₁ δ body
+                      let fInner ← eval_with_fuel (fuel' - 1) σ₁ Δ body
                       match fInner with
                       | Value.vClosure y accBody σ₂ => do
                           -- apply resulting closure to accumulator
                           let σ₃ := updateVal σ₂ y acc
-                          let newAcc ← eval (fuel' - 1) σ₃ δ accBody
+                          let newAcc ← eval_with_fuel (fuel' - 1) σ₃ Δ accBody
                           loop (i+1) (fuel' - 1) newAcc
                       | _ => none
                   | _ => none
@@ -222,12 +222,12 @@ def eval (fuel: ℕ) (σ : ValEnv) (δ : CircuitEnv) : Expr → Option (Value)
   -- E-CREF
   | Expr.circRef name arg => do
       if fuel > 0 then
-        --let vs ← args.mapM (eval (fuel - 1) σ δ )
-        let v := eval (fuel - 1) σ δ  arg
-        let c := Env.lookupCircuit δ name
+        --let vs ← args.mapM (eval (fuel - 1) σ Δ )
+        let v := eval_with_fuel (fuel - 1) σ Δ  arg
+        let c := Env.lookupCircuit Δ name
         --let σ' := (c.inputs.zip vs).foldl (fun env (⟨x,_⟩,v) => updateVal env x v) σ
         match v with
-        | some vv => eval (fuel - 1) (updateVal σ name vv) δ c.body
+        | some vv => eval_with_fuel (fuel - 1) (updateVal σ name vv) Δ c.body
         | _ => none
       else
         none
@@ -235,5 +235,9 @@ def eval (fuel: ℕ) (σ : ValEnv) (δ : CircuitEnv) : Expr → Option (Value)
   | _ => none
   -- The natural number fuel decreases in every recursive call
   termination_by fuel
+
+@[simp]
+def eval (σ : ValEnv) (Δ : CircuitEnv) : Expr → Option (Value) :=
+  eval_with_fuel maximumRecursion σ Δ
 
 end Eval

@@ -21,7 +21,7 @@ namespace Ty
   Subtyping judgment between two optional types `τ₁ → τ₂`
   under valuation `σ`, circuits `δ`, type env `Γ`, and fuel.
 -/
-inductive SubtypeJudgment {fuel: ℕ} {σ : Env.ValEnv} {δ: Env.CircuitEnv} {Γ: Env.TyEnv} :
+inductive SubtypeJudgment {σ : Env.ValEnv} {δ: Env.CircuitEnv} {Γ: Env.TyEnv} :
   Option Ast.Ty → Option Ast.Ty → Prop where
   /-- TSUB-REFL: Reflexivity -/
   | TSub_Refl {τ : Ast.Ty} :
@@ -36,7 +36,7 @@ inductive SubtypeJudgment {fuel: ℕ} {σ : Env.ValEnv} {δ: Env.CircuitEnv} {Γ
   /-- TSUB-REFINE: Refinement subtyping -/
   | TSub_Refine {T₁ T₂ : Ast.Ty} {φ₁ φ₂ : Ast.Expr} :
       SubtypeJudgment (pure T₁) (pure T₂) →
-      (PropSemantics.exprToProp fuel σ δ φ₁ → PropSemantics.exprToProp fuel σ δ φ₂) →
+      (PropSemantics.exprToProp σ δ φ₁ → PropSemantics.exprToProp σ δ φ₂) →
       SubtypeJudgment (pure (Ast.Ty.refin T₁ φ₁)) (pure (Ast.Ty.refin T₂ φ₂))
 
   /-- TSUB-FUN: Function subtyping -/
@@ -63,7 +63,7 @@ inductive SubtypeJudgment {fuel: ℕ} {σ : Env.ValEnv} {δ: Env.CircuitEnv} {Γ
   Typing judgment `Γ ⊢ e : τ`: expression `e` has type `τ`
   under type environment `Γ`, valuation `σ`, circuits `δ`, and fuel.
 -/
-inductive TypeJudgment {fuel: ℕ} {σ: Env.ValEnv} {δ: Env.CircuitEnv}:
+inductive TypeJudgment {σ: Env.ValEnv} {δ: Env.CircuitEnv}:
   Env.TyEnv → Ast.Expr → Ast.Ty → Prop where
   -- TE-VAR
   | TE_Var {Γ: Env.TyEnv} {x : String} {T: Ast.Ty}:
@@ -109,20 +109,20 @@ inductive TypeJudgment {fuel: ℕ} {σ: Env.ValEnv} {δ: Env.CircuitEnv}:
   -- TE-APP
   | TE_App {Γ: Env.TyEnv} {x₁ x₂: Ast.Expr} {s: String} {τ₁ τ₂: Ast.Ty} {v: Ast.Value}:
     TypeJudgment Γ x₁ (Ast.Ty.func s τ₁ τ₂) →
-    Eval.eval fuel σ δ x₂ = some v →
+    Eval.eval σ δ x₂ = some v →
     TypeJudgment Γ x₂ τ₁ →
     TypeJudgment Γ (Ast.Expr.app x₁ x₂) τ₂
 
   -- TE_SUB
   | TE_SUB {Γ: Env.TyEnv} {e: Ast.Expr} {τ₁ τ₂: Ast.Ty}
-    (h₀ : @SubtypeJudgment fuel σ δ Γ (some τ₁) (some τ₂))
-    (ht : @TypeJudgment fuel σ δ Γ e τ₁) :
+    (h₀ : @SubtypeJudgment σ δ Γ (some τ₁) (some τ₂))
+    (ht : @TypeJudgment σ δ Γ e τ₁) :
     TypeJudgment Γ e τ₂
 
   -- TE-LETIN
   | TE_LetIn {Γ: Env.TyEnv} {x : String} {e₁ e₂ : Ast.Expr} {τ₁ τ₂ : Ast.Ty}
-    (h₁: @TypeJudgment fuel σ δ Γ e₁ τ₁)
-    (h₂: @TypeJudgment fuel σ δ (Env.updateTy Γ x τ₁) e₂ τ₂):
+    (h₁: @TypeJudgment σ δ Γ e₁ τ₁)
+    (h₂: @TypeJudgment σ δ (Env.updateTy Γ x τ₁) e₂ τ₂):
     TypeJudgment Γ (Ast.Expr.letIn x e₁ e₂) τ₂
 
 
@@ -133,11 +133,11 @@ if `Γ ident = {v : T // φ}` and `φ` holds, then the typing rule for
 `φ` holds by `typeJudgmentRefinementSound`.
 -/
 theorem varRefineSound
-  {fuel : ℕ} {σ : Env.ValEnv} {δ : Env.CircuitEnv}
+  {σ : Env.ValEnv} {δ : Env.CircuitEnv}
   {Γ : Env.TyEnv} {ident : String} {T : Ast.Ty} {φ : Ast.Expr}
-  (hφ: PropSemantics.exprToProp fuel σ δ φ) (hΓ : Γ ident = Ast.Ty.refin T φ) :
-  @TypeJudgment fuel σ δ Γ (Ast.Expr.var ident) (Γ ident) := by
-  have H0 : @TypeJudgment fuel σ δ Γ (Ast.Expr.var ident)
+  (hφ: PropSemantics.exprToProp σ δ φ) (hΓ : Γ ident = Ast.Ty.refin T φ) :
+  @TypeJudgment σ δ Γ (Ast.Expr.var ident) (Γ ident) := by
+  have H0 : @TypeJudgment σ δ Γ (Ast.Expr.var ident)
                 (Ast.Ty.refin T (Ast.exprEq Ast.v (Ast.Expr.var ident)))
     := TypeJudgment.TE_Var _ hΓ
   rw[hΓ]
@@ -148,28 +148,28 @@ theorem varRefineSound
     H0
 
 axiom exprIntVSound :
-  ∀ (a b : Ast.Expr) (op : Ast.IntegerOp) (σ : Env.ValEnv) (δ : Env.CircuitEnv) (fuel : ℕ),
-  PropSemantics.exprToProp fuel σ δ (Ast.exprEq Ast.v (Ast.Expr.intExpr a op b)) →
-  ∃ vv, Eval.eval fuel σ δ Ast.v = some (Ast.Value.vInt vv)
+  ∀ (a b : Ast.Expr) (op : Ast.IntegerOp) (σ : Env.ValEnv) (δ : Env.CircuitEnv),
+  PropSemantics.exprToProp σ δ (Ast.exprEq Ast.v (Ast.Expr.intExpr a op b)) →
+  ∃ vv, Eval.eval σ δ Ast.v = some (Ast.Value.vInt vv)
 
 axiom exprBoolVSound :
-  ∀ (a b : Ast.Expr) (op : Ast.BooleanOp) (σ : Env.ValEnv) (δ : Env.CircuitEnv) (fuel : ℕ),
-  PropSemantics.exprToProp fuel σ δ (Ast.exprEq Ast.v (Ast.Expr.boolExpr a op b)) →
-  ∃ vv, Eval.eval fuel σ δ Ast.v = some (Ast.Value.vBool vv)
+  ∀ (a b : Ast.Expr) (op : Ast.BooleanOp) (σ : Env.ValEnv) (δ : Env.CircuitEnv),
+  PropSemantics.exprToProp σ δ (Ast.exprEq Ast.v (Ast.Expr.boolExpr a op b)) →
+  ∃ vv, Eval.eval σ δ Ast.v = some (Ast.Value.vBool vv)
 
 axiom exprFielVdSound {p : ℕ} :
-  ∀ (a b : Ast.Expr) (op : Ast.FieldOp) (σ : Env.ValEnv) (δ : Env.CircuitEnv) (fuel : ℕ),
-  PropSemantics.exprToProp fuel σ δ (Ast.exprEq Ast.v (Ast.Expr.fieldExpr a op b)) →
-  ∃ vv, Eval.eval fuel σ δ Ast.v = some (Ast.Value.vF p vv)
+  ∀ (a b : Ast.Expr) (op : Ast.FieldOp) (σ : Env.ValEnv) (δ : Env.CircuitEnv),
+  PropSemantics.exprToProp σ δ (Ast.exprEq Ast.v (Ast.Expr.fieldExpr a op b)) →
+  ∃ vv, Eval.eval σ δ Ast.v = some (Ast.Value.vF p vv)
 
 /--
 If an expression `e` is typed as the refinement `{ v : τ // φ }`,
 then the predicate `φ` holds under `exprToProp`.
 (TODO: this is the soundness theorem that we can prove)
 -/
-axiom typeJudgmentRefinementSound {fuel : ℕ} {σ : Env.ValEnv} {δ : Env.CircuitEnv}
+axiom typeJudgmentRefinementSound {σ : Env.ValEnv} {δ : Env.CircuitEnv}
  (Γ : Env.TyEnv) (τ : Ast.Ty) (e φ : Ast.Expr) :
-  @Ty.TypeJudgment fuel σ δ Γ e (Ast.Ty.refin τ φ) → PropSemantics.exprToProp fuel σ δ φ
+  @Ty.TypeJudgment σ δ Γ e (Ast.Ty.refin τ φ) → PropSemantics.exprToProp σ δ φ
 
 def makeEnvs (c : Ast.Circuit) (x : Ast.Value) : Env.ValEnv × Env.TyEnv :=
   let σ: Env.ValEnv := Env.updateVal [] c.inputs.fst x
@@ -181,17 +181,17 @@ def makeEnvs (c : Ast.Circuit) (x : Ast.Value) : Env.ValEnv × Env.TyEnv :=
   if the input satisfies its refinement, then evaluating `c.body`
   yields a value satisfying the output refinement.
 -/
-def circuitCorrect (fuel : ℕ) (δ : Env.CircuitEnv) (c : Ast.Circuit) : Prop :=
+def circuitCorrect (δ : Env.CircuitEnv) (c : Ast.Circuit) : Prop :=
   ∀ (x : Ast.Value),
     x != Ast.Value.vStar →
     let (σ, Γ) := makeEnvs c x
-    PropSemantics.tyenvToProp fuel σ δ Γ c.inputs.fst →
-    @TypeJudgment fuel σ δ Γ c.body c.output.snd
+    PropSemantics.tyenvToProp σ δ Γ c.inputs.fst →
+    @TypeJudgment σ δ Γ c.body c.output.snd
 
 end Ty
 
-notation:50 Γ " ⊨[" σ ", " Δ ", " fuel "] " τ₁ "<:" τ₂ =>
-  @Ty.SubtypeJudgment fuel σ Δ Γ (some τ₁) (some τ₂)
+notation:50 Γ " ⊨[" σ ", " Δ ", " "] " τ₁ "<:" τ₂ =>
+  @Ty.SubtypeJudgment σ Δ Γ (some τ₁) (some τ₂)
 
-notation:25 Δ " ; " Γ " ⊢[" σ ", " fuel "] " e " : " τ =>
-  @Ty.TypeJudgment fuel σ Δ Γ e τ
+notation:25 Δ " ; " Γ " ⊢[" σ ", " "] " e " : " τ =>
+  @Ty.TypeJudgment σ Δ Γ e τ

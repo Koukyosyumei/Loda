@@ -44,12 +44,12 @@ unsafe def elabLodaEval : Elab.Command.CommandElab
     -- 2) Build a ValEnv from the `x=5 y=7 …`
     let σ₁ ← (xs.zip ts).foldlM (init := []) fun env (x, t) => do
         let e ← Elab.Command.liftTermElabM <| Frontend.elaborateExpr t.raw
-        let vOpt := Eval.eval 1000 env Δ e
+        let vOpt := Eval.eval env Δ e
         match vOpt with
         | some v => pure <| Env.updateVal env x.getId.toString v
         | none   => pure <| Env.updateVal env x.getId.toString Ast.Value.vStar
     -- 3) Evaluate
-    let res := Eval.eval 1000 σ₁ Δ circ.body
+    let res := Eval.eval σ₁ Δ circ.body
     match res with
     | some output => logInfo m!"→ {repr output}"
     | _ => Elab.throwUnsupportedSyntax
@@ -77,7 +77,7 @@ unsafe def elabLodaProve : Elab.Command.CommandElab
 
     -- Generate the theorem syntax
     let theoremStx ← `(command|
-      theorem $theoremIdent (Δ: Env.CircuitEnv) (h_delta: Δ = $deltaTerm) : (Ty.circuitCorrect 1000 $deltaTerm $circTerm) := by
+      theorem $theoremIdent (Δ: Env.CircuitEnv) (h_delta: Δ = $deltaTerm) : (Ty.circuitCorrect $deltaTerm $circTerm) := by
         (unfold Ty.circuitCorrect; simp_all; intro x hs hσ; set envs := Ty.makeEnvs $circTerm x);
         (set σ := envs.1); (set Γ := envs.2); ($proof);
     )
