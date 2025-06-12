@@ -96,8 +96,9 @@ theorem mulCircuit_correct : (Ty.circuitCorrect 1000 Δ mulCircuit) := by
   unfold mulCircuit
   simp_all
   intro x hs hσ
-  set σ := (Env.updateVal [] "x" x)
-  set Γ := (Env.updateTy (fun x ↦ Ty.unit) "x" (Ty.int.refin (Expr.constBool true)))
+  set envs := Ty.makeEnvs mulCircuit x
+  set σ := envs.1
+  set Γ := envs.2
   have hΓ : Γ "x" = (Ty.int.refin (Expr.constBool true)) := rfl
   have h_body := @let_binding_int_op_type_preservation 1000 "x" "x" "out" σ Δ Γ
               Ast.IntegerOp.add (Ast.Expr.constBool true) (Ast.Expr.constBool true) hΓ hΓ

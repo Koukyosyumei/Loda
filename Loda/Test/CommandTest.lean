@@ -15,8 +15,9 @@ open Env
   unfold Ty.circuitCorrect
   simp_all
   intro x hs hσ
-  set σ := (Env.updateVal [] "x" x)
-  set Γ := (Env.updateTy (fun x ↦ Ty.unit) "x" (Ty.int.refin (Expr.constBool True)))
+  set envs := Ty.makeEnvs mulCircuit x
+  set σ := envs.1
+  set Γ := envs.2
   have hΓ : Γ "x" = (Ty.int.refin (Expr.constBool True)) := rfl
   have h_body := @let_binding_int_op_type_preservation 1000 "x" "x" "out" σ Δ Γ
               Ast.IntegerOp.add (Ast.Expr.constBool True) (Ast.Expr.constBool True) hΓ hΓ

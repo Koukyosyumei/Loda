@@ -171,6 +171,11 @@ axiom typeJudgmentRefinementSound {fuel : ℕ} {σ : Env.ValEnv} {δ : Env.Circu
  (Γ : Env.TyEnv) (τ : Ast.Ty) (e φ : Ast.Expr) :
   @Ty.TypeJudgment fuel σ δ Γ e (Ast.Ty.refin τ φ) → PropSemantics.exprToProp fuel σ δ φ
 
+def makeEnvs (c : Ast.Circuit) (x : Ast.Value) : Env.ValEnv × Env.TyEnv :=
+  let σ: Env.ValEnv := Env.updateVal [] c.inputs.fst x
+  let Γ: Env.TyEnv := Env.updateTy (fun _ => Ast.Ty.unit) c.inputs.fst c.inputs.snd
+  (σ, Γ)
+
 /--
   Correctness of a circuit `c`:
   if the input satisfies its refinement, then evaluating `c.body`
@@ -179,8 +184,7 @@ axiom typeJudgmentRefinementSound {fuel : ℕ} {σ : Env.ValEnv} {δ : Env.Circu
 def circuitCorrect (fuel : ℕ) (δ : Env.CircuitEnv) (c : Ast.Circuit) : Prop :=
   ∀ (x : Ast.Value),
     x != Ast.Value.vStar →
-    let σ: Env.ValEnv := Env.updateVal [] c.inputs.fst x
-    let Γ: Env.TyEnv := Env.updateTy (fun _ => Ast.Ty.unit) c.inputs.fst c.inputs.snd
+    let (σ, Γ) := makeEnvs c x
     PropSemantics.tyenvToProp fuel σ δ Γ c.inputs.fst →
     @TypeJudgment fuel σ δ Γ c.body c.output.snd
 
