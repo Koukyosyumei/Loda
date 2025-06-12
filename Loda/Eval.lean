@@ -15,6 +15,9 @@ open Env
 
 namespace Eval
 
+@[inline]
+def maximumRecursion : Nat := 1000
+
 /-- Evaluate a field operation `op` on two `Value.field` arguments. -/
 @[simp]
 def evalFieldOp (op: FieldOp) : Value → Value → Option Value
