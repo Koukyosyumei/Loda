@@ -36,6 +36,25 @@ lemma two_mul_F {p: ℕ}
   simp[hσx, Eval.evalIntegerOp, hv_eq, two_mul]
   simp_all
 
+lemma add_comm_I
+  (fuel: ℕ) (σ: Env.ValEnv) (δ: Env.CircuitEnv)
+  (Γ: Env.TyEnv) (x y: String) (xv xu: ℤ) (hσx : Env.lookupVal σ x = Value.vInt xv) (hσy : Env.lookupVal σ y = Value.vInt xu)
+  : @Ty.SubtypeJudgment fuel σ δ Γ
+      (pure (Ty.refin Ty.int (exprEq v (Expr.intExpr (Expr.var x) IntegerOp.add (Expr.var y)))))
+      (pure (Ty.refin Ty.int (exprEq v (Expr.intExpr (Expr.var y) IntegerOp.add (Expr.var x)))))
+  := by
+  apply Ty.SubtypeJudgment.TSub_Refine
+  · apply Ty.SubtypeJudgment.TSub_Refl
+  intro h
+  obtain ⟨vv, hv_eq₁⟩ : ∃ vv, Eval.eval fuel σ δ v = some (Value.vInt vv) := by
+    apply Ty.exprIntVSound at h; exact h
+  obtain ⟨uu, hv_eq₂⟩ : ∃ uu, Eval.eval fuel σ δ v = some (Value.vInt uu) := by
+    apply Ty.exprIntVSound at h; exact h
+  dsimp [PropSemantics.exprToProp, Eval.eval, exprEq, decide_eq_true] at h ⊢
+  simp[hσx, hσy, Eval.evalIntegerOp, hv_eq₁, hv_eq₂]
+  simp[Int.add_comm]
+  simp_all
+
 lemma typed_int_expr_from_refined_vars
   (fuel: ℕ) (x y: String) (σ: Env.ValEnv) (δ: Env.CircuitEnv) (Γ: Env.TyEnv)
   (op: Ast.IntegerOp) (φ₁ φ₂: Ast.Expr)
