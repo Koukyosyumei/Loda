@@ -22,7 +22,7 @@ theorem mulCircuit_correct : (Ty.circuitCorrect Δ mulCircuit) := by
   have h_body := @let_binding_int_op_type_preservation "x" "x" "out" σ Δ Γ
               Ast.IntegerOp.add (Ast.Expr.constBool true) (Ast.Expr.constBool true) hΓ hΓ
   obtain ⟨vv, hv_eq⟩ := int_refintype_implies_exists_int_value σ Δ Γ "x" (Ast.Expr.constBool true) hΓ hσ
-  have h_sub := two_mul_I σ Δ Γ "x" vv hv_eq
+  have h_sub := two_mul_int σ Δ Γ "x" vv hv_eq
   exact Ty.TypeJudgment.TE_SUB h_sub h_body
 
 def σ : Env.ValEnv := [("x", Ast.Value.vInt 5)]
