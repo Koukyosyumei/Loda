@@ -72,6 +72,44 @@ lemma add_comm_field {p: ℕ}
   simp[add_comm]
   simp_all
 
+lemma mul_comm_int
+  (σ: Env.ValEnv) (Δ: Env.CircuitEnv)
+  (Γ: Env.TyEnv) (x y: String) (xv xu: ℤ) (hσx : Env.lookupVal σ x = Value.vInt xv) (hσy : Env.lookupVal σ y = Value.vInt xu)
+  : @Ty.SubtypeJudgment σ Δ Γ
+      (pure (Ty.refin Ty.int (exprEq v (Expr.intExpr (Expr.var x) IntegerOp.mul (Expr.var y)))))
+      (pure (Ty.refin Ty.int (exprEq v (Expr.intExpr (Expr.var y) IntegerOp.mul (Expr.var x)))))
+  := by
+  apply Ty.SubtypeJudgment.TSub_Refine
+  · apply Ty.SubtypeJudgment.TSub_Refl
+  intro h
+  obtain ⟨vv, hv_eq₁⟩ : ∃ vv, Eval.eval σ Δ v = some (Value.vInt vv) := by
+    apply Ty.exprIntVSound at h; exact h
+  obtain ⟨uu, hv_eq₂⟩ : ∃ uu, Eval.eval σ Δ v = some (Value.vInt uu) := by
+    apply Ty.exprIntVSound at h; exact h
+  dsimp [PropSemantics.exprToProp, Eval.eval, exprEq, decide_eq_true] at h ⊢
+  simp[hσx, hσy, Eval.evalIntegerOp, hv_eq₁, hv_eq₂]
+  simp[Int.mul_comm]
+  simp_all
+
+lemma mul_comm_field {p: ℕ}
+  (σ: Env.ValEnv) (Δ: Env.CircuitEnv)
+  (Γ: Env.TyEnv) (x y: String) (xv xu: ℕ) (hσx : Env.lookupVal σ x = Value.vF p xv) (hσy : Env.lookupVal σ y = Value.vF p xu)
+  : @Ty.SubtypeJudgment σ Δ Γ
+      (pure (Ty.refin Ty.int (exprEq v (Expr.fieldExpr (Expr.var x) FieldOp.mul (Expr.var y)))))
+      (pure (Ty.refin Ty.int (exprEq v (Expr.fieldExpr (Expr.var y) FieldOp.mul (Expr.var x)))))
+  := by
+  apply Ty.SubtypeJudgment.TSub_Refine
+  · apply Ty.SubtypeJudgment.TSub_Refl
+  intro h
+  obtain ⟨vv, hv_eq₁⟩ : ∃ vv, Eval.eval σ Δ v = some (Value.vF p vv) := by
+    apply Ty.exprFielVdSound at h; exact h
+  obtain ⟨uu, hv_eq₂⟩ : ∃ uu, Eval.eval σ Δ v = some (Value.vF p uu) := by
+    apply Ty.exprFielVdSound at h; exact h
+  dsimp [PropSemantics.exprToProp, Eval.eval, exprEq, decide_eq_true] at h ⊢
+  simp[hσx, hσy, Eval.evalIntegerOp, hv_eq₁, hv_eq₂]
+  simp[mul_comm]
+  simp_all
+
 lemma typed_int_expr_from_refined_vars
   (x y: String) (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv)
   (op: Ast.IntegerOp) (φ₁ φ₂: Ast.Expr)
