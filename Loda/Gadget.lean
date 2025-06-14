@@ -44,12 +44,10 @@ lemma add_comm_int
   apply Ty.SubtypeJudgment.TSub_Refine
   · apply Ty.SubtypeJudgment.TSub_Refl
   intro h
-  obtain ⟨vv, hv_eq₁⟩ : ∃ vv, Eval.eval σ Δ v = some (Value.vInt vv) := by
-    apply Ty.exprIntVSound at h; exact h
-  obtain ⟨uu, hv_eq₂⟩ : ∃ uu, Eval.eval σ Δ v = some (Value.vInt uu) := by
+  obtain ⟨vv, hv_eq⟩ : ∃ vv, Eval.eval σ Δ v = some (Value.vInt vv) := by
     apply Ty.exprIntVSound at h; exact h
   dsimp [PropSemantics.exprToProp, Eval.eval, exprEq, decide_eq_true] at h ⊢
-  simp[hσx, hσy, Eval.evalIntegerOp, hv_eq₁, hv_eq₂]
+  simp[hσx, hσy, Eval.evalIntegerOp, hv_eq]
   simp[Int.add_comm]
   simp_all
 
@@ -63,12 +61,10 @@ lemma add_comm_field {p: ℕ}
   apply Ty.SubtypeJudgment.TSub_Refine
   · apply Ty.SubtypeJudgment.TSub_Refl
   intro h
-  obtain ⟨vv, hv_eq₁⟩ : ∃ vv, Eval.eval σ Δ v = some (Value.vF p vv) := by
-    apply Ty.exprFielVdSound at h; exact h
-  obtain ⟨uu, hv_eq₂⟩ : ∃ uu, Eval.eval σ Δ v = some (Value.vF p uu) := by
+  obtain ⟨vv, hv_eq⟩ : ∃ vv, Eval.eval σ Δ v = some (Value.vF p vv) := by
     apply Ty.exprFielVdSound at h; exact h
   dsimp [PropSemantics.exprToProp, Eval.eval, exprEq, decide_eq_true] at h ⊢
-  simp[hσx, hσy, Eval.evalIntegerOp, hv_eq₁, hv_eq₂]
+  simp[hσx, hσy, Eval.evalIntegerOp, hv_eq]
   simp[add_comm]
   simp_all
 
@@ -82,12 +78,10 @@ lemma mul_comm_int
   apply Ty.SubtypeJudgment.TSub_Refine
   · apply Ty.SubtypeJudgment.TSub_Refl
   intro h
-  obtain ⟨vv, hv_eq₁⟩ : ∃ vv, Eval.eval σ Δ v = some (Value.vInt vv) := by
-    apply Ty.exprIntVSound at h; exact h
-  obtain ⟨uu, hv_eq₂⟩ : ∃ uu, Eval.eval σ Δ v = some (Value.vInt uu) := by
+  obtain ⟨vv, hv_eq⟩ : ∃ vv, Eval.eval σ Δ v = some (Value.vInt vv) := by
     apply Ty.exprIntVSound at h; exact h
   dsimp [PropSemantics.exprToProp, Eval.eval, exprEq, decide_eq_true] at h ⊢
-  simp[hσx, hσy, Eval.evalIntegerOp, hv_eq₁, hv_eq₂]
+  simp[hσx, hσy, Eval.evalIntegerOp, hv_eq]
   simp[Int.mul_comm]
   simp_all
 
@@ -101,14 +95,46 @@ lemma mul_comm_field {p: ℕ}
   apply Ty.SubtypeJudgment.TSub_Refine
   · apply Ty.SubtypeJudgment.TSub_Refl
   intro h
-  obtain ⟨vv, hv_eq₁⟩ : ∃ vv, Eval.eval σ Δ v = some (Value.vF p vv) := by
-    apply Ty.exprFielVdSound at h; exact h
-  obtain ⟨uu, hv_eq₂⟩ : ∃ uu, Eval.eval σ Δ v = some (Value.vF p uu) := by
+  obtain ⟨vv, hv_eq⟩ : ∃ vv, Eval.eval σ Δ v = some (Value.vF p vv) := by
     apply Ty.exprFielVdSound at h; exact h
   dsimp [PropSemantics.exprToProp, Eval.eval, exprEq, decide_eq_true] at h ⊢
-  simp[hσx, hσy, Eval.evalIntegerOp, hv_eq₁, hv_eq₂]
+  simp[hσx, hσy, Eval.evalIntegerOp, hv_eq]
   simp[mul_comm]
   simp_all
+
+lemma add_assoc_int
+  (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv)
+  (x y z: String) (xv yv zv: ℤ)
+  (hσx : Env.lookupVal σ x = Value.vInt xv)
+  (hσy : Env.lookupVal σ y = Value.vInt yv)
+  (hσz : Env.lookupVal σ z = Value.vInt zv)
+  : @Ty.SubtypeJudgment σ Δ Γ
+      (pure (Ty.refin Ty.int (exprEq v (Expr.intExpr (Expr.intExpr (Expr.var x) IntegerOp.add (Expr.var y)) IntegerOp.mul (Expr.var z)))))
+      (pure (Ty.refin Ty.int (exprEq v (Expr.intExpr (Expr.intExpr (Expr.var x) IntegerOp.mul (Expr.var z)) IntegerOp.add (Expr.intExpr (Expr.var y) IntegerOp.mul (Expr.var z))))))
+  := by
+  apply Ty.SubtypeJudgment.TSub_Refine
+  · apply Ty.SubtypeJudgment.TSub_Refl
+  intro h
+  obtain ⟨vv, hv_eq⟩ : ∃ vv, Eval.eval σ Δ v = some (Value.vInt vv) := by
+    apply Ty.exprIntVSound at h; exact h
+  dsimp [PropSemantics.exprToProp, Eval.eval, exprEq, decide_eq_true] at h ⊢
+  simp[hσx, hσy, hσz, Eval.evalIntegerOp, hv_eq]
+  unfold Eval.maximumRecursion
+  simp_all
+  unfold Eval.maximumRecursion at hv_eq
+  rw[hv_eq]
+  set w₁ := xv * zv + yv * zv
+  set w₂ := (xv + yv) * zv
+  have h₁ : vv = w₁ := by {
+    unfold Eval.maximumRecursion at h
+    simp_all
+    unfold Eval.eval_with_fuel at hv_eq
+    simp at hv_eq
+    unfold w₁
+    simp[add_mul]
+  }
+  simp_all
+
 
 lemma typed_int_expr_from_refined_vars
   (x y: String) (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv)
