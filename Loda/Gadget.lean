@@ -118,22 +118,13 @@ lemma add_assoc_int
   obtain ⟨vv, hv_eq⟩ : ∃ vv, Eval.eval σ Δ v = some (Value.vInt vv) := by
     apply Ty.exprIntVSound at h; exact h
   dsimp [PropSemantics.exprToProp, Eval.eval, exprEq, decide_eq_true] at h ⊢
-  simp[hσx, hσy, hσz, Eval.evalIntegerOp, hv_eq]
-  unfold Eval.maximumRecursion
+  simp[hσx, hσy, hσz, Eval.evalIntegerOp, hv_eq] at  h ⊢
+  unfold Eval.maximumRecursion at h ⊢
   simp_all
   unfold Eval.maximumRecursion at hv_eq
-  rw[hv_eq]
-  set w₁ := xv * zv + yv * zv
-  set w₂ := (xv + yv) * zv
-  have h₁ : vv = w₁ := by {
-    unfold Eval.maximumRecursion at h
-    simp_all
-    unfold Eval.eval_with_fuel at hv_eq
-    simp at hv_eq
-    unfold w₁
-    simp[add_mul]
-  }
+  rw[hv_eq] at h ⊢
   simp_all
+  simp[add_mul]
 
 lemma mul_one_field {p: ℕ}
   (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv)
