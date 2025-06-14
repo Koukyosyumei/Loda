@@ -1,4 +1,5 @@
 import Loda.Typing
+import Mathlib.Algebra.Group.Units.Basic
 
 open Ast
 
@@ -160,13 +161,32 @@ lemma add_zero_field {p: ℕ}
   unfold Eval.maximumRecursion at h ⊢
   simp_all
 
+lemma isUnit_non_zero (p: ℕ) (x : ZMod p) (hp : Fact p.Prime) : x ≠ 0 ↔ IsUnit x := by
+  simp_all
+
 lemma mul_inv_field {p: ℕ}
   (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv)
-  (x: String) (xv: ℕ) (hσx : Env.lookupVal σ x = Value.vF p xv) (hxv_ne_zero: xv ≠ 0)
+  (x: String) (xv: ℕ) (hσx : Env.lookupVal σ x = Value.vF p xv)
+  (hp: Fact p.Prime) (hxv_ne_zero: (xv: F p) ≠ 0)
   : @Ty.SubtypeJudgment σ Δ Γ
       (pure (Ty.refin (Ty.field p) (exprEq v (Expr.fieldExpr (Expr.var x) FieldOp.mul (Expr.fieldExpr (Expr.constF p 1) FieldOp.div (Expr.var x))))))
       (pure (Ty.refin (Ty.field p) (exprEq v (Expr.constF p 1))))
-  := by sorry
+  := by
+  apply Ty.SubtypeJudgment.TSub_Refine
+  · apply Ty.SubtypeJudgment.TSub_Refl
+  intro h
+  obtain ⟨vv, hv_eq⟩ : ∃ vv, Eval.eval σ Δ v = some (Value.vF p vv) := by
+    apply Ty.exprFielVdSound at h; exact h
+  dsimp [PropSemantics.exprToProp, Eval.eval, exprEq, decide_eq_true] at h hv_eq ⊢
+  simp[hσx, hv_eq] at h ⊢
+  unfold Eval.maximumRecursion at h hv_eq
+  simp_all
+  apply ZMod.mul_inv_of_unit
+  set tmp := isUnit_non_zero p (xv : ZMod p) hp
+  rw [← tmp]
+  exact hxv_ne_zero
+
+
 
 lemma typed_int_expr_from_refined_vars
   (x y: String) (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv)
