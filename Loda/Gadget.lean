@@ -22,8 +22,8 @@ lemma two_mul_field {p: ℕ}
   (σ: Env.ValEnv) (Δ: Env.CircuitEnv)
   (Γ: Env.TyEnv) (x: String) (xv: ℕ) (hσx : Env.lookupVal σ x = Value.vF p xv)
   : @Ty.SubtypeJudgment σ Δ Γ
-      (pure (Ty.refin Ty.int (exprEq v (Expr.fieldExpr (Expr.var x) FieldOp.add (Expr.var x)))))
-      (pure (Ty.refin Ty.int (exprEq v (Expr.fieldExpr (Expr.constF p 2) FieldOp.mul (Expr.var x)))))
+      (pure (Ty.refin (Ty.field p) (exprEq v (Expr.fieldExpr (Expr.var x) FieldOp.add (Expr.var x)))))
+      (pure (Ty.refin (Ty.field p) (exprEq v (Expr.fieldExpr (Expr.constF p 2) FieldOp.mul (Expr.var x)))))
   := by
   apply Ty.SubtypeJudgment.TSub_Refine
   · apply Ty.SubtypeJudgment.TSub_Refl
@@ -55,8 +55,8 @@ lemma add_comm_field {p: ℕ}
   (σ: Env.ValEnv) (Δ: Env.CircuitEnv)
   (Γ: Env.TyEnv) (x y: String) (xv xu: ℕ) (hσx : Env.lookupVal σ x = Value.vF p xv) (hσy : Env.lookupVal σ y = Value.vF p xu)
   : @Ty.SubtypeJudgment σ Δ Γ
-      (pure (Ty.refin Ty.int (exprEq v (Expr.fieldExpr (Expr.var x) FieldOp.add (Expr.var y)))))
-      (pure (Ty.refin Ty.int (exprEq v (Expr.fieldExpr (Expr.var y) FieldOp.add (Expr.var x)))))
+      (pure (Ty.refin (Ty.field p) (exprEq v (Expr.fieldExpr (Expr.var x) FieldOp.add (Expr.var y)))))
+      (pure (Ty.refin (Ty.field p) (exprEq v (Expr.fieldExpr (Expr.var y) FieldOp.add (Expr.var x)))))
   := by
   apply Ty.SubtypeJudgment.TSub_Refine
   · apply Ty.SubtypeJudgment.TSub_Refl
@@ -89,8 +89,8 @@ lemma mul_comm_field {p: ℕ}
   (σ: Env.ValEnv) (Δ: Env.CircuitEnv)
   (Γ: Env.TyEnv) (x y: String) (xv xu: ℕ) (hσx : Env.lookupVal σ x = Value.vF p xv) (hσy : Env.lookupVal σ y = Value.vF p xu)
   : @Ty.SubtypeJudgment σ Δ Γ
-      (pure (Ty.refin Ty.int (exprEq v (Expr.fieldExpr (Expr.var x) FieldOp.mul (Expr.var y)))))
-      (pure (Ty.refin Ty.int (exprEq v (Expr.fieldExpr (Expr.var y) FieldOp.mul (Expr.var x)))))
+      (pure (Ty.refin (Ty.field p) (exprEq v (Expr.fieldExpr (Expr.var x) FieldOp.mul (Expr.var y)))))
+      (pure (Ty.refin (Ty.field p) (exprEq v (Expr.fieldExpr (Expr.var y) FieldOp.mul (Expr.var x)))))
   := by
   apply Ty.SubtypeJudgment.TSub_Refine
   · apply Ty.SubtypeJudgment.TSub_Refl
@@ -98,7 +98,7 @@ lemma mul_comm_field {p: ℕ}
   obtain ⟨vv, hv_eq⟩ : ∃ vv, Eval.eval σ Δ v = some (Value.vF p vv) := by
     apply Ty.exprFielVdSound at h; exact h
   dsimp [PropSemantics.exprToProp, Eval.eval, exprEq, decide_eq_true] at h ⊢
-  simp[hσx, hσy, Eval.evalIntegerOp, hv_eq]
+  simp[hσx, hσy, hv_eq]
   simp[mul_comm]
   simp_all
 
@@ -135,6 +135,38 @@ lemma add_assoc_int
   }
   simp_all
 
+lemma mul_one_field {p: ℕ}
+  (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv)
+  (x: String) (xv: ℕ) (hσx : Env.lookupVal σ x = Value.vF p xv)
+  : @Ty.SubtypeJudgment σ Δ Γ
+      (pure (Ty.refin (Ty.field p) (exprEq v (Expr.fieldExpr (Expr.var x) FieldOp.mul (Expr.constF p 1)))))
+      (pure (Ty.refin (Ty.field p) (exprEq v (Expr.var x))))
+  := by
+  apply Ty.SubtypeJudgment.TSub_Refine
+  · apply Ty.SubtypeJudgment.TSub_Refl
+  intro h
+  obtain ⟨vv, hv_eq⟩ : ∃ vv, Eval.eval σ Δ v = some (Value.vF p vv) := by
+    apply Ty.exprFielVdSound at h; exact h
+  dsimp [PropSemantics.exprToProp, Eval.eval, exprEq, decide_eq_true] at h ⊢
+  simp[hσx, hv_eq] at h ⊢
+  unfold Eval.maximumRecursion at h ⊢
+  simp_all
+
+lemma add_zero_field {p: ℕ}
+  (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv)
+  (x: String) (xv: ℕ) (hσx : Env.lookupVal σ x = Value.vF p xv)
+  : @Ty.SubtypeJudgment σ Δ Γ
+      (pure (Ty.refin (Ty.field p) (exprEq v (Expr.fieldExpr (Expr.var x) FieldOp.add (Expr.constF p 0)))))
+      (pure (Ty.refin (Ty.field p) (exprEq v (Expr.var x))))
+  := by sorry
+
+lemma mul_inv_field {p: ℕ}
+  (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv)
+  (x: String) (xv: ℕ) (hσx : Env.lookupVal σ x = Value.vF p xv) (hxv_ne_zero: xv ≠ 0)
+  : @Ty.SubtypeJudgment σ Δ Γ
+      (pure (Ty.refin (Ty.field p) (exprEq v (Expr.fieldExpr (Expr.var x) FieldOp.mul (Expr.fieldExpr (Expr.constF p 1) FieldOp.div (Expr.var x))))))
+      (pure (Ty.refin (Ty.field p) (exprEq v (Expr.constF p 1))))
+  := by sorry
 
 lemma typed_int_expr_from_refined_vars
   (x y: String) (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv)
