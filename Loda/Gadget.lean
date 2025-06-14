@@ -149,7 +149,16 @@ lemma add_zero_field {p: ℕ}
   : @Ty.SubtypeJudgment σ Δ Γ
       (pure (Ty.refin (Ty.field p) (exprEq v (Expr.fieldExpr (Expr.var x) FieldOp.add (Expr.constF p 0)))))
       (pure (Ty.refin (Ty.field p) (exprEq v (Expr.var x))))
-  := by sorry
+  := by
+  apply Ty.SubtypeJudgment.TSub_Refine
+  · apply Ty.SubtypeJudgment.TSub_Refl
+  intro h
+  obtain ⟨vv, hv_eq⟩ : ∃ vv, Eval.eval σ Δ v = some (Value.vF p vv) := by
+    apply Ty.exprFielVdSound at h; exact h
+  dsimp [PropSemantics.exprToProp, Eval.eval, exprEq, decide_eq_true] at h ⊢
+  simp[hσx, hv_eq] at h ⊢
+  unfold Eval.maximumRecursion at h ⊢
+  simp_all
 
 lemma mul_inv_field {p: ℕ}
   (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv)
