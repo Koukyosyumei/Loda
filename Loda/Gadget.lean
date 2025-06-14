@@ -69,6 +69,28 @@ lemma add_comm_field {p: ℕ}
   simp[add_comm]
   simp_all
 
+lemma bool_and_comm
+  (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv)
+  (x y: String) (xv yv: Bool)
+  (hσx : Env.lookupVal σ x = Value.vBool xv)
+  (hσy : Env.lookupVal σ y = Value.vBool yv)
+  : @Ty.SubtypeJudgment σ Δ Γ
+      (pure (Ty.refin Ty.bool (exprEq v (Expr.boolExpr (Expr.var x) BooleanOp.and (Expr.var y)))))
+      (pure (Ty.refin Ty.bool (exprEq v (Expr.boolExpr (Expr.var y) BooleanOp.and (Expr.var x)))))
+  := by
+  apply Ty.SubtypeJudgment.TSub_Refine
+  · apply Ty.SubtypeJudgment.TSub_Refl
+  intro h
+  obtain ⟨vv, hv_eq⟩ : ∃ vv, Eval.eval σ Δ v = some (Value.vBool vv) := by
+    apply Ty.exprBoolVSound at h; exact h
+  dsimp [PropSemantics.exprToProp, Eval.eval, exprEq, decide_eq_true] at h ⊢
+  simp[hσx, hσy, hv_eq] at  h ⊢
+  unfold Eval.maximumRecursion at h ⊢
+  simp_all
+  unfold Eval.maximumRecursion at hv_eq
+  rw[hv_eq] at h ⊢
+  simp_all
+
 lemma mul_comm_int
   (σ: Env.ValEnv) (Δ: Env.CircuitEnv)
   (Γ: Env.TyEnv) (x y: String) (xv xu: ℤ) (hσx : Env.lookupVal σ x = Value.vInt xv) (hσy : Env.lookupVal σ y = Value.vInt xu)

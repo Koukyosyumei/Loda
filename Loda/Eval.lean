@@ -128,6 +128,15 @@ def eval_with_fuel (fuel: ℕ) (σ : ValEnv) (Δ : CircuitEnv) : Expr → Option
       else
         none
 
+  | Expr.boolExpr e₁ op e₂ => do
+      if fuel > 0 then
+        let v₁ ← eval_with_fuel (fuel - 1) σ Δ  e₁
+        let v₂ ← eval_with_fuel (fuel - 1) σ Δ  e₂
+        let b ← evalBoolOp op v₁ v₂
+        pure (Value.vBool b)
+      else
+        none
+
   | Expr.binRel e₁ op e₂ => do
       if fuel > 0 then
         let v₁ ← eval_with_fuel (fuel - 1) σ Δ  e₁
