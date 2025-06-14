@@ -186,8 +186,6 @@ lemma mul_inv_field {p: ℕ}
   rw [← tmp]
   exact hxv_ne_zero
 
-
-
 lemma typed_int_expr_from_refined_vars
   (x y: String) (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv)
   (op: Ast.IntegerOp) (φ₁ φ₂: Ast.Expr)
