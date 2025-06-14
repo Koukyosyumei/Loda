@@ -118,7 +118,7 @@ lemma add_assoc_int
   obtain ⟨vv, hv_eq⟩ : ∃ vv, Eval.eval σ Δ v = some (Value.vInt vv) := by
     apply Ty.exprIntVSound at h; exact h
   dsimp [PropSemantics.exprToProp, Eval.eval, exprEq, decide_eq_true] at h ⊢
-  simp[hσx, hσy, hσz, Eval.evalIntegerOp, hv_eq] at  h ⊢
+  simp[hσx, hσy, hσz, hv_eq] at  h ⊢
   unfold Eval.maximumRecursion at h ⊢
   simp_all
   unfold Eval.maximumRecursion at hv_eq
