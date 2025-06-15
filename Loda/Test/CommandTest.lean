@@ -21,5 +21,12 @@ open Env
   simp [h_delta, Γ, Ast.v] at h_sub h_body
   exact Ty.TypeJudgment.TE_SUB h_sub h_body
 }
-
 #print Adder_correct
+
+#loda_register circuit ArrayLen(x : [Int]) -> {Int | True} {let out = length 0::x in out}
+#loda_check ArrayLen
+#loda_eval ArrayLen x=12::3::2
+
+#loda_register circuit ArrayIdx(x : [Int]) -> {Int | True} {let out = x[1] in out}
+#loda_check ArrayIdx
+#loda_eval ArrayIdx x=12::3::2
