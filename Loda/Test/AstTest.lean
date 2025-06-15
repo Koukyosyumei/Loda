@@ -31,11 +31,11 @@ example : Eval.evalRelOp Ast.RelOp.lt (Ast.Value.vBool true) (Ast.Value.vBool fa
 -- --------------------------------------------------
 -- eval on basic constants & var/let
 -- --------------------------------------------------
-example : Eval.eval 123 σ₀ δ₀ (Ast.Expr.constInt 42) = some (Ast.Value.vInt 42) := by simp [Eval.eval]
-example : Eval.eval 123 σ₀ δ₀ (Ast.Expr.constBool false) = some (Ast.Value.vBool false) := by simp [Eval.eval]
+example : Eval.eval σ₀ δ₀ (Ast.Expr.constInt 42) = some (Ast.Value.vInt 42) := by simp [Eval.eval]
+example : Eval.eval σ₀ δ₀ (Ast.Expr.constBool false) = some (Ast.Value.vBool false) := by simp [Eval.eval]
 
 def σ₁ := Env.updateVal σ₀ "y" (Ast.Value.vInt 99)
-example : Eval.eval 123 σ₁ δ₀ (Ast.Expr.var "y") = some (Ast.Value.vInt 99) := by
+example : Eval.eval σ₁ δ₀ (Ast.Expr.var "y") = some (Ast.Value.vInt 99) := by
    simp [Eval.eval]
    simp [σ₁]
    unfold Env.updateVal
@@ -43,18 +43,19 @@ example : Eval.eval 123 σ₁ δ₀ (Ast.Expr.var "y") = some (Ast.Value.vInt 99
    simp_all
 
 example :
-  Eval.eval 123 σ₀ δ₀ (Ast.Expr.letIn "z" (Ast.Expr.constInt 7) (Ast.Expr.intExpr (Ast.Expr.var "z") Ast.IntegerOp.mul (Ast.Expr.constInt 3)))
+  Eval.eval σ₀ δ₀ (Ast.Expr.letIn "z" (Ast.Expr.constInt 7) (Ast.Expr.intExpr (Ast.Expr.var "z") Ast.IntegerOp.mul (Ast.Expr.constInt 3)))
   = some (Ast.Value.vInt 21) := by
     simp [Eval.eval]
     unfold Env.updateVal
     unfold Env.lookupVal
+    unfold Eval.maximumRecursion
     simp_all
 
-#eval Eval.eval 123 σ₀ δ₀ (Ast.Expr.letIn "z" (Ast.Expr.constF 5 7) (Ast.Expr.fieldExpr (Ast.Expr.var "z") Ast.FieldOp.mul (Ast.Expr.constF 5 3)))
+#eval Eval.eval σ₀ δ₀ (Ast.Expr.letIn "z" (Ast.Expr.constF 5 7) (Ast.Expr.fieldExpr (Ast.Expr.var "z") Ast.FieldOp.mul (Ast.Expr.constF 5 3)))
 #eval (HMul.hMul (7 : F 5) (3 : F 5))
 
 example :
-  Eval.eval 123 σ₀ δ₀ (Ast.Expr.letIn "z" (Ast.Expr.constF 5 7) (Ast.Expr.fieldExpr (Ast.Expr.var "z") Ast.FieldOp.mul (Ast.Expr.constF 5 3)))
+  Eval.eval σ₀ δ₀ (Ast.Expr.letIn "z" (Ast.Expr.constF 5 7) (Ast.Expr.fieldExpr (Ast.Expr.var "z") Ast.FieldOp.mul (Ast.Expr.constF 5 3)))
   = some (Ast.Value.vF 5 1) := by
     simp [Eval.eval]
     unfold Env.updateVal
@@ -63,22 +64,28 @@ example :
     decide
 
 example :
-  Eval.eval 123 σ₀ δ₀ (Ast.Expr.binRel (Ast.Expr.constInt 3) Ast.RelOp.le (Ast.Expr.constInt 7))
+  Eval.eval σ₀ δ₀ (Ast.Expr.binRel (Ast.Expr.constInt 3) Ast.RelOp.le (Ast.Expr.constInt 7))
   = some (Ast.Value.vBool true) := by
     simp [Eval.eval]
+    unfold Eval.maximumRecursion
+    simp_all
 
 def pair := Ast.Expr.prodCons [Ast.Expr.constInt 2, Ast.Expr.constBool true]
 example :
-  Eval.eval 123 σ₀ δ₀ pair
+  Eval.eval σ₀ δ₀ pair
   = some (Ast.Value.vProd [Ast.Value.vInt 2, Ast.Value.vBool true]) := by
     unfold pair
     simp [Eval.eval]
+    unfold Eval.maximumRecursion
+    simp_all
 
 def literalArr := Ast.Expr.arrCons (Ast.Expr.constInt 5) (Ast.Expr.constInt 0) -- yields [5,0]
 example :
-  Eval.eval 123 σ₀ δ₀ (Ast.Expr.arrLen literalArr) = some (Ast.Value.vInt 2) := by
+  Eval.eval σ₀ δ₀ (Ast.Expr.arrLen literalArr) = some (Ast.Value.vInt 2) := by
     unfold literalArr
     simp [Eval.eval]
+    unfold Eval.maximumRecursion
+    simp_all
 
 -- --------------------------------------------------
 -- iter: sum from 0 to 4 with accumulator starting at 0
@@ -94,21 +101,23 @@ def sumIter : Ast.Expr :=
         Ast.Expr.intExpr (Ast.Expr.var "acc") Ast.IntegerOp.add (Ast.Expr.var "i"))
     (Ast.Expr.constInt 0)  -- initial accumulator
 
-#eval Eval.eval 123 σ₀ δ₀ sumIter
+#eval Eval.eval σ₀ δ₀ sumIter
 
 -- sum 0 + 1 + 2 + 3 = 6
-example : Eval.eval 123 σ₀ δ₀ sumIter = some (Ast.Value.vInt 6) := by
+example : Eval.eval σ₀ δ₀ sumIter = some (Ast.Value.vInt 6) := by
   unfold sumIter
   simp [Eval.eval]
-  unfold Eval.eval.loop
+  unfold Eval.maximumRecursion
   simp_all
-  unfold Eval.eval.loop
+  unfold Eval.eval_with_fuel.loop
   simp_all
-  unfold Eval.eval.loop
+  unfold Eval.eval_with_fuel.loop
   simp_all
-  unfold Eval.eval.loop
+  unfold Eval.eval_with_fuel.loop
   simp_all
-  unfold Eval.eval.loop
+  unfold Eval.eval_with_fuel.loop
+  simp_all
+  unfold Eval.eval_with_fuel.loop
   unfold Env.updateVal
   unfold Env.lookupVal
   simp_all
