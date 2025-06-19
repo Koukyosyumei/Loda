@@ -52,7 +52,7 @@ unsafe def elabLodaEval : Elab.Command.CommandElab
     let res := Eval.eval σ₁ Δ circ.body
     match res with
     | some output => logInfo m!"→ {repr output}"
-    | _ => Elab.throwUnsupportedSyntax
+    | _ => logInfo m!"→ none"
   | _ => Elab.throwUnsupportedSyntax
 
 syntax (name := loda_prove) "#loda_prove" ident ":=" "by" tacticSeq: command

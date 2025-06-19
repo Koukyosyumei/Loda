@@ -84,15 +84,15 @@ inductive TypeJudgment {σ: Env.ValEnv} {δ: Env.CircuitEnv}:
     TypeJudgment Γ (Ast.Expr.constF p f) (Ast.Ty.refin (Ast.Ty.field p) (Ast.exprEq Ast.v (Ast.Expr.constF p f)))
 
   -- TE-ASSERT
-  | TE_Assert {Γ: Env.TyEnv} {e₁ e₂: Ast.Expr} {p: ℕ}:
-    TypeJudgment Γ e₁ (Ast.Ty.field p) →
-    TypeJudgment Γ e₂ (Ast.Ty.field p) →
+  | TE_Assert {Γ: Env.TyEnv} {e₁ e₂ φ₁ φ₂: Ast.Expr} {p: ℕ}:
+    TypeJudgment Γ e₁ (Ast.Ty.refin (Ast.Ty.field p) φ₁) →
+    TypeJudgment Γ e₂ (Ast.Ty.refin (Ast.Ty.field p) φ₂) →
     TypeJudgment Γ (Ast.Expr.assertE e₁ e₂) (Ast.Ty.refin Ast.Ty.unit (Ast.exprEq e₁ e₂))
 
   -- TE-BINOPFIELD
-  | TE_BinOpField {Γ: Env.TyEnv} {e₁ e₂: Ast.Expr} {op: Ast.FieldOp} {p: ℕ}:
-    TypeJudgment Γ e₁ (Ast.Ty.field p) →
-    TypeJudgment Γ e₂ (Ast.Ty.field p) →
+  | TE_BinOpField {Γ: Env.TyEnv} {e₁ e₂ φ₁ φ₂: Ast.Expr} {op: Ast.FieldOp} {p: ℕ}:
+    TypeJudgment Γ e₁ (Ast.Ty.refin (Ast.Ty.field p) φ₁) →
+    TypeJudgment Γ e₂ (Ast.Ty.refin (Ast.Ty.field p) φ₂) →
     TypeJudgment Γ (Ast.Expr.fieldExpr e₁ op e₂) ((Ast.Ty.refin (Ast.Ty.field p) (Ast.exprEq Ast.v (Ast.Expr.fieldExpr e₁ op e₂))))
 
   -- TE-BINOPINT
