@@ -148,24 +148,24 @@ theorem varRefineSound
     H0
 
 axiom exprIntVSound :
-  ∀ (a b : Ast.Expr) (op : Ast.IntegerOp) (σ : Env.ValEnv) (δ : Env.CircuitEnv),
-  PropSemantics.exprToProp σ δ (Ast.exprEq Ast.v (Ast.Expr.intExpr a op b)) →
-  ∃ vv, Eval.eval σ δ Ast.v = some (Ast.Value.vInt vv)
+  ∀ (a b : Ast.Expr) (op : Ast.IntegerOp) (σ : Env.ValEnv) (δ : Env.CircuitEnv) (s: String),
+  PropSemantics.exprToProp σ δ (Ast.exprEq (Ast.Expr.var s) (Ast.Expr.intExpr a op b)) →
+  ∃ vv, Eval.eval σ δ (Ast.Expr.var s) = some (Ast.Value.vInt vv)
 
 axiom exprBoolVSound :
-  ∀ (a b : Ast.Expr) (op : Ast.BooleanOp) (σ : Env.ValEnv) (δ : Env.CircuitEnv),
-  PropSemantics.exprToProp σ δ (Ast.exprEq Ast.v (Ast.Expr.boolExpr a op b)) →
-  ∃ vv, Eval.eval σ δ Ast.v = some (Ast.Value.vBool vv)
+  ∀ (a b : Ast.Expr) (op : Ast.BooleanOp) (σ : Env.ValEnv) (δ : Env.CircuitEnv) (s: String),
+  PropSemantics.exprToProp σ δ (Ast.exprEq (Ast.Expr.var s) (Ast.Expr.boolExpr a op b)) →
+  ∃ vv, Eval.eval σ δ (Ast.Expr.var s) = some (Ast.Value.vBool vv)
 
 axiom exprRelVSound :
-  ∀ (a b : Ast.Expr) (op : Ast.RelOp) (σ : Env.ValEnv) (δ : Env.CircuitEnv),
-  PropSemantics.exprToProp σ δ (Ast.exprEq Ast.v (Ast.Expr.binRel a op b)) →
-  ∃ vv, Eval.eval σ δ Ast.v = some (Ast.Value.vBool vv)
+  ∀ (a b : Ast.Expr) (op : Ast.RelOp) (σ : Env.ValEnv) (δ : Env.CircuitEnv) (s: String),
+  PropSemantics.exprToProp σ δ (Ast.exprEq (Ast.Expr.var s) (Ast.Expr.binRel a op b)) →
+  ∃ vv, Eval.eval σ δ (Ast.Expr.var s) = some (Ast.Value.vBool vv)
 
 axiom exprFielVdSound {p : ℕ} :
-  ∀ (a b : Ast.Expr) (op : Ast.FieldOp) (σ : Env.ValEnv) (δ : Env.CircuitEnv),
-  PropSemantics.exprToProp σ δ (Ast.exprEq Ast.v (Ast.Expr.fieldExpr a op b)) →
-  ∃ vv, Eval.eval σ δ Ast.v = some (Ast.Value.vF p vv)
+  ∀ (a b : Ast.Expr) (op : Ast.FieldOp) (σ : Env.ValEnv) (δ : Env.CircuitEnv) (s: String),
+  PropSemantics.exprToProp σ δ (Ast.exprEq (Ast.Expr.var s) (Ast.Expr.fieldExpr a op b)) →
+  ∃ vv, Eval.eval σ δ (Ast.Expr.var s) = some (Ast.Value.vF p vv)
 
 /--
 If an expression `e` is typed as the refinement `{ v : τ // φ }`,

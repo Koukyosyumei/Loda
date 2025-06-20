@@ -124,7 +124,7 @@ instance : BEq Value where
 def exprEq (e₁ e₂: Expr): Expr :=
   Expr.binRel e₁ RelOp.eq e₂
 
-def v: Expr := Expr.var ".v"
+--def v: Expr := Expr.var ".v"
 
 structure Circuit where
   name    : String
