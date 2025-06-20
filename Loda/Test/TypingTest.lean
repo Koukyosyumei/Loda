@@ -79,6 +79,24 @@ theorem assertCircuit_correct : (Ty.circuitCorrect Δ assertCircuit) := by
     exact he₂
     exact hΓ
   }
+  set Γ'' := (Env.updateTy
+    (Env.updateTy
+      (Env.updateTy (fun x ↦ Ast.Ty.unit) "x"
+        ((Ast.Ty.field 5).refin fun v ↦ Ast.exprEq (Ast.Expr.var v) (Ast.Expr.constF 5 1)))
+      "b" (Ast.Ty.unit.refin fun x ↦ Ast.exprEq (Ast.Expr.var "x") (Ast.Expr.constF 5 1)))
+    "out"
+    ((Ast.Ty.field 5).refin fun v ↦
+      Ast.exprEq (Ast.Expr.var v) ((Ast.Expr.var "x").fieldExpr Ast.FieldOp.add (Ast.Expr.var "x"))))
+  have hΓ'' : Γ'' "x" = (Ast.Ty.refin (Ast.Ty.field 5) fun v ↦ Ast.exprEq (Ast.Expr.var v) (Ast.Expr.constF 5 1)) := rfl
+  have ho₀: @Ty.TypeJudgment σ Δ Γ'' (Ast.Expr.letIn "out" ((Ast.Expr.var "x").fieldExpr Ast.FieldOp.add (Ast.Expr.var "x")) (Ast.Expr.var "out"))
+          ((Ast.Ty.field 5).refin fun v ↦ Ast.exprEq (Ast.Expr.var v)
+            ((Ast.Expr.var "x").fieldExpr Ast.FieldOp.add (Ast.Expr.var "x"))) := @let_binding_field_op_type_preservation "x" "x" "out" σ Δ Γ''
+              5 Ast.FieldOp.add (fun v ↦ Ast.exprEq (Ast.Expr.var v) (Ast.Expr.constF 5 1)) (fun v ↦ Ast.exprEq (Ast.Expr.var v) (Ast.Expr.constF 5 1)) hΓ'' hΓ''
+  have ho₁: @Ty.TypeJudgment σ Δ Γ'' (Ast.Expr.letIn "out" ((Ast.Expr.var "x").fieldExpr Ast.FieldOp.add (Ast.Expr.var "x")) (Ast.Expr.var "out"))
+            ((Ast.Ty.field 5).refin (fun v => Ast.exprEq (Ast.Expr.var v)
+              (Ast.Expr.fieldExpr (Ast.Expr.constF 5 1) Ast.FieldOp.add (Ast.Expr.constF 5 1)))) := sorry
+  have ho₂: @Ty.TypeJudgment σ Δ Γ'' (Ast.Expr.letIn "out" ((Ast.Expr.var "x").fieldExpr Ast.FieldOp.add (Ast.Expr.var "x")) (Ast.Expr.var "out"))
+            ((Ast.Ty.field 5).refin (fun v => Ast.exprEq (Ast.Expr.var v) ((Ast.Expr.constF 5 2)))) := sorry
   apply Ty.TypeJudgment.TE_LetIn
   . apply Ty.TypeJudgment.TE_Assert
     exact hx₂
