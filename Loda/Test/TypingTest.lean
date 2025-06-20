@@ -70,7 +70,18 @@ theorem assertCircuit_correct : (Ty.circuitCorrect Δ assertCircuit) := by
     apply Ty.SubtypeJudgment.TSub_Refine
     . apply Ty.SubtypeJudgment.TSub_Refl
     intro h
-    unfold PropSemantics.exprToProp at h
+    obtain ⟨vv, hv_eq⟩ : ∃ vv, Eval.eval σ Δ Ast.v = some (Ast.Value.vF 5 vv) := by
+      apply Ty.exprFielVdSound at h; exact h
+    have h₅ : Eval.eval σ Δ Ast.v = some (Ast.Value.vF 5 1) := by {
+      unfold PropSemantics.exprToProp Ast.exprEq at he₂
+      simp_all
+    }
+
+    unfold PropSemantics.exprToProp Ast.exprEq at h
+    simp_all
+    unfold Eval.maximumRecursion at h
+    simp_all
+
     sorry
   }
   apply Ty.TypeJudgment.TE_LetIn
