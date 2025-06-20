@@ -4,16 +4,16 @@ import Loda.Gadget
 @[simp]
 def mulCircuit : Ast.Circuit := {
   name   := "mul",
-  inputs := ("x", Ast.Ty.refin Ast.Ty.int (Ast.Expr.constBool true)),
-  output := ("out", Ast.Ty.refin (Ast.Ty.int) (Ast.exprEq Ast.v (Ast.Expr.intExpr (Ast.Expr.constInt 2) Ast.IntegerOp.mul (Ast.Expr.var "x")))),
+  inputs := ("x", Ast.Ty.refin Ast.Ty.int (fun _ => Ast.Expr.constBool true)),
+  output := ("out", Ast.Ty.refin (Ast.Ty.int) (fun v => Ast.exprEq (Ast.Expr.var v) (Ast.Expr.intExpr (Ast.Expr.constInt 2) Ast.IntegerOp.mul (Ast.Expr.var "x")))),
   body   := (Ast.Expr.letIn "out" (Ast.Expr.intExpr (Ast.Expr.var "x") Ast.IntegerOp.add (Ast.Expr.var "x")) (Ast.Expr.var "out"))
 }
 
 @[simp]
 def assertCircuit : Ast.Circuit := {
   name   := "assert1",
-  inputs := ("x", Ast.Ty.refin (Ast.Ty.field 5) (Ast.exprEq Ast.v (Ast.Expr.constF 5 1))),
-  output := ("out", Ast.Ty.refin (Ast.Ty.field 5) (Ast.exprEq Ast.v (Ast.Expr.fieldExpr (Ast.Expr.constF 5 1) Ast.FieldOp.add (Ast.Expr.constF 5 1)))),
+  inputs := ("x", Ast.Ty.refin (Ast.Ty.field 5) (fun v => Ast.exprEq (Ast.Expr.var v) (Ast.Expr.constF 5 1))),
+  output := ("out", Ast.Ty.refin (Ast.Ty.field 5) (fun v => Ast.exprEq (Ast.Expr.var v) (Ast.Expr.fieldExpr (Ast.Expr.constF 5 1) Ast.FieldOp.add (Ast.Expr.constF 5 1)))),
   body   := (Ast.Expr.letIn "b" (Ast.Expr.assertE (Ast.Expr.var "x") (Ast.Expr.constF 5 1))
                 (Ast.Expr.fieldExpr (Ast.Expr.var "x") Ast.FieldOp.add (Ast.Expr.var "x")) )
 }
@@ -28,10 +28,10 @@ theorem mulCircuit_correct : (Ty.circuitCorrect Δ mulCircuit) := by
   set envs := Ty.makeEnvs mulCircuit x
   set σ := envs.1
   set Γ := envs.2
-  have hΓ : Γ "x" = (Ast.Ty.int.refin (Ast.Expr.constBool true)) := rfl
+  have hΓ : Γ "x" = (Ast.Ty.int.refin (fun _ => Ast.Expr.constBool true)) := rfl
   have h_body := @let_binding_int_op_type_preservation "x" "x" "out" σ Δ Γ
-              Ast.IntegerOp.add (Ast.Expr.constBool true) (Ast.Expr.constBool true) hΓ hΓ
-  obtain ⟨vv, hv_eq⟩ := int_refintype_implies_exists_int_value σ Δ Γ "x" (Ast.Expr.constBool true) hΓ hσ
+              Ast.IntegerOp.add (fun _ => Ast.Expr.constBool true) (fun _ => Ast.Expr.constBool true) hΓ hΓ
+  obtain ⟨vv, hv_eq⟩ := int_refintype_implies_exists_int_value σ Δ Γ "x" (fun _ => Ast.Expr.constBool true) hΓ hσ
   have h_sub := two_mul_int σ Δ Γ "x" vv hv_eq
   exact Ty.TypeJudgment.TE_SUB h_sub h_body
 
@@ -45,8 +45,8 @@ theorem assertCircuit_correct : (Ty.circuitCorrect Δ assertCircuit) := by
   set Γ := envs.2
   unfold Ty.makeEnvs
   simp_all
-  have hΓ : Γ "x" = Ast.Ty.refin (Ast.Ty.field 5) (Ast.exprEq Ast.v (.constF 5 1)) := by rfl
-  have hx₁ : @Ty.TypeJudgment σ Δ Γ (.var "x") ((Ast.Ty.field 5).refin (Ast.exprEq Ast.v (.var "x"))) := by {
+  have hΓ : Γ "x" = Ast.Ty.refin (Ast.Ty.field 5) (fun v => Ast.exprEq (Ast.Expr.var v) (.constF 5 1)) := by rfl
+  have hx₁ : @Ty.TypeJudgment σ Δ Γ (.var "x") ((Ast.Ty.field 5).refin (fun v => Ast.exprEq (Ast.Expr.var v) (.var "x"))) := by {
     apply Ty.TypeJudgment.TE_Var
     exact hΓ
   }
@@ -56,17 +56,17 @@ theorem assertCircuit_correct : (Ty.circuitCorrect Δ assertCircuit) := by
     | intro hl hr
     exact hr
   }
-  have hx₂ : @Ty.TypeJudgment σ Δ Γ (.var "x") ((Ast.Ty.field 5).refin (Ast.exprEq Ast.v (.constF 5 1))) := by {
+  have hx₂ : @Ty.TypeJudgment σ Δ Γ (.var "x") ((Ast.Ty.field 5).refin (fun v => Ast.exprEq (Ast.Expr.var v) (.constF 5 1))) := by {
     apply @Ty.varRefineSound σ Δ Γ "x" (Ast.Ty.field 5)
     exact he₂
     exact hΓ
   }
   set Γ' := (Env.updateTy
-    (Env.updateTy (fun x ↦ Ast.Ty.unit) "x" ((Ast.Ty.field 5).refin (Ast.exprEq Ast.v (Ast.Expr.constF 5 1)))) "b"
+    (Env.updateTy (fun x ↦ Ast.Ty.unit) "x" ((Ast.Ty.field 5).refin (fun v => Ast.exprEq (Ast.Expr.var v) (Ast.Expr.constF 5 1)))) "b"
     (Ast.Ty.unit.refin (Ast.exprEq (Ast.Expr.var "x") (Ast.Expr.constF 5 1))))
   have hs₂: @Ty.SubtypeJudgment σ Δ Γ'
-              (pure ((Ast.Ty.field 5).refin (Ast.exprEq Ast.v ((Ast.Expr.var "x").fieldExpr Ast.FieldOp.add (Ast.Expr.var "x")))))
-              (pure ((Ast.Ty.field 5).refin (Ast.exprEq Ast.v ((Ast.Expr.constF 5 1).fieldExpr Ast.FieldOp.add (Ast.Expr.constF 5 1))))) := by {
+              (pure ((Ast.Ty.field 5).refin (fun v => Ast.exprEq (Ast.Expr.var v)  ((Ast.Expr.var "x").fieldExpr Ast.FieldOp.add (Ast.Expr.var "x")))))
+              (pure ((Ast.Ty.field 5).refin (fun v => Ast.exprEq (Ast.Expr.var v)  ((Ast.Expr.constF 5 1).fieldExpr Ast.FieldOp.add (Ast.Expr.constF 5 1))))) := by {
     apply Ty.SubtypeJudgment.TSub_Refine
     . apply Ty.SubtypeJudgment.TSub_Refl
     intro h

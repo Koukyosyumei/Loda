@@ -42,7 +42,7 @@ def updateVal (σ : ValEnv) (ident : String) (val : Ast.Value) : ValEnv :=
 
 /-- A circuit environment: maps circuit names to their `Circuit`. -/
 abbrev CircuitEnv := List (String × Ast.Circuit)
-deriving instance ToExpr for CircuitEnv
+--deriving instance ToExpr for CircuitEnv
 
 @[inline]
 def lookupCircuit (Δ : CircuitEnv) (ident : String) : Ast.Circuit :=

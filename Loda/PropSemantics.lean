@@ -55,7 +55,7 @@ match Γ ident, Env.lookupVal σ ident with
   --| _,               Ast.Value.vStar     => True
   | _,               _                   => False
   ) ∧
-  exprToProp σ δ e
+  exprToProp σ δ (e ident)
 -- bare field and int types
 | Ast.Ty.field p, Ast.Value.vF p' _   => p' = p
 | Ast.Ty.int,     Ast.Value.vInt _    => True

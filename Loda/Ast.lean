@@ -77,7 +77,7 @@ mutual
     | app         : (f: Expr) → (arg: Expr) → Expr                       -- e₁ e₂
     | letIn       : (name: String) → (val: Expr) → (body: Expr) → Expr   -- let x = e₁ in e₂
     | iter        : (start: Expr) → (stp: Expr) → (step: Expr) → (acc: Expr) → Expr
-    deriving Lean.ToExpr
+    --deriving Lean.ToExpr
 
   /-- Runtime values in Loda. -/
   inductive Value where
@@ -88,7 +88,7 @@ mutual
     | vProd    : (elems: List Value) → Value
     | vArr     : (elems: List Value) → Value
     | vClosure : (param: String) → (body: Expr) → (σ: List (String × Value)) → Value
-    deriving Lean.ToExpr
+    --deriving Lean.ToExpr
 
   /-- Basic Types in CODA. -/
   inductive Ty where
@@ -98,10 +98,10 @@ mutual
     | bool     : Ty                                               -- Bool
     | prod     : (tys: List Ty) → Ty                              -- T₁ × ... × Tₙ (unit is prod [])
     | arr      : (ty: Ty) → Ty                                    -- [T]
-    | refin    : (ty: Ty) → (prop: Expr) → Ty                     -- {ν : T | ϕ}
+    | refin    : (ty: Ty) → (prop: String → Expr) → Ty                     -- {ν : T | ϕ}
     | func     : (param: String) → (dom: Ty) → (cond: Ty) → Ty    -- x: τ₁ → τ₂
     --deriving DecidableEq, Repr
-    deriving Lean.ToExpr
+    --deriving Lean.ToExpr
 end
 
 /-- Test for equality of two `Value`s. -/
@@ -131,7 +131,7 @@ structure Circuit where
   inputs  : String × Ast.Ty
   output  : String × Ast.Ty
   body    : Ast.Expr
-deriving Lean.ToExpr
+--deriving Lean.ToExpr
 
 instance : Repr BooleanOp where
   reprPrec
@@ -198,7 +198,7 @@ mutual
         | [t] => tyToString t
         | _ => "(" ++ String.intercalate " × " (tys.map tyToString) ++ ")"
     | Ty.arr t          => s!"[{tyToString t}]"
-    | Ty.refin t e      => s!"{tyToString t} | {exprToString e}"
+    | Ty.refin t e      => s!"{tyToString t} | {exprToString (e ".v")}"
     | Ty.func x d c     => s!"({x} : {tyToString d}) → {tyToString c}"
 end
 
