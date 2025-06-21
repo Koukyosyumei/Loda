@@ -132,7 +132,7 @@ inductive TypeJudgment {σ: Env.ValEnv} {δ: Env.CircuitEnv}:
 
 /--
 Specialized soundness theorem for a variable identifier `ident`:
-if `Γ ident = {v : T // φ}` and `φ` holds, then the typing rule for
+if `Γ ident = {v : T | φ}` and `φ` holds, then the typing rule for
 `ident` followed by subsumption yields the same refinement, and hence
 `φ` holds by `typeJudgmentRefinementSound`.
 -/
@@ -173,13 +173,13 @@ axiom exprFielVdSound {p : ℕ} :
   ∃ vv, Eval.eval σ δ e = some (Ast.Value.vF p vv)
 
 /--
-If an expression `e` is typed as the refinement `{ v : τ // φ }`,
+If an expression `e` is typed as the refinement `{ v : τ | φ }`,
 then the predicate `φ` holds under `exprToProp`.
 (TODO: this is the soundness theorem that we can prove)
 -/
 axiom typeJudgmentRefinementSound {σ : Env.ValEnv} {δ : Env.CircuitEnv}
- (Γ : Env.TyEnv) (τ : Ast.Ty) (e φ : Ast.Expr) :
-  @Ty.TypeJudgment σ δ Γ e (Ast.Ty.refin τ φ) → PropSemantics.exprToProp σ δ φ
+ (Γ : Env.TyEnv) (τ : Ast.Ty) (e: Ast.Expr) (φ: Ast.Predicate):
+  @Ty.TypeJudgment σ δ Γ e (Ast.Ty.refin τ φ) → PropSemantics.predToProp σ δ φ e
 
 def makeEnvs (c : Ast.Circuit) (x : Ast.Value) : Env.ValEnv × Env.TyEnv :=
   let σ: Env.ValEnv := Env.updateVal [] c.inputs.fst x
