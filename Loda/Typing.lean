@@ -70,6 +70,10 @@ inductive TypeJudgment {σ: Env.ValEnv} {δ: Env.CircuitEnv}:
     ∀ φ: Ast.Predicate, Γ x = (Ast.Ty.refin T φ) →
     TypeJudgment Γ (Ast.Expr.var x) (Ast.Ty.refin T (Ast.Predicate.eq (Ast.Expr.var x)))
 
+  | TE_VarEnv {Γ: Env.TyEnv} {x : String} {T: Ast.Ty}:
+    ∀ φ: Ast.Predicate, Γ x = (Ast.Ty.refin T φ) →
+    TypeJudgment Γ (Ast.Expr.var x) (Ast.Ty.refin T φ)
+
   -- TE-VAR-FUNC
   | TE_VarFunc {Γ: Env.TyEnv} {f x : String} {τ₁ τ₂: Ast.Ty}:
       Γ f = (Ast.Ty.func x τ₁ τ₂) →
@@ -128,29 +132,6 @@ inductive TypeJudgment {σ: Env.ValEnv} {δ: Env.CircuitEnv}:
     (h₁: @TypeJudgment σ δ Γ e₁ τ₁)
     (h₂: @TypeJudgment σ δ (Env.updateTy Γ x τ₁) e₂ τ₂):
     TypeJudgment Γ (Ast.Expr.letIn x e₁ e₂) τ₂
-
-
-/--
-Specialized soundness theorem for a variable identifier `ident`:
-if `Γ ident = {v : T | φ}` and `φ` holds, then the typing rule for
-`ident` followed by subsumption yields the same refinement, and hence
-`φ` holds by `typeJudgmentRefinementSound`.
--/
--- (hφ: PropSemantics.exprToProp σ δ φ)
-theorem varRefineSound
-  {σ : Env.ValEnv} {δ : Env.CircuitEnv}
-  {Γ : Env.TyEnv} {ident : String} {T : Ast.Ty} {φ : Ast.Predicate}
-  (hΓ : Γ ident = Ast.Ty.refin T φ) (hφ: ∀ v: Ast.Expr, PropSemantics.predToProp σ δ (Ast.Predicate.eq (Ast.Expr.var ident)) v → PropSemantics.predToProp σ δ φ v):
-  @TypeJudgment σ δ Γ (Ast.Expr.var ident) (Γ ident) := by
-  have H0 : @TypeJudgment σ δ Γ (Ast.Expr.var ident)
-                (Ast.Ty.refin T (Ast.Predicate.eq (Ast.Expr.var ident)))
-    := TypeJudgment.TE_Var _ hΓ
-  rw[hΓ]
-  apply TypeJudgment.TE_SUB
-  . apply SubtypeJudgment.TSub_Refine
-    apply SubtypeJudgment.TSub_Refl
-    exact hφ
-  exact H0
 
 axiom exprIntVSound :
   ∀ (a b : Ast.Expr) (op : Ast.IntegerOp) (σ : Env.ValEnv) (δ : Env.CircuitEnv) (e: Ast.Expr),

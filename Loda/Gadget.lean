@@ -173,6 +173,7 @@ lemma eval_const_int_refin (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv)
   intro h
   cases h with
   | TE_ConstI => simp_all
+  | TE_VarEnv => sorry
   | TE_App a b c => sorry
   | TE_SUB h₀ ht => sorry
   | TE_LetIn h₁ h₂ => sorry
@@ -184,6 +185,7 @@ lemma eval_const_field_refin (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEn
   intro h
   cases h with
   | TE_ConstF => simp_all
+  | TE_VarEnv => sorry
   | TE_App a b c => sorry
   | TE_SUB h₀ ht => sorry
   | TE_LetIn h₁ h₂ => sorry
@@ -200,11 +202,6 @@ lemma typed_int_expr_from_refined_vars
   simp [hΓx]
   apply Ty.TypeJudgment.TE_Var φ₂
   simp [hΓy]
-
-lemma predicate_transitivity (x: String) (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ : Env.TyEnv) (ty: Ast.Ty) (e₁ e₂: Ast.Expr) :
-  Γ x = (Ty.refin ty (Predicate.eq e₂)) → PropSemantics.exprToProp σ Δ (exprEq e₁ (Expr.var x)) → PropSemantics.exprToProp σ Δ (exprEq e₁ e₂) := by {
-  sorry
-}
 
 lemma let_binding_int_op_type_preservation
   (x y z: String) (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ : Env.TyEnv)
@@ -225,12 +222,8 @@ by
       Ty.typeJudgmentRefinementSound Γ Ast.Ty.int e1 (Ast.Predicate.eq e1) h_e1_has_type_e1_ty
     have hΓ'_z_eq_e1_ty : Γ' z = e1_ty := by
       simp [Γ', Env.updateTy]
-    rw[← hΓ'_z_eq_e1_ty]
-    apply Ty.varRefineSound
-    . exact hΓ'_z_eq_e1_ty
-    . intro v
-      apply predicate_transitivity z σ Δ Γ' Ast.Ty.int
-      exact hΓ'_z_eq_e1_ty
+    apply Ty.TypeJudgment.TE_VarEnv
+    exact hΓ'_z_eq_e1_ty
 
 lemma int_refintype_implies_exists_int_value (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv) (x: String) (e: Predicate)
   : (Γ x = Ty.int.refin e) → PropSemantics.tyenvToProp σ Δ Γ x → ∃ (a: ℤ), Env.lookupVal σ x = Ast.Value.vInt a := by
