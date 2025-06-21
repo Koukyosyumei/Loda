@@ -219,6 +219,17 @@ lemma eval_const_int_refin (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv)
   | TE_LetIn h₁ h₂ => sorry
   }
 
+lemma eval_const_field_refin (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv) (e: Ast.Expr) (p n: ℕ)
+  : @Ty.TypeJudgment σ Δ Γ e (Ty.refin (Ty.field p) (exprEq v (Expr.constF p n))) →
+      Eval.eval σ Δ e = (some (Ast.Value.vF p n)) := by {
+  intro h
+  cases h with
+  | TE_ConstF => simp_all
+  | TE_App a b c => sorry
+  | TE_SUB h₀ ht => sorry
+  | TE_LetIn h₁ h₂ => sorry
+  }
+
 lemma typed_int_expr_from_refined_vars
   (x y: String) (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv)
   (op: Ast.IntegerOp) (φ₁ φ₂: Ast.Expr)
