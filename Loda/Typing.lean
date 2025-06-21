@@ -154,22 +154,22 @@ theorem varRefineSound
 
 axiom exprIntVSound :
   ∀ (a b : Ast.Expr) (op : Ast.IntegerOp) (σ : Env.ValEnv) (δ : Env.CircuitEnv) (e: Ast.Expr),
-  PropSemantics.exprToProp σ δ (Ast.exprEq Ast.v (Ast.Expr.intExpr a op b)) →
+  PropSemantics.exprToProp σ δ (Ast.exprEq e (Ast.Expr.intExpr a op b)) →
   ∃ vv, Eval.eval σ δ e = some (Ast.Value.vInt vv)
 
 axiom exprBoolVSound :
   ∀ (a b : Ast.Expr) (op : Ast.BooleanOp) (σ : Env.ValEnv) (δ : Env.CircuitEnv) (e: Ast.Expr),
-  PropSemantics.exprToProp σ δ (Ast.exprEq Ast.v (Ast.Expr.boolExpr a op b)) →
+  PropSemantics.exprToProp σ δ (Ast.exprEq e (Ast.Expr.boolExpr a op b)) →
   ∃ vv, Eval.eval σ δ e = some (Ast.Value.vBool vv)
 
 axiom exprRelVSound :
   ∀ (a b : Ast.Expr) (op : Ast.RelOp) (σ : Env.ValEnv) (δ : Env.CircuitEnv) (e: Ast.Expr),
-  PropSemantics.exprToProp σ δ (Ast.exprEq Ast.v (Ast.Expr.binRel a op b)) →
+  PropSemantics.exprToProp σ δ (Ast.exprEq e (Ast.Expr.binRel a op b)) →
   ∃ vv, Eval.eval σ δ e = some (Ast.Value.vBool vv)
 
 axiom exprFielVdSound {p : ℕ} :
   ∀ (a b : Ast.Expr) (op : Ast.FieldOp) (σ : Env.ValEnv) (δ : Env.CircuitEnv) (e: Ast.Expr),
-  PropSemantics.exprToProp σ δ (Ast.exprEq Ast.v (Ast.Expr.fieldExpr a op b)) →
+  PropSemantics.exprToProp σ δ (Ast.exprEq e (Ast.Expr.fieldExpr a op b)) →
   ∃ vv, Eval.eval σ δ e = some (Ast.Value.vF p vv)
 
 /--

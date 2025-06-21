@@ -7,17 +7,14 @@ lemma two_mul_int
   (σ: Env.ValEnv) (Δ: Env.CircuitEnv)
   (Γ: Env.TyEnv) (x: String) (xv: ℤ) (hσx : Env.lookupVal σ x = Value.vInt xv)
   : @Ty.SubtypeJudgment σ Δ Γ
-      (pure (Ty.refin Ty.int (exprEq v (Expr.intExpr (Expr.var x) IntegerOp.add (Expr.var x)))))
-      (pure (Ty.refin Ty.int (exprEq v (Expr.intExpr (Expr.constInt 2) IntegerOp.mul (Expr.var x)))))
+      (pure (Ty.refin Ty.int (Predicate.eq (Expr.intExpr (Expr.var x) IntegerOp.add (Expr.var x)))))
+      (pure (Ty.refin Ty.int (Predicate.eq (Expr.intExpr (Expr.constInt 2) IntegerOp.mul (Expr.var x)))))
   := by
   apply Ty.SubtypeJudgment.TSub_Refine
   · apply Ty.SubtypeJudgment.TSub_Refl
-  intro h
-  obtain ⟨vv, hv_eq⟩ : ∃ vv, Eval.eval σ Δ v = some (Value.vInt vv) := by
-    apply Ty.exprIntVSound at h; exact h
-  dsimp [PropSemantics.exprToProp, Eval.eval, exprEq, decide_eq_true] at h ⊢
-  simp[hσx, Eval.evalIntegerOp, hv_eq, two_mul]
-  simp_all
+  intro v
+  dsimp [PropSemantics.predToProp, Eval.eval, exprEq, decide_eq_true] at v ⊢
+  simp [PropSemantics.exprToProp, hσx, Eval.evalIntegerOp, two_mul]
 
 lemma two_mul_field {p: ℕ}
   (σ: Env.ValEnv) (Δ: Env.CircuitEnv)
