@@ -11,7 +11,6 @@ open Env
 #loda_check Adder
 #loda_eval Adder x=2
 
-
 #loda_prove Adder := by {
   rename_i Δ h_delta x hs envs σ Γ hσ
   have hΓ : Γ "x" = (Ty.int.refin (Ast.Predicate.const (Expr.constBool True))) := rfl
