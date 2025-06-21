@@ -93,6 +93,7 @@ mutual
   inductive Predicate where
     | const    : Expr → Predicate
     | eq       : Expr → Predicate
+    deriving Lean.ToExpr
 
   /-- Basic Types in CODA. -/
   inductive Ty where

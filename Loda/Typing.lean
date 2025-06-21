@@ -79,6 +79,10 @@ inductive TypeJudgment {σ: Env.ValEnv} {δ: Env.CircuitEnv}:
   | TE_Nondet {Γ: Env.TyEnv} {p: ℕ}:
     TypeJudgment Γ Ast.Expr.wildcard (Ast.Ty.refin (Ast.Ty.field p) (Ast.Expr.constBool true))
 
+  -- TE-CONSTI
+  | TE_ConstI {Γ: Env.TyEnv} {n: ℕ}:
+    TypeJudgment Γ (Ast.Expr.constInt n) (Ast.Ty.refin (Ast.Ty.int) (Ast.exprEq Ast.v (Ast.Expr.constInt n)))
+
   -- TE-CONSTF
   | TE_ConstF {Γ: Env.TyEnv} {p: ℕ} {f: F p} :
     TypeJudgment Γ (Ast.Expr.constF p f) (Ast.Ty.refin (Ast.Ty.field p) (Ast.exprEq Ast.v (Ast.Expr.constF p f)))

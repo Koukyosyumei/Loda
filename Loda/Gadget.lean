@@ -208,6 +208,17 @@ lemma mul_inv_field {p: ℕ}
   rw [← tmp]
   exact hxv_ne_zero
 
+lemma eval_const_int_refin (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv) (e: Ast.Expr) (n: ℕ)
+  : @Ty.TypeJudgment σ Δ Γ e (Ty.refin Ty.int (exprEq v (Expr.constInt n))) →
+      Eval.eval σ Δ e = (some (Ast.Value.vInt n)) := by {
+  intro h
+  cases h with
+  | TE_ConstI => simp_all
+  | TE_App a b c => sorry
+  | TE_SUB h₀ ht => sorry
+  | TE_LetIn h₁ h₂ => sorry
+  }
+
 lemma typed_int_expr_from_refined_vars
   (x y: String) (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv)
   (op: Ast.IntegerOp) (φ₁ φ₂: Ast.Expr)
