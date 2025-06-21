@@ -221,13 +221,13 @@ by
     have hΓ'_z_eq_e1_ty : Γ' z = e1_ty := by
       simp [Γ', Env.updateTy]
     rw[← hΓ'_z_eq_e1_ty]
-    apply @Ty.varRefineSound σ Δ Γ' z Ast.Ty.int (Ast.Predicate.eq e1)
-    exact hΓ'_z_eq_e1_ty
-    intro v
-    simp [PropSemantics.predToProp]
-    simp [PropSemantics.exprToProp]
-    simp_all
-    sorry
+    apply Ty.varRefineSound
+    . exact hΓ'_z_eq_e1_ty
+    . intro v
+      intro h
+      unfold PropSemantics.predToProp at h ⊢
+      simp_all
+      sorry
 
 
 lemma int_refintype_implies_exists_int_value (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv) (x: String) (e: Predicate)
