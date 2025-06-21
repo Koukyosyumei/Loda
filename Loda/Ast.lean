@@ -90,6 +90,10 @@ mutual
     | vClosure : (param: String) → (body: Expr) → (σ: List (String × Value)) → Value
     deriving Lean.ToExpr
 
+  inductive Predicate where
+    | const    : Expr → Predicate
+    | eq       : Expr → Predicate
+
   /-- Basic Types in CODA. -/
   inductive Ty where
     | unit     : Ty
