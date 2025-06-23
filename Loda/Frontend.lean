@@ -213,7 +213,7 @@ unsafe def elaborateProp (stx : Syntax) : MetaM Ast.Expr := do
 unsafe def elaborateType (stx : Syntax) : MetaM Ast.Ty := do
   match stx with
   -- Unit type “()` or “Unit”
-  | `(loda_ty| Unit)  => pure (Ast.Ty.refin Ast.Ty.unit (Ast.Expr.constBool True))
+  | `(loda_ty| Unit)  => pure (Ast.Ty.refin Ast.Ty.unit (Ast.Predicate.const (Ast.Expr.constBool True)))
   | `(loda_ty| () )   => pure Ast.Ty.unit
 
   -- Field type “F p”
@@ -222,7 +222,7 @@ unsafe def elaborateType (stx : Syntax) : MetaM Ast.Ty := do
       pure (Ast.Ty.field pVal)
 
   -- Int and Bool
-  | `(loda_ty| Int)        => pure (Ast.Ty.refin Ast.Ty.int (Ast.Expr.constBool True))
+  | `(loda_ty| Int)        => pure (Ast.Ty.refin Ast.Ty.int (Ast.Predicate.const (Ast.Expr.constBool True)))
   | `(loda_ty| Bool)       => pure Ast.Ty.bool
 
   -- Product types: “( T1 , T2 , … )”
@@ -244,8 +244,8 @@ unsafe def elaborateType (stx : Syntax) : MetaM Ast.Ty := do
       | `(loda_ty| Bool) => pure Ast.Ty.bool
       | _ => throwError "unsupported type syntax: {stx}"
       -- We want to turn `φ` (a Lean `term`) into an `Ast.Expr` (of Boolean sort).
-      let φ'   ← elaborateProp φ
-      pure (Ast.Ty.refin T' (Ast.exprEq Ast.v φ'))
+      let φ' ← elaborateProp φ
+      pure (Ast.Ty.refin T' (Ast.Predicate.eq φ'))
 
   -- Function type: “(x : T1) → T2”
   | `(loda_ty| ( $x:ident : $Tdom:loda_ty ) → $Tcod:loda_ty ) => do

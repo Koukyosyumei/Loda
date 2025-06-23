@@ -7,7 +7,7 @@ import Loda.Eval
 
   This module interprets certain Loda expressions as Lean `Prop`s,
   by evaluating them under a valuation environment `σ`, a circuit
-  environment `δ`, and a fuel bound `fuel`.
+  environment `Δ`, and a fuel bound `fuel`.
 -/
 
 namespace PropSemantics
@@ -24,16 +24,16 @@ namespace PropSemantics
 
   In all other cases, the result is `False`.
 -/
-def exprToProp (σ : Env.ValEnv) (δ : Env.CircuitEnv) : Ast.Expr → Prop
+def exprToProp (σ : Env.ValEnv) (Δ : Env.CircuitEnv) : Ast.Expr → Prop
 | Ast.Expr.boolExpr e₁ op e₂ =>
-  match Eval.eval σ δ e₁, Eval.eval σ δ e₂ with
+  match Eval.eval σ Δ e₁, Eval.eval σ Δ e₂ with
   | some v₁, some v₂ =>
     match Eval.evalBoolOp op v₁ v₂ with
     | some b => b
     | none   => False
   | _, _ => False
 | Ast.Expr.binRel e₁ op e₂ =>
-  match Eval.eval σ δ e₁, Eval.eval σ δ e₂ with
+  match Eval.eval σ Δ e₁, Eval.eval σ Δ e₂ with
   | some v₁, some v₂ =>
     match Eval.evalRelOp op v₁ v₂ with
     | some b => b
@@ -42,10 +42,14 @@ def exprToProp (σ : Env.ValEnv) (δ : Env.CircuitEnv) : Ast.Expr → Prop
 | Ast.Expr.constBool true => True
 | _ => False
 
-def tyenvToProp (σ : Env.ValEnv) (δ : Env.CircuitEnv) (Γ : Env.TyEnv) (ident : String) : Prop :=
+def predToProp (σ: Env.ValEnv) (Δ: Env.CircuitEnv): Ast.Predicate → (Ast.Expr → Prop)
+| Ast.Predicate.const e => fun _ => exprToProp σ Δ e
+| Ast.Predicate.eq e    => fun v => exprToProp σ Δ (Ast.exprEq v e)
+
+def tyenvToProp (σ : Env.ValEnv) (Δ : Env.CircuitEnv) (Γ : Env.TyEnv) (ident : String) : Prop :=
 match Γ ident, Env.lookupVal σ ident with
 -- refinement types: check base-type match and predicate
-| Ast.Ty.refin baseTy e, val =>
+| Ast.Ty.refin baseTy pred, val =>
   (match baseTy, val with
   | Ast.Ty.field p,  Ast.Value.vF p' _   => p' = p
   | Ast.Ty.int,      Ast.Value.vInt _    => True
@@ -55,7 +59,7 @@ match Γ ident, Env.lookupVal σ ident with
   --| _,               Ast.Value.vStar     => True
   | _,               _                   => False
   ) ∧
-  exprToProp σ δ e
+  predToProp σ Δ pred (Ast.Expr.var ident)
 -- bare field and int types
 | Ast.Ty.field p, Ast.Value.vF p' _   => p' = p
 | Ast.Ty.int,     Ast.Value.vInt _    => True

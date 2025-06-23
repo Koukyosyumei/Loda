@@ -90,6 +90,11 @@ mutual
     | vClosure : (param: String) → (body: Expr) → (σ: List (String × Value)) → Value
     deriving Lean.ToExpr
 
+  inductive Predicate where
+    | const    : Expr → Predicate
+    | eq       : Expr → Predicate
+    deriving Lean.ToExpr
+
   /-- Basic Types in CODA. -/
   inductive Ty where
     | unit     : Ty
@@ -98,7 +103,7 @@ mutual
     | bool     : Ty                                               -- Bool
     | prod     : (tys: List Ty) → Ty                              -- T₁ × ... × Tₙ (unit is prod [])
     | arr      : (ty: Ty) → Ty                                    -- [T]
-    | refin    : (ty: Ty) → (prop: Expr) → Ty                     -- {ν : T | ϕ}
+    | refin    : (ty: Ty) → (prop: Predicate) → Ty                -- {ν : T | ϕ}
     | func     : (param: String) → (dom: Ty) → (cond: Ty) → Ty    -- x: τ₁ → τ₂
     --deriving DecidableEq, Repr
     deriving Lean.ToExpr
@@ -187,6 +192,10 @@ mutual
     | Expr.iter s e step acc =>
         s!"iter {exprToString s} {exprToString e} {exprToString step} {exprToString acc}"
 
+  partial def predicateToString : Predicate → String
+    | Predicate.const e => exprToString e
+    | Predicate.eq    e => s!"v = {exprToString e}"
+
   partial def tyToString : Ty → String
     | Ty.unit           => "unit"
     | Ty.field p        => s!"F{p}"
@@ -198,7 +207,7 @@ mutual
         | [t] => tyToString t
         | _ => "(" ++ String.intercalate " × " (tys.map tyToString) ++ ")"
     | Ty.arr t          => s!"[{tyToString t}]"
-    | Ty.refin t e      => s!"{tyToString t} | {exprToString e}"
+    | Ty.refin t p      => s!"{tyToString t} | {predicateToString p}"
     | Ty.func x d c     => s!"({x} : {tyToString d}) → {tyToString c}"
 end
 
