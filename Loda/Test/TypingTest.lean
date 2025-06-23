@@ -52,4 +52,5 @@ theorem addOneCircuit_correct : (Ty.circuitCorrect Δ addOneCircuit) := by
               Ast.FieldOp.add (Ast.Predicate.eq (Ast.Expr.constF 5 1))
                                 (Ast.Predicate.eq (Ast.Expr.constF 5 1)) hΓ hΓ
   obtain ⟨vv, hv_eq⟩ := field_refintype_implies_exists_field_value 5 σ Δ Γ "x" (Ast.Predicate.eq (Ast.Expr.constF 5 1)) hΓ hσ
+
   sorry

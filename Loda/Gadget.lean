@@ -285,3 +285,17 @@ lemma field_refintype_implies_exists_field_value (p: ℕ) (σ: Env.ValEnv) (Δ: 
     sorry
   }
   | _ => intro hσ; simp_all
+
+lemma rw_var_sub_int
+  (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv) (x y: String) (op: IntegerOp) (ex ey: Expr)
+  (hΓx : Γ x = Ty.refin Ty.int (Predicate.eq ex)) (hΓy : Γ y = Ty.refin Ty.int (Predicate.eq ey))
+  (hpx: PropSemantics.tyenvToProp σ Δ Γ x) (hpy: PropSemantics.tyenvToProp σ Δ Γ y)
+  : @Ty.SubtypeJudgment σ Δ Γ
+      (pure (Ty.refin Ty.int (Predicate.eq (Expr.intExpr (Expr.var x) op (Expr.var x)))))
+      (pure (Ty.refin Ty.int (Predicate.eq (Expr.intExpr ex op ey))))
+  := by
+  apply Ty.SubtypeJudgment.TSub_Refine
+  . apply Ty.SubtypeJudgment.TSub_Refl
+  intro v
+  dsimp [PropSemantics.predToProp, Eval.eval, exprEq, decide_eq_true] at v ⊢
+  sorry
