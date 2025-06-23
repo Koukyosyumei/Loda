@@ -38,3 +38,18 @@ theorem mulCircuit_correct : (Ty.circuitCorrect Δ mulCircuit) := by
 def σ : Env.ValEnv := [("x", Ast.Value.vInt 5)]
 def Γ : Env.TyEnv := fun _ => Ast.Ty.refin Ast.Ty.int (Ast.Predicate.eq (Ast.Expr.constBool true))
 #eval Eval.eval σ Δ mulCircuit.body
+
+theorem addOneCircuit_correct : (Ty.circuitCorrect Δ addOneCircuit) := by
+  unfold Ty.circuitCorrect
+  unfold addOneCircuit
+  simp_all
+  intro x hs hσ
+  set envs := Ty.makeEnvs addOneCircuit x
+  set σ := envs.1
+  set Γ := envs.2
+  have hΓ : Γ "x" = Ast.Ty.refin (Ast.Ty.field 5) (Ast.Predicate.eq (Ast.Expr.constF 5 1)) := rfl
+  have h_body := @let_binding_field_op_type_preservation 5 "x" "x" "out" σ Δ Γ
+              Ast.FieldOp.add (Ast.Predicate.eq (Ast.Expr.constF 5 1))
+                                (Ast.Predicate.eq (Ast.Expr.constF 5 1)) hΓ hΓ
+  obtain ⟨vv, hv_eq⟩ := field_refintype_implies_exists_field_value 5 σ Δ Γ "x" (Ast.Predicate.eq (Ast.Expr.constF 5 1)) hΓ hσ
+  sorry
