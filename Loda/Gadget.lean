@@ -286,16 +286,37 @@ lemma field_refintype_implies_exists_field_value (p: ℕ) (σ: Env.ValEnv) (Δ: 
   }
   | _ => intro hσ; simp_all
 
+lemma rw_left_var_in_int_expr (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (x y: String) (ex: Expr) (op: IntegerOp)
+  (hex: Env.lookupVal σ x = (Eval.eval_with_fuel (Eval.maximumRecursion - 1) σ Δ ex))
+  : Eval.eval σ Δ (Expr.intExpr (Expr.var x) op (Expr.var y)) = Eval.eval σ Δ (Expr.intExpr ex op (Expr.var y)) := by {
+    simp_all
+  }
+
+lemma rw_right_var_in_int_expr (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (x y: String) (ey: Expr) (op: IntegerOp)
+  (hex: Env.lookupVal σ y = (Eval.eval_with_fuel (Eval.maximumRecursion - 1) σ Δ ey))
+  : Eval.eval σ Δ (Expr.intExpr (Expr.var x) op (Expr.var y)) = Eval.eval σ Δ (Expr.intExpr (Expr.var x) op ey) := by {
+    simp_all
+  }
+
+lemma rw_vars_in_int_expr (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (x y: String) (ex ey: Expr) (op: IntegerOp)
+  (hex: Env.lookupVal σ x = (Eval.eval_with_fuel (Eval.maximumRecursion - 1) σ Δ ex))
+  (hey: Env.lookupVal σ y = (Eval.eval_with_fuel (Eval.maximumRecursion - 1) σ Δ ey))
+  : Eval.eval σ Δ (Expr.intExpr (Expr.var x) op (Expr.var y)) = Eval.eval σ Δ (Expr.intExpr ex op ey) := by {
+    simp_all
+  }
+
 lemma rw_var_sub_int
-  (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv) (x y: String) (op: IntegerOp) (ex ey: Expr)
-  (hΓx : Γ x = Ty.refin Ty.int (Predicate.eq ex)) (hΓy : Γ y = Ty.refin Ty.int (Predicate.eq ey))
-  (hpx: PropSemantics.tyenvToProp σ Δ Γ x) (hpy: PropSemantics.tyenvToProp σ Δ Γ y)
+  (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv) (x y: String) (ex ey: Expr)
+  (hΓx : Γ x = Ty.refin Ty.int (Predicate.const (Ast.exprEq (Expr.var x) ex)))
+  (hΓy : Γ y = Ty.refin Ty.int (Predicate.const (Ast.exprEq (Expr.var y) ey)))
   : @Ty.SubtypeJudgment σ Δ Γ
-      (pure (Ty.refin Ty.int (Predicate.eq (Expr.intExpr (Expr.var x) op (Expr.var x)))))
-      (pure (Ty.refin Ty.int (Predicate.eq (Expr.intExpr ex op ey))))
+      (pure (Ty.refin Ty.int (Predicate.eq (Expr.intExpr (Expr.var x) IntegerOp.add (Expr.var y)))))
+      (pure (Ty.refin Ty.int (Predicate.eq (Expr.intExpr ex IntegerOp.add ey))))
   := by
   apply Ty.SubtypeJudgment.TSub_Refine
   . apply Ty.SubtypeJudgment.TSub_Refl
   intro v
-  dsimp [PropSemantics.predToProp, Eval.eval, exprEq, decide_eq_true] at v ⊢
-  sorry
+  have hσ_x  : Env.lookupVal σ x = (Eval.eval_with_fuel (Eval.maximumRecursion - 1) σ Δ ex) := by sorry
+  have hσ_y  : Env.lookupVal σ y = (Eval.eval_with_fuel (Eval.maximumRecursion - 1) σ Δ ey) := by sorry
+  unfold PropSemantics.predToProp PropSemantics.exprToProp exprEq
+  simp_all
