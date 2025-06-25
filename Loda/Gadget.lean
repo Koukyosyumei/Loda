@@ -305,13 +305,35 @@ lemma rw_vars_in_int_expr (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (x y: String) (e
     simp_all
   }
 
-lemma a (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (x y: String) (ex ey: Expr) (op: IntegerOp)
+lemma var_prop_implies_lookup (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (x: String) (ex: Expr)
   (h: PropSemantics.exprToProp σ Δ (Ast.exprEq (Expr.var x) ex))
   : Env.lookupVal σ x = (Eval.eval_with_fuel (Eval.maximumRecursion) σ Δ ex) := by {
-    unfold PropSemantics.exprToProp exprEq at h
-    simp [decide_eq_true] at h
-    sorry
+  unfold PropSemantics.exprToProp Ast.exprEq at h
+  simp only [decide_eq_true] at h
+  cases h_eval_ex : Eval.eval_with_fuel Eval.maximumRecursion σ Δ ex with
+  | some v => {
+    unfold Eval.eval at h
+    rw[h_eval_ex] at h
+    simp_all
+    cases h_lookup : Env.lookupVal σ x with
+    | vF p₁ n₁ => {
+      rw[h_lookup] at h
+      cases v with
+      | vF p₂ n₂ => {
+        simp_all
+        cases hp : (decEq p₁ p₂) with
+        | _ => simp_all
+      }
+      | _ => simp_all
+    }
+    | _ => {
+      rw[h_lookup] at h
+      cases v with
+      | _ => simp_all
+    }
   }
+  | none => simp[h_eval_ex] at h
+}
 
 lemma rw_var_sub_int
   (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv) (x y: String) (ex ey: Expr)
