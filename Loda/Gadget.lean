@@ -293,7 +293,7 @@ lemma rw_left_var_in_int_expr (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (x y: String
   }
 
 lemma rw_right_var_in_int_expr (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (x y: String) (ey: Expr) (op: IntegerOp)
-  (hex: Env.lookupVal σ y = (Eval.eval_with_fuel (Eval.maximumRecursion - 1) σ Δ ey))
+  (hey: Env.lookupVal σ y = (Eval.eval_with_fuel (Eval.maximumRecursion - 1) σ Δ ey))
   : Eval.eval σ Δ (Expr.intExpr (Expr.var x) op (Expr.var y)) = Eval.eval σ Δ (Expr.intExpr (Expr.var x) op ey) := by {
     simp_all
   }
@@ -303,6 +303,14 @@ lemma rw_vars_in_int_expr (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (x y: String) (e
   (hey: Env.lookupVal σ y = (Eval.eval_with_fuel (Eval.maximumRecursion - 1) σ Δ ey))
   : Eval.eval σ Δ (Expr.intExpr (Expr.var x) op (Expr.var y)) = Eval.eval σ Δ (Expr.intExpr ex op ey) := by {
     simp_all
+  }
+
+lemma a (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (x y: String) (ex ey: Expr) (op: IntegerOp)
+  (h: PropSemantics.exprToProp σ Δ (Ast.exprEq (Expr.var x) ex))
+  : Env.lookupVal σ x = (Eval.eval_with_fuel (Eval.maximumRecursion) σ Δ ex) := by {
+    unfold PropSemantics.exprToProp exprEq at h
+    simp [decide_eq_true] at h
+    sorry
   }
 
 lemma rw_var_sub_int
