@@ -4,9 +4,14 @@ import Mathlib.Data.Bool.Basic
 
 open Ast
 
-theorem evalprop_deterministic
-  {σ : Env.ValEnv} {Δ : Env.CircuitEnv} {e : Expr} :
-  ∀ {v₁ v₂}, Eval.EvalProp σ Δ e v₁ → Eval.EvalProp σ Δ e v₂ → v₁ = v₂ := sorry
+theorem evalprop_var_deterministic
+  {σ : Env.ValEnv} {Δ : Env.CircuitEnv} {x : String} :
+  ∀ {v₁ v₂}, Eval.EvalProp σ Δ (Expr.var x) v₁ → Eval.EvalProp σ Δ (Expr.var x) v₂ → v₁ = v₂ := by {
+    intro v₁ v₂ h₁ h₂
+    cases h₁
+    cases h₂
+    simp_all
+  }
 
 lemma two_mul_int
   (σ: Env.ValEnv) (Δ: Env.CircuitEnv)
@@ -25,8 +30,8 @@ lemma two_mul_int
       cases ih₂ with
       | @IntOp _ _ _ _ _ i₁ i₂ hi₁ hi₂ hi₃ r₂ => {
         apply Eval.EvalProp.Var at hσx
-        have ieq₁ := @evalprop_deterministic σ Δ (Expr.var x) (Value.vInt i₁) (Value.vInt xv) hi₂ hσx
-        have ieq₂ := @evalprop_deterministic σ Δ (Expr.var x) (Value.vInt i₂) (Value.vInt xv) hi₃ hσx
+        have ieq₁ := @evalprop_var_deterministic σ Δ x (Value.vInt i₁) (Value.vInt xv) hi₂ hσx
+        have ieq₂ := @evalprop_var_deterministic σ Δ x (Value.vInt i₂) (Value.vInt xv) hi₃ hσx
         rw[ieq₁, ieq₂] at r₂
         unfold Eval.evalIntegerOp at r₂
         simp_all
