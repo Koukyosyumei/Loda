@@ -117,7 +117,7 @@ inductive TypeJudgment {σ: Env.ValEnv} {δ: Env.CircuitEnv}:
   -- TE-APP
   | TE_App {Γ: Env.TyEnv} {x₁ x₂: Ast.Expr} {s: String} {τ₁ τ₂: Ast.Ty} {v: Ast.Value}:
     TypeJudgment Γ x₁ (Ast.Ty.func s τ₁ τ₂) →
-    Eval.eval σ δ x₂ = some v →
+    Eval.EvalProp σ δ x₂ v →
     TypeJudgment Γ x₂ τ₁ →
     TypeJudgment Γ (Ast.Expr.app x₁ x₂) τ₂
 
@@ -136,22 +136,22 @@ inductive TypeJudgment {σ: Env.ValEnv} {δ: Env.CircuitEnv}:
 axiom exprIntVSound :
   ∀ (a b : Ast.Expr) (op : Ast.IntegerOp) (σ : Env.ValEnv) (δ : Env.CircuitEnv) (e: Ast.Expr),
   PropSemantics.exprToProp σ δ (Ast.exprEq e (Ast.Expr.intExpr a op b)) →
-  ∃ vv, Eval.eval σ δ e = some (Ast.Value.vInt vv)
+  ∃ vv, Eval.EvalProp σ δ e (Ast.Value.vInt vv)
 
 axiom exprBoolVSound :
   ∀ (a b : Ast.Expr) (op : Ast.BooleanOp) (σ : Env.ValEnv) (δ : Env.CircuitEnv) (e: Ast.Expr),
   PropSemantics.exprToProp σ δ (Ast.exprEq e (Ast.Expr.boolExpr a op b)) →
-  ∃ vv, Eval.eval σ δ e = some (Ast.Value.vBool vv)
+  ∃ vv, Eval.EvalProp σ δ e (Ast.Value.vBool vv)
 
 axiom exprRelVSound :
   ∀ (a b : Ast.Expr) (op : Ast.RelOp) (σ : Env.ValEnv) (δ : Env.CircuitEnv) (e: Ast.Expr),
   PropSemantics.exprToProp σ δ (Ast.exprEq e (Ast.Expr.binRel a op b)) →
-  ∃ vv, Eval.eval σ δ e = some (Ast.Value.vBool vv)
+  ∃ vv, Eval.EvalProp σ δ e (Ast.Value.vBool vv)
 
 axiom exprFielVdSound {p : ℕ} :
   ∀ (a b : Ast.Expr) (op : Ast.FieldOp) (σ : Env.ValEnv) (δ : Env.CircuitEnv) (e: Ast.Expr),
   PropSemantics.exprToProp σ δ (Ast.exprEq e (Ast.Expr.fieldExpr a op b)) →
-  ∃ vv, Eval.eval σ δ e = some (Ast.Value.vF p vv)
+  ∃ vv, Eval.EvalProp σ δ e (Ast.Value.vF p vv)
 
 /--
 If an expression `e` is typed as the refinement `{ v : τ | φ }`,
