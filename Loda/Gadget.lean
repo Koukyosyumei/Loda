@@ -412,6 +412,7 @@ lemma var_prop_implies_lookup (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (x: String) 
   }
 }
 
+/-
 lemma rw_var_sub_int
   (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv) (x y: String) (ex ey: Expr)
   (hΓx : Γ x = Ty.refin Ty.int (Predicate.const (Ast.exprEq (Expr.var x) ex)))
@@ -427,3 +428,4 @@ lemma rw_var_sub_int
   have hσ_y  : Env.lookupVal σ y = (Eval.eval_with_fuel (Eval.maximumRecursion - 1) σ Δ ey) := by sorry
   unfold PropSemantics.predToProp PropSemantics.exprToProp exprEq
   simp_all
+-/
