@@ -17,6 +17,7 @@ open Env
   have h_body := @let_binding_int_op_type_preservation "x" "x" "out" σ Δ Γ
               Ast.IntegerOp.add (Ast.Predicate.const (Ast.Expr.constBool True))
                                 (Ast.Predicate.const (Ast.Expr.constBool True)) hΓ hΓ
+  rw[← h_delta] at hσ
   obtain ⟨vv, hv_eq⟩ := int_refintype_implies_exists_int_value σ Δ Γ "x" (Ast.Predicate.const (Ast.Expr.constBool True))  hΓ hσ
   have h_sub := two_mul_int σ Δ Γ "x" vv hv_eq
   simp [h_delta, Γ, Ast.v] at h_sub h_body
