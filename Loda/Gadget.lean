@@ -190,13 +190,7 @@ lemma bool_and_comm
     simp_all
   }
 
-
-  apply Ty.SubtypeJudgment.TSub_Refine
-  · apply Ty.SubtypeJudgment.TSub_Refl
-  intro h
-  dsimp [PropSemantics.predToProp, Eval.eval, exprEq, decide_eq_true] at h ⊢
-  simp[PropSemantics.exprToProp, hσx, hσy, Eval.evalBoolOp, Bool.and_comm]
-
+/-
 lemma mul_comm_int
   (σ: Env.ValEnv) (Δ: Env.CircuitEnv)
   (Γ: Env.TyEnv) (x y: String) (xv xu: ℤ) (hσx : Env.lookupVal σ x = Value.vInt xv) (hσy : Env.lookupVal σ y = Value.vInt xu)
@@ -264,6 +258,7 @@ lemma add_zero_field {p: ℕ}
   intro h
   dsimp [PropSemantics.predToProp, Eval.eval, exprEq, decide_eq_true] at h ⊢
   simp[PropSemantics.exprToProp, hσx, Eval.maximumRecursion] at ⊢
+-/
 
 lemma isUnit_non_zero (p: ℕ) (x : ZMod p) (hp : Fact p.Prime) : x ≠ 0 ↔ IsUnit x := by
   simp_all
@@ -328,7 +323,7 @@ lemma typed_int_expr_from_refined_vars
   simp [hΓy]
 
 lemma typed_field_expr_from_refined_vars
-  (p: ℕ) (x y: String) (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv)
+  (x y: String) (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv)
   (op: Ast.FieldOp) (φ₁ φ₂: Ast.Predicate)
   (hΓx: Γ x = Ast.Ty.refin (Ast.Ty.field) φ₁) (hΓy: Γ y = Ast.Ty.refin (Ast.Ty.field) φ₂)
   : @Ty.TypeJudgment σ Δ Γ (Ast.Expr.fieldExpr (Ast.Expr.var x) op (Ast.Expr.var y))
@@ -362,7 +357,7 @@ by
     exact hΓ'_z_eq_e1_ty
 
 lemma let_binding_field_op_type_preservation
-  (p : ℕ) (x y z: String) (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ : Env.TyEnv)
+  (x y z: String) (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ : Env.TyEnv)
   (op: Ast.FieldOp) (φ₁ φ₂: Ast.Predicate)
   (hΓx: Γ x = Ast.Ty.refin (Ast.Ty.field) φ₁) (hΓy: Γ y = Ast.Ty.refin (Ast.Ty.field) φ₂) :
   @Ty.TypeJudgment σ Δ Γ
@@ -393,67 +388,28 @@ lemma int_refintype_implies_exists_int_value (σ: Env.ValEnv) (Δ: Env.CircuitEn
   | vInt n => simp_all
   | _ => intro hσ; simp_all
 
-lemma field_refintype_implies_exists_field_value (p: ℕ) (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv) (x: String) (e: Predicate)
-  : (Γ x = (Ty.field).refin e) → PropSemantics.tyenvToProp σ Δ Γ x → ∃ (a: ℤ), Env.lookupVal σ x = Ast.Value.vF a := by
-  intro hx
-  unfold PropSemantics.tyenvToProp
+lemma eval_eq_vals (v₁ v₂: Ast.Value)
+  : Eval.evalRelOp RelOp.eq v₁ v₂ = some true → v₁ = v₂ := by
+  intro h
+  cases v₁ <;> cases v₂ <;> simp [Eval.evalRelOp] at h <;> try contradiction
   simp_all
-  set val := Env.lookupVal σ x
-  cases val with
-  | vF n => {
-    simp_all
-    intro hp
-    sorry
-  }
-  | _ => intro hσ; simp_all
+  congr
 
-lemma rw_left_var_in_int_expr (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (x y: String) (ex: Expr) (op: IntegerOp)
-  (hex: Env.lookupVal σ x = (Eval.eval_with_fuel (Eval.maximumRecursion - 1) σ Δ ex))
-  : Eval.eval σ Δ (Expr.intExpr (Expr.var x) op (Expr.var y)) = Eval.eval σ Δ (Expr.intExpr ex op (Expr.var y)) := by {
-    simp_all
-  }
-
-lemma rw_right_var_in_int_expr (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (x y: String) (ey: Expr) (op: IntegerOp)
-  (hey: Env.lookupVal σ y = (Eval.eval_with_fuel (Eval.maximumRecursion - 1) σ Δ ey))
-  : Eval.eval σ Δ (Expr.intExpr (Expr.var x) op (Expr.var y)) = Eval.eval σ Δ (Expr.intExpr (Expr.var x) op ey) := by {
-    simp_all
-  }
-
-lemma rw_vars_in_int_expr (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (x y: String) (ex ey: Expr) (op: IntegerOp)
-  (hex: Env.lookupVal σ x = (Eval.eval_with_fuel (Eval.maximumRecursion - 1) σ Δ ex))
-  (hey: Env.lookupVal σ y = (Eval.eval_with_fuel (Eval.maximumRecursion - 1) σ Δ ey))
-  : Eval.eval σ Δ (Expr.intExpr (Expr.var x) op (Expr.var y)) = Eval.eval σ Δ (Expr.intExpr ex op ey) := by {
-    simp_all
-  }
 
 lemma var_prop_implies_lookup (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (x: String) (ex: Expr)
   (h: PropSemantics.exprToProp σ Δ (Ast.exprEq (Expr.var x) ex))
-  : Env.lookupVal σ x = (Eval.eval_with_fuel (Eval.maximumRecursion) σ Δ ex) := by {
+  : Eval.EvalProp σ Δ ex (Env.lookupVal σ x) := by {
   unfold PropSemantics.exprToProp Ast.exprEq at h
-
-  cases h_eval_ex : Eval.eval_with_fuel Eval.maximumRecursion σ Δ ex with
-  | some v => {
-    unfold Eval.eval at h
-    rw[h_eval_ex] at h
-    simp_all
-    cases h_lookup : Env.lookupVal σ x with
-    | vF p₁ n₁ => {
-      rw[h_lookup] at h
-      cases v with
-      | vF p₂ n₂ => {
-        simp_all
-        cases hp : (decEq p₁ p₂) with
-        | _ => simp_all
-      }
-      | _ => simp_all
-    }
-    | _ => {
-      rw[h_lookup] at h
-      cases v with
-      | _ => simp_all
+  cases h with
+  | @Rel σ Δ v _ RelOp.eq v₁ v₂ _ ih₁ ih₂ r₁ => {
+    have veq: v₁ = v₂ := eval_eq_vals v₁ v₂ r₁
+    cases ih₁ with
+    | Var vx => {
+      rw[← vx] at veq
+      rw[← veq] at ih₂
+      exact ih₂
     }
   }
-  | none => simp[h_eval_ex] at h
 }
 
 lemma rw_var_sub_int

@@ -16,6 +16,11 @@ and exponentiation.
 @[inline]
 def p : Nat := 21888242871839275222246405745257275088548364400416034343698204186575808495617
 
+instance : NeZero p := ⟨by
+  rw[p]
+  simp_all
+⟩
+
 /-- `F` is the prime field of order `p`, assuming `p` is prime. -/
 abbrev F := ZMod p
 instance [Fact p.Prime] : Field F := ZMod.instField p

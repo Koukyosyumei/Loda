@@ -46,7 +46,7 @@ def evalIntegerOp (op: IntegerOp) : Value → Value → Option Value
 def evalRelOp (op: RelOp) : Value → Value → Option Bool
   | Value.vF i, Value.vF j =>
     some $ match op with
-    | RelOp.eq => i.val % p = j.val % p
+    | RelOp.eq => i = j
     | RelOp.lt => i.val % p < j.val % p
     | RelOp.le => i.val % p ≤ j.val % p
   | Value.vInt i, Value.vInt j =>
