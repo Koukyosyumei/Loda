@@ -21,17 +21,13 @@ def maximumRecursion : Nat := 1000
 /-- Evaluate a field operation `op` on two `Value.field` arguments. -/
 @[simp]
 def evalFieldOp (op: FieldOp) : Value → Value → Option Value
-  | Value.vF p₁ x, Value.vF p₂ y =>
-    if h : p₁ = p₂ then
-      let y' := Eq.mp (by rw [h]) y
-      some $ Value.vF p₁ $
-        match op with
-        | FieldOp.add => x + y'
-        | FieldOp.sub => x - y'
-        | FieldOp.mul => x * y'
-        | FieldOp.div => x * y'.inv
-    else
-      none
+  | Value.vF x, Value.vF y =>
+    some $ Value.vF $
+      match op with
+      | FieldOp.add => x + y
+      | FieldOp.sub => x - y
+      | FieldOp.mul => x * y
+      | FieldOp.div => x * y.inv
   | _, _ => none
 
 /-- Evaluate an integer operation `op` on two `Value.int` arguments. -/
@@ -48,14 +44,11 @@ def evalIntegerOp (op: IntegerOp) : Value → Value → Option Value
 /-- Evaluate a relational operator `op` on two `Value` arguments. -/
 @[simp]
 def evalRelOp (op: RelOp) : Value → Value → Option Bool
-  | Value.vF p₁ i, Value.vF p₂ j =>
-    if h : p₁ = p₂ then
-      some $ match op with
-      | RelOp.eq => i = (Eq.mp (by rw [h]) j)
-      | RelOp.lt => i.val % p₁ < j.val % p₁
-      | RelOp.le => i.val % p₁ ≤ j.val % p₁
-    else
-      none
+  | Value.vF i, Value.vF j =>
+    some $ match op with
+    | RelOp.eq => i.val % p = j.val % p
+    | RelOp.lt => i.val % p < j.val % p
+    | RelOp.le => i.val % p ≤ j.val % p
   | Value.vInt i, Value.vInt j =>
     some $ match op with
     | RelOp.eq => i = j
@@ -75,7 +68,7 @@ def evalBoolOp (op : BooleanOp) : Value → Value → Option Bool
 mutual
   inductive EvalProp : ValEnv → CircuitEnv → Expr → Value → Prop
     -- E‑VALUE
-    | ConstF   {σ Δ p v}  : EvalProp σ Δ (Expr.constF p v) (Value.vF p v)
+    | ConstF   {σ Δ v}  : EvalProp σ Δ (Expr.constF v) (Value.vF v)
     | ConstInt {σ Δ i}    : EvalProp σ Δ (Expr.constInt i) (Value.vInt i)
     | ConstBool{σ Δ b}    : EvalProp σ Δ (Expr.constBool b) (Value.vBool b)
 
@@ -99,10 +92,10 @@ mutual
         EvalProp σ Δ (Expr.app f a) vb
 
     -- E‑FBINOP
-    | FBinOp   {σ Δ e₁ e₂ op p i₁ i₂ v}
-        (ih₁ : EvalProp σ Δ e₁ (Value.vF p i₁))
-        (ih₂ : EvalProp σ Δ e₂ (Value.vF p i₂))
-        (r   : evalFieldOp op (Value.vF p i₁) (Value.vF p i₂) = some v) :
+    | FBinOp   {σ Δ e₁ e₂ op i₁ i₂ v}
+        (ih₁ : EvalProp σ Δ e₁ (Value.vF i₁))
+        (ih₂ : EvalProp σ Δ e₂ (Value.vF i₂))
+        (r   : evalFieldOp op (Value.vF i₁) (Value.vF i₂) = some v) :
         EvalProp σ Δ (Expr.fieldExpr e₁ op e₂) v
 
     -- E‑INTBINOP
@@ -213,7 +206,7 @@ end
 @[simp]
 def eval_with_fuel (fuel: ℕ) (σ : ValEnv) (Δ : CircuitEnv) : Expr → Option (Value)
   -- E-VALUE
-  | Expr.constF p v      => pure (Value.vF p v)
+  | Expr.constF v      => pure (Value.vF v)
   | Expr.constInt i      => pure (Value.vInt i)
   | Expr.constBool b     => pure (Value.vBool b)
 

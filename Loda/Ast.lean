@@ -20,8 +20,6 @@ import Loda.Field
 
 open Std (Format)
 
-variable {p : ℕ} [Fact p.Prime]
-
 namespace Ast
 
 /-- Boolean binary operators. -/
@@ -55,7 +53,7 @@ inductive RelOp where
 mutual
   /-- Core expressions syntax for Loda. -/
   inductive Expr where
-    | constF      : (p: ℕ) → (x : F p) → Expr                            -- field constant
+    | constF      : (x : F) → Expr                            -- field constant
     | constInt    : (n: ℤ) → Expr                                      -- integer constant
     | constBool   : (b: Bool) → Expr                                     -- boolean constant
     | var         : (name: String) → Expr                                -- variable x
@@ -81,7 +79,7 @@ mutual
 
   /-- Runtime values in Loda. -/
   inductive Value where
-    | vF       : (p: ℕ) → (x: F p) → Value
+    | vF       : (x: F) → Value
     | vStar    : Value
     | vInt     : (n: ℤ) → Value
     | vBool    : (b: Bool) → Value
@@ -98,7 +96,7 @@ mutual
   /-- Basic Types in CODA. -/
   inductive Ty where
     | unit     : Ty
-    | field    : (p: ℕ) → Ty                                      -- F p
+    | field    : Ty                                      -- F p
     | int      : Ty                                               -- Int
     | bool     : Ty                                               -- Bool
     | prod     : (tys: List Ty) → Ty                              -- T₁ × ... × Tₙ (unit is prod [])
@@ -111,9 +109,9 @@ end
 
 /-- Test for equality of two `Value`s. -/
 def valueEq : Value → Value → Bool
-  | Value.vF p₁ x, Value.vF p₂ y               => p₁ = p₂ ∧ x.val % p₁ = y.val % p₁
-  | Value.vF _ _, Value.vStar                  => true
-  | Value.vStar, Value.vF _ _                  => true
+  | Value.vF x, Value.vF y                     => x.val % p = y.val % p
+  | Value.vF _, Value.vStar                    => true
+  | Value.vStar, Value.vF _                    => true
   | Value.vStar, Value.vStar                   => true
   | Value.vInt i₁, Value.vInt i₂               => i₁ = i₂
   | Value.vBool b₁, Value.vBool b₂             => b₁ = b₂
@@ -164,7 +162,7 @@ instance : Repr RelOp where
 
 mutual
   partial def exprToString : Expr → String
-    | Expr.constF p x        => s!"F{p}.mk {x.val}"
+    | Expr.constF x        => s!"F {x.val}"
     | Expr.constInt n        => toString n
     | Expr.constBool b       => toString b
     | Expr.var name          => name
@@ -198,7 +196,7 @@ mutual
 
   partial def tyToString : Ty → String
     | Ty.unit           => "unit"
-    | Ty.field p        => s!"F{p}"
+    | Ty.field          => s!"F"
     | Ty.int            => "Int"
     | Ty.bool           => "Bool"
     | Ty.prod tys       =>
@@ -219,7 +217,7 @@ instance : Repr Ty where
 
 /-- Pretty-print a `Value`. -/
 def valueToString : Value → String
-  | Value.vF p x      => s!"F{p}.mk {x.val}"
+  | Value.vF x      => s!"F {x.val}"
   | Value.vStar       => "*"
   | Value.vInt i      => toString i
   | Value.vBool b     => toString b

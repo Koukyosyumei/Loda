@@ -80,28 +80,28 @@ inductive TypeJudgment {σ: Env.ValEnv} {δ: Env.CircuitEnv}:
       TypeJudgment Γ (Ast.Expr.var f) (Ast.Ty.func x τ₁ τ₂)
 
   -- TE-NONDET
-  | TE_Nondet {Γ: Env.TyEnv} {p: ℕ}:
-    TypeJudgment Γ Ast.Expr.wildcard (Ast.Ty.refin (Ast.Ty.field p) (Ast.Predicate.const (Ast.Expr.constBool true)))
+  | TE_Nondet {Γ: Env.TyEnv}:
+    TypeJudgment Γ Ast.Expr.wildcard (Ast.Ty.refin (Ast.Ty.field) (Ast.Predicate.const (Ast.Expr.constBool true)))
 
   -- TE-CONSTI
   | TE_ConstI {Γ: Env.TyEnv} {n: ℕ}:
     TypeJudgment Γ (Ast.Expr.constInt n) (Ast.Ty.refin (Ast.Ty.int) (Ast.Predicate.eq (Ast.Expr.constInt n)))
 
   -- TE-CONSTF
-  | TE_ConstF {Γ: Env.TyEnv} {p: ℕ} {f: F p} :
-    TypeJudgment Γ (Ast.Expr.constF p f) (Ast.Ty.refin (Ast.Ty.field p) (Ast.Predicate.eq (Ast.Expr.constF p f)))
+  | TE_ConstF {Γ: Env.TyEnv} {f: F} :
+    TypeJudgment Γ (Ast.Expr.constF f) (Ast.Ty.refin (Ast.Ty.field) (Ast.Predicate.eq (Ast.Expr.constF f)))
 
   -- TE-ASSERT
-  | TE_Assert {Γ: Env.TyEnv} {e₁ e₂ φ₁ φ₂: Ast.Expr} {φ₁ φ₂: Ast.Predicate} {p: ℕ}:
-    TypeJudgment Γ e₁ (Ast.Ty.refin (Ast.Ty.field p) φ₁) →
-    TypeJudgment Γ e₂ (Ast.Ty.refin (Ast.Ty.field p) φ₂) →
+  | TE_Assert {Γ: Env.TyEnv} {e₁ e₂ φ₁ φ₂: Ast.Expr} {φ₁ φ₂: Ast.Predicate}:
+    TypeJudgment Γ e₁ (Ast.Ty.refin (Ast.Ty.field) φ₁) →
+    TypeJudgment Γ e₂ (Ast.Ty.refin (Ast.Ty.field) φ₂) →
     TypeJudgment Γ (Ast.Expr.assertE e₁ e₂) (Ast.Ty.refin Ast.Ty.unit (Ast.Predicate.const (Ast.exprEq e₁ e₂)))
 
   -- TE-BINOPFIELD
-  | TE_BinOpField {Γ: Env.TyEnv} {e₁ e₂: Ast.Expr} {φ₁ φ₂: Ast.Predicate} {op: Ast.FieldOp} {p: ℕ}:
-    TypeJudgment Γ e₁ (Ast.Ty.refin (Ast.Ty.field p) φ₁) →
-    TypeJudgment Γ e₂ (Ast.Ty.refin (Ast.Ty.field p) φ₂) →
-    TypeJudgment Γ (Ast.Expr.fieldExpr e₁ op e₂) ((Ast.Ty.refin (Ast.Ty.field p) (Ast.Predicate.eq (Ast.Expr.fieldExpr e₁ op e₂))))
+  | TE_BinOpField {Γ: Env.TyEnv} {e₁ e₂: Ast.Expr} {φ₁ φ₂: Ast.Predicate} {op: Ast.FieldOp}:
+    TypeJudgment Γ e₁ (Ast.Ty.refin (Ast.Ty.field) φ₁) →
+    TypeJudgment Γ e₂ (Ast.Ty.refin (Ast.Ty.field) φ₂) →
+    TypeJudgment Γ (Ast.Expr.fieldExpr e₁ op e₂) ((Ast.Ty.refin (Ast.Ty.field) (Ast.Predicate.eq (Ast.Expr.fieldExpr e₁ op e₂))))
 
   -- TE-BINOPINT
   | TE_BinOpInt {Γ: Env.TyEnv} {e₁ e₂: Ast.Expr} {op: Ast.IntegerOp}:
@@ -148,10 +148,10 @@ axiom exprRelVSound :
   PropSemantics.exprToProp σ δ (Ast.exprEq e (Ast.Expr.binRel a op b)) →
   ∃ vv, Eval.EvalProp σ δ e (Ast.Value.vBool vv)
 
-axiom exprFielVdSound {p : ℕ} :
+axiom exprFielVdSound :
   ∀ (a b : Ast.Expr) (op : Ast.FieldOp) (σ : Env.ValEnv) (δ : Env.CircuitEnv) (e: Ast.Expr),
   PropSemantics.exprToProp σ δ (Ast.exprEq e (Ast.Expr.fieldExpr a op b)) →
-  ∃ vv, Eval.EvalProp σ δ e (Ast.Value.vF p vv)
+  ∃ vv, Eval.EvalProp σ δ e (Ast.Value.vF vv)
 
 /--
 If an expression `e` is typed as the refinement `{ v : τ | φ }`,

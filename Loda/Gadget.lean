@@ -20,8 +20,7 @@ lemma two_mul_int
       (pure (Ty.refin Ty.int (Predicate.eq (Expr.intExpr (Expr.var x) IntegerOp.add (Expr.var x)))))
       (pure (Ty.refin Ty.int (Predicate.eq (Expr.intExpr (Expr.constInt 2) IntegerOp.mul (Expr.var x)))))
   := by
-  apply Ty.SubtypeJudgment.TSub_Refine
-  . apply Ty.SubtypeJudgment.TSub_Refl
+  apply Ty.SubtypeJudgment.TSub_Refine Ty.SubtypeJudgment.TSub_Refl
   intro v h
   dsimp [PropSemantics.predToProp, PropSemantics.exprToProp] at h ⊢
   cases h with
@@ -49,20 +48,39 @@ lemma two_mul_int
     simp_all
   }
 
-
-
-lemma two_mul_field {p: ℕ}
+lemma two_mul_field
   (σ: Env.ValEnv) (Δ: Env.CircuitEnv)
-  (Γ: Env.TyEnv) (x: String) (xv: ℕ) (hσx : Env.lookupVal σ x = Value.vF p xv)
+  (Γ: Env.TyEnv) (x: String) (xv: ℕ) (hσx : Env.lookupVal σ x = Value.vF xv)
   : @Ty.SubtypeJudgment σ Δ Γ
-      (pure (Ty.refin (Ty.field p) (Predicate.eq (Expr.fieldExpr (Expr.var x) FieldOp.add (Expr.var x)))))
-      (pure (Ty.refin (Ty.field p) (Predicate.eq (Expr.fieldExpr (Expr.constF p 2) FieldOp.mul (Expr.var x)))))
+      (pure (Ty.refin (Ty.field) (Predicate.eq (Expr.fieldExpr (Expr.var x) FieldOp.add (Expr.var x)))))
+      (pure (Ty.refin (Ty.field) (Predicate.eq (Expr.fieldExpr (Expr.constF 2) FieldOp.mul (Expr.var x)))))
   := by
-  apply Ty.SubtypeJudgment.TSub_Refine
-  · apply Ty.SubtypeJudgment.TSub_Refl
-  intro v
-  dsimp [PropSemantics.predToProp, Eval.eval, exprEq, decide_eq_true] at v ⊢
-  simp[PropSemantics.exprToProp, hσx, Eval.evalIntegerOp, two_mul]
+  apply Ty.SubtypeJudgment.TSub_Refine Ty.SubtypeJudgment.TSub_Refl
+  intro v h
+  cases h with
+  | @Rel σ Δ v _ RelOp.eq v₁ v₂ _ ih₁ ih₂ r₁ => {
+    have hv2 : v₂ = Value.vF (xv + xv) := by
+      cases ih₂ with
+      | @FBinOp _ _ _ _ _ i₁ i₂ hi₁ hi₂ hi₃ r₂ => {
+        apply Eval.EvalProp.Var at hσx
+        have ieq₁ := @evalprop_var_deterministic σ Δ x (Value.vF i₁) (Value.vF xv) hi₂ hσx
+        have ieq₂ := @evalprop_var_deterministic σ Δ x (Value.vF i₂) (Value.vF xv) hi₃ hσx
+        rw[ieq₁, ieq₂] at r₂
+        unfold Eval.evalFieldOp at r₂
+        simp_all
+      }
+    rw[← two_mul] at hv2
+    unfold Eval.evalRelOp at r₁
+    apply Eval.EvalProp.Rel
+    . exact ih₁
+    . apply Eval.EvalProp.FBinOp Eval.EvalProp.ConstF
+      . apply Eval.EvalProp.Var
+        exact hσx
+      unfold Eval.evalFieldOp
+      simp_all
+      rfl
+    simp_all
+  }
 
 lemma add_comm_int
   (σ: Env.ValEnv) (Δ: Env.CircuitEnv)
