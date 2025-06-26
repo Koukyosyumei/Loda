@@ -12,8 +12,8 @@ def mulCircuit : Ast.Circuit := {
 @[simp]
 def addOneCircuit : Ast.Circuit := {
   name   := "assert1",
-  inputs := ("x", Ast.Ty.refin (Ast.Ty.field 5) (Ast.Predicate.eq (Ast.Expr.constF 5 1))),
-  output := ("out", Ast.Ty.refin (Ast.Ty.field 5) (Ast.Predicate.eq (Ast.Expr.fieldExpr (Ast.Expr.constF 5 1) Ast.FieldOp.add (Ast.Expr.constF 5 1)))),
+  inputs := ("x", Ast.Ty.refin (Ast.Ty.field) (Ast.Predicate.eq (Ast.Expr.constF 1))),
+  output := ("out", Ast.Ty.refin (Ast.Ty.field) (Ast.Predicate.eq (Ast.Expr.fieldExpr (Ast.Expr.constF 1) Ast.FieldOp.add (Ast.Expr.constF 1)))),
   body   := (Ast.Expr.letIn "out" (Ast.Expr.fieldExpr (Ast.Expr.var "x") Ast.FieldOp.add (Ast.Expr.var "x")) (Ast.Expr.var "out"))
 }
 
@@ -47,10 +47,8 @@ theorem addOneCircuit_correct : (Ty.circuitCorrect Δ addOneCircuit) := by
   set envs := Ty.makeEnvs addOneCircuit x
   set σ := envs.1
   set Γ := envs.2
-  have hΓ : Γ "x" = Ast.Ty.refin (Ast.Ty.field 5) (Ast.Predicate.eq (Ast.Expr.constF 5 1)) := rfl
-  have h_body := @let_binding_field_op_type_preservation 5 "x" "x" "out" σ Δ Γ
-              Ast.FieldOp.add (Ast.Predicate.eq (Ast.Expr.constF 5 1))
-                                (Ast.Predicate.eq (Ast.Expr.constF 5 1)) hΓ hΓ
-  obtain ⟨vv, hv_eq⟩ := field_refintype_implies_exists_field_value 5 σ Δ Γ "x" (Ast.Predicate.eq (Ast.Expr.constF 5 1)) hΓ hσ
-
+  have hΓ : Γ "x" = Ast.Ty.refin (Ast.Ty.field) (Ast.Predicate.eq (Ast.Expr.constF 1)) := rfl
+  have h_body := @let_binding_field_op_type_preservation "x" "x" "out" σ Δ Γ
+              Ast.FieldOp.add (Ast.Predicate.eq (Ast.Expr.constF 1))
+                                (Ast.Predicate.eq (Ast.Expr.constF 1)) hΓ hΓ
   sorry
