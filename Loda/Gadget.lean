@@ -118,20 +118,32 @@ lemma add_comm_int
     simp_all
   }
 
-lemma add_comm_field {p: ℕ}
+lemma add_comm_field
   (σ: Env.ValEnv) (Δ: Env.CircuitEnv)
-  (Γ: Env.TyEnv) (x y: String) (xv xu: ℕ) (hσx : Env.lookupVal σ x = Value.vF p xv) (hσy : Env.lookupVal σ y = Value.vF p xu)
+  (Γ: Env.TyEnv) (x y: String) (xv yv: ℕ) (hσx : Env.lookupVal σ x = Value.vF xv) (hσy : Env.lookupVal σ y = Value.vF yv)
   : @Ty.SubtypeJudgment σ Δ Γ
-      (pure (Ty.refin (Ty.field p) (Predicate.eq (Expr.fieldExpr (Expr.var x) FieldOp.add (Expr.var y)))))
-      (pure (Ty.refin (Ty.field p) (Predicate.eq (Expr.fieldExpr (Expr.var y) FieldOp.add (Expr.var x)))))
+      (pure (Ty.refin (Ty.field) (Predicate.eq (Expr.fieldExpr (Expr.var x) FieldOp.add (Expr.var y)))))
+      (pure (Ty.refin (Ty.field) (Predicate.eq (Expr.fieldExpr (Expr.var y) FieldOp.add (Expr.var x)))))
   := by
-  apply Ty.SubtypeJudgment.TSub_Refine
-  · apply Ty.SubtypeJudgment.TSub_Refl
-  intro h
-  dsimp [PropSemantics.predToProp, Eval.eval, exprEq, decide_eq_true] at h ⊢
-  simp[PropSemantics.exprToProp, hσx, hσy, Eval.evalIntegerOp, add_comm]
-
-#check Bool.and_comm
+  apply Ty.SubtypeJudgment.TSub_Refine Ty.SubtypeJudgment.TSub_Refl
+  intro v h
+  dsimp [PropSemantics.predToProp, PropSemantics.exprToProp] at h ⊢
+  cases h with
+  | @Rel σ Δ v _ RelOp.eq v₁ v₂ _ ih₁ ih₂ r₁ => {
+    have hv2 : v₂ = Value.vF (xv + yv) := @field_lookup_add σ Δ x y xv yv v₂ hσx hσy ih₂
+    rw [← add_comm] at hv2
+    unfold exprEq
+    apply Eval.EvalProp.Rel
+    . exact ih₁
+    . apply Eval.EvalProp.FBinOp
+      apply Eval.EvalProp.Var
+      exact hσy
+      apply Eval.EvalProp.Var
+      exact hσx
+      simp_all
+      rw[← hv2]
+    simp_all
+  }
 
 lemma bool_and_comm
   (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv)
@@ -244,11 +256,11 @@ lemma mul_inv_field {p: ℕ}
 
 lemma eval_const_int_refin (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv) (e: Ast.Expr) (n: ℕ)
   : @Ty.TypeJudgment σ Δ Γ e (Ty.refin Ty.int (Predicate.eq (Expr.constInt n))) →
-      Eval.eval σ Δ e = (some (Ast.Value.vInt n)) := by {
+      Eval.EvalProp σ Δ e (Ast.Value.vInt n) := by {
   intro h
   cases h with
-  | TE_ConstI => simp_all
-  | TE_VarEnv => sorry
+  | TE_ConstI => apply Eval.EvalProp.ConstInt
+  | TE_VarEnv x a => sorry
   | TE_App a b c => sorry
   | TE_SUB h₀ ht => sorry
   | TE_LetIn h₁ h₂ => sorry
