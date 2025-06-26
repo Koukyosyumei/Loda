@@ -21,7 +21,7 @@ declare_syntax_cat loda_ty
 -- Bracketed “unit” or empty‐tuple:
 syntax "Unit"                                  : loda_ty
 -- Field type with a prime: “F p”
-syntax "F" num                                 : loda_ty
+syntax "F"                                     : loda_ty
 -- Built‐in Int and Bool
 syntax "Int"                                   : loda_ty
 syntax "Bool"                                  : loda_ty
@@ -216,10 +216,9 @@ unsafe def elaborateType (stx : Syntax) : MetaM Ast.Ty := do
   | `(loda_ty| Unit)  => pure (Ast.Ty.refin Ast.Ty.unit (Ast.Predicate.const (Ast.Expr.constBool True)))
   | `(loda_ty| () )   => pure Ast.Ty.unit
 
-  -- Field type “F p”
-  | `(loda_ty| F $p:num) => do
-      let pVal := p.getNat
-      pure (Ast.Ty.field pVal)
+  -- Field type “F”
+  | `(loda_ty| F) => do
+      pure (Ast.Ty.field)
 
   -- Int and Bool
   | `(loda_ty| Int)        => pure (Ast.Ty.refin Ast.Ty.int (Ast.Predicate.const (Ast.Expr.constBool True)))
@@ -270,7 +269,7 @@ unsafe def elaborateExpr (stx : Syntax) : MetaM Ast.Expr := do
   | `(loda_expr| $p:num . $x:num) => do
       let pVal := p.getNat
       let xVal := x.getNat
-      pure (Ast.Expr.constF pVal xVal)
+      pure (Ast.Expr.constF xVal)
 
   -- Boolean literals
   | `(loda_expr| true)  => pure (Ast.Expr.constBool True)
