@@ -29,6 +29,22 @@ lemma int_lookup_add
     simp_all
   }
 
+lemma bool_lookup_and
+  (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (x y: String) (xv yv: Bool) (v: Value)
+  (hσx: Env.lookupVal σ x = Value.vBool xv)  (hσy: Env.lookupVal σ y = Value.vBool yv)
+  (hee: Eval.EvalProp σ Δ (Expr.boolExpr (Expr.var x) BooleanOp.and (Expr.var y)) v):
+  v = Value.vBool (xv && yv) := by
+  cases hee with
+  | @BoolOp _ _ _ _ _ i₁ i₂ hi₁ hi₂ hi₃ r₂ => {
+    apply Eval.EvalProp.Var at hσx
+    apply Eval.EvalProp.Var at hσy
+    have ieq₁ := @evalprop_var_deterministic σ Δ x (Value.vBool i₁) (Value.vBool xv) hi₂ hσx
+    have ieq₂ := @evalprop_var_deterministic σ Δ y (Value.vBool i₂) (Value.vBool yv) hi₃ hσy
+    rw[ieq₁, ieq₂] at r₂
+    unfold Eval.evalBoolOp at r₂
+    simp_all
+  }
+
 lemma field_lookup_add
   (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (x y: String) (xv yv: ℤ) (v: Value)
   (hσx: Env.lookupVal σ x = Value.vF xv)  (hσy: Env.lookupVal σ y = Value.vF yv)
@@ -154,6 +170,27 @@ lemma bool_and_comm
       (pure (Ty.refin Ty.bool (Predicate.eq (Expr.boolExpr (Expr.var x) BooleanOp.and (Expr.var y)))))
       (pure (Ty.refin Ty.bool (Predicate.eq (Expr.boolExpr (Expr.var y) BooleanOp.and (Expr.var x)))))
   := by
+  apply Ty.SubtypeJudgment.TSub_Refine Ty.SubtypeJudgment.TSub_Refl
+  intro v h
+  dsimp [PropSemantics.predToProp, PropSemantics.exprToProp] at h ⊢
+  cases h with
+  | @Rel σ Δ v _ RelOp.eq v₁ v₂ _ ih₁ ih₂ r₁ => {
+    have hv2 : v₂ = Value.vBool (xv && yv) := @bool_lookup_and σ Δ x y xv yv v₂ hσx hσy ih₂
+    rw [← Bool.and_comm] at hv2
+    unfold exprEq
+    apply Eval.EvalProp.Rel
+    . exact ih₁
+    . apply Eval.EvalProp.BoolOp
+      apply Eval.EvalProp.Var
+      exact hσy
+      apply Eval.EvalProp.Var
+      exact hσx
+      simp_all
+      exact xv
+    simp_all
+  }
+
+
   apply Ty.SubtypeJudgment.TSub_Refine
   · apply Ty.SubtypeJudgment.TSub_Refl
   intro h
