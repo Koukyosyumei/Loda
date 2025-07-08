@@ -85,23 +85,84 @@ def sumIter : Ast.Expr :=
         Ast.Expr.intExpr (Ast.Expr.var "acc") Ast.IntegerOp.add (Ast.Expr.var "i"))
     (Ast.Expr.constInt 0)  -- initial accumulator
 
-#eval Eval.eval σ₀ δ₀ sumIter
-
--- sum 0 + 1 + 2 + 3 = 6
-example : Eval.eval σ₀ δ₀ sumIter = some (Ast.Value.vInt 6) := by
-  unfold sumIter
-  simp [Eval.eval]
-  unfold Eval.maximumRecursion
+example: Eval.EvalProp σ₀ δ₀ sumIter (.vInt 6) := by
+  rw[sumIter]
+  apply Eval.EvalProp.Iter
+  apply Eval.EvalProp.ConstInt
+  apply Eval.EvalProp.ConstInt
+  apply Eval.EvalProp.Lam
+  apply Eval.EvalProp.ConstInt
+  apply Eval.EvalLoop.Step
   simp_all
-  unfold Eval.eval_with_fuel.loop
+  rfl
+  apply Eval.EvalProp.Lam
+  rfl
+  apply Eval.EvalProp.IntOp
+  apply Eval.EvalProp.Var
+  unfold Env.lookupVal Env.updateVal
   simp_all
-  unfold Eval.eval_with_fuel.loop
+  rfl
+  apply Eval.EvalProp.Var
+  unfold Env.lookupVal Env.updateVal
   simp_all
-  unfold Eval.eval_with_fuel.loop
+  rfl
+  unfold Eval.evalIntegerOp
   simp_all
-  unfold Eval.eval_with_fuel.loop
+  rfl
   simp_all
-  unfold Eval.eval_with_fuel.loop
-  unfold Env.updateVal
-  unfold Env.lookupVal
+  apply Eval.EvalLoop.Step
+  simp_all
+  rfl
+  apply Eval.EvalProp.Lam
+  rfl
+  apply Eval.EvalProp.IntOp
+  apply Eval.EvalProp.Var
+  unfold Env.lookupVal Env.updateVal
+  simp_all
+  rfl
+  apply Eval.EvalProp.Var
+  unfold Env.lookupVal Env.updateVal
+  simp_all
+  rfl
+  unfold Eval.evalIntegerOp
+  simp_all
+  rfl
+  simp_all
+  apply Eval.EvalLoop.Step
+  simp_all
+  rfl
+  apply Eval.EvalProp.Lam
+  rfl
+  apply Eval.EvalProp.IntOp
+  apply Eval.EvalProp.Var
+  unfold Env.lookupVal Env.updateVal
+  simp_all
+  rfl
+  apply Eval.EvalProp.Var
+  unfold Env.lookupVal Env.updateVal
+  simp_all
+  rfl
+  unfold Eval.evalIntegerOp
+  simp_all
+  rfl
+  simp_all
+  apply Eval.EvalLoop.Step
+  simp_all
+  rfl
+  apply Eval.EvalProp.Lam
+  rfl
+  apply Eval.EvalProp.IntOp
+  apply Eval.EvalProp.Var
+  unfold Env.lookupVal Env.updateVal
+  simp_all
+  rfl
+  apply Eval.EvalProp.Var
+  unfold Env.lookupVal Env.updateVal
+  simp_all
+  rfl
+  unfold Eval.evalIntegerOp
+  simp_all
+  rfl
+  simp_all
+  apply Eval.EvalLoop.Done
   simp_all
