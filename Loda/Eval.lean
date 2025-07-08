@@ -138,13 +138,16 @@ mutual
         EvalProp σ Δ (Expr.prodIdx e i) v
 
     -- E‑ARRCONS
-    | ArrCons  {σ Δ h t vh vt}
-        -- (Value.vArr vt)
+    | ArrConsArr {σ Δ h t vh vs}
         (ihh : EvalProp σ Δ h vh)
-        (iht : EvalProp σ Δ t vt):
-        match vt with
-        | Value.vArr elems => EvalProp σ Δ (Expr.arrCons h t) (Value.vArr (vh :: elems))
-        | _ => EvalProp σ Δ (Expr.arrCons h t) (Value.vArr [vh, vt])
+        (iht : EvalProp σ Δ t (Value.vArr vs)) :
+        EvalProp σ Δ (Expr.arrCons h t) (Value.vArr (vh :: vs))
+
+    | ArrConsElem {σ Δ h t vh vt}
+        (ihh : EvalProp σ Δ h vh)
+        (iht : EvalProp σ Δ t vt)
+        (ne   : ¬ ∃ vs, vt = Value.vArr vs) :
+        EvalProp σ Δ (Expr.arrCons h t) (Value.vArr [vh, vt])
 
 
     /-

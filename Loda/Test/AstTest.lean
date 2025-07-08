@@ -61,21 +61,15 @@ example: Eval.EvalProp σ₀ δ₀ (.binRel (.constInt 3) .le (.constInt 7)) (.v
   unfold Eval.evalRelOp
   simp_all
 
-def literalArr := Ast.Expr.arrCons (.constInt 5) (.arrCons [.constInt 0])
+def literalArr := Ast.Expr.arrCons (.constInt 5) (.constInt 0)
 example: Eval.EvalProp σ₀ δ₀ (.arrLen literalArr) (.vInt 2) := by
   apply Eval.EvalProp.ArrLen
   rw[literalArr]
-  apply Eval.EvalProp.ArrCons
+  apply Eval.EvalProp.ArrConsElem
   apply Eval.EvalProp.ConstInt
-  apply Eval.EvalProp.ArrCons
-
-def literalArr := Ast.Expr.arrCons (Ast.Expr.constInt 5) (Ast.Expr.constInt 0) -- yields [5,0]
-example :
-  Eval.eval σ₀ δ₀ (Ast.Expr.arrLen literalArr) = some (Ast.Value.vInt 2) := by
-    unfold literalArr
-    simp [Eval.eval]
-    unfold Eval.maximumRecursion
-    simp_all
+  apply Eval.EvalProp.ConstInt
+  simp_all
+  rfl
 
 -- --------------------------------------------------
 -- iter: sum from 0 to 4 with accumulator starting at 0
