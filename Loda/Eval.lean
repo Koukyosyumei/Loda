@@ -139,14 +139,26 @@ mutual
 
     -- E‑ARRCONS
     | ArrCons  {σ Δ h t vh vt}
+        -- (Value.vArr vt)
         (ihh : EvalProp σ Δ h vh)
-        (iht : EvalProp σ Δ t (Value.vArr vt)):
-        EvalProp σ Δ (Expr.arrCons h t) (Value.vArr (vh :: vt))
+        (iht : EvalProp σ Δ t vt):
+        match vt with
+        | Value.vArr elems => EvalProp σ Δ (Expr.arrCons h t) (Value.vArr (vh :: elems))
+        | _ => EvalProp σ Δ (Expr.arrCons h t) (Value.vArr [vh, vt])
+
+
+    /-
+    | ArrCons2  {σ Δ h t vh vt}
+        (ihh : EvalProp σ Δ h vh)
+        (iht : EvalProp σ Δ t vt):
+        EvalProp σ Δ (Expr.arrCons h t) (Value.vArr [vh, vt])
+    -/
 
     -- E‑ARRLEN
-    | ArrLen   {σ Δ e vs}
-        (ih  : EvalProp σ Δ e (Value.vArr vs)) :
-        EvalProp σ Δ (Expr.arrLen e) (Value.vInt vs.length)
+    | ArrLen   {σ Δ e vs n}
+        (ih  : EvalProp σ Δ e (Value.vArr vs))
+        (iel : vs.length = n) :
+        EvalProp σ Δ (Expr.arrLen e) (Value.vInt n)
 
     -- E‑ARRIDX
     | ArrIdx   {σ Δ a i vs j v}
