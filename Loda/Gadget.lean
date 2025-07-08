@@ -292,7 +292,10 @@ lemma eval_const_int_refin (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv)
   intro h
   cases h with
   | TE_ConstI => apply Eval.EvalProp.ConstInt
-  | TE_VarEnv x a => sorry
+  | TE_VarEnv x a => {
+      apply Eval.EvalProp.Var
+      sorry
+  }
   | TE_App a b c => sorry
   | TE_SUB h₀ ht => sorry
   | TE_LetIn h₁ h₂ => sorry
