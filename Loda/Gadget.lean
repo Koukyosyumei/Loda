@@ -451,13 +451,14 @@ lemma rw_var
   unfold PropSemantics.tyenvToProp at htyenv
   simp_all
   unfold PropSemantics.predToProp at htyenv
-  unfold PropSemantics.exprToProp exprEq at htyenv
+  unfold PropSemantics.exprToProp at htyenv
   simp_all
   intro h
   cases h with
   | Rel h₁ h₂ e₁ => {
     apply Eval.EvalProp.Rel
     exact h₁
+    obtain ⟨ht₁, ht₂⟩ := htyenv
     sorry
     exact e₁
   }
