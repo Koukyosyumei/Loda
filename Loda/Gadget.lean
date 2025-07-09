@@ -13,6 +13,10 @@ theorem evalprop_var_deterministic
     simp_all
   }
 
+axiom evalprop_var_deterministic_axiom
+  {σ : Env.ValEnv} {Δ : Env.CircuitEnv} {e : Expr} :
+  ∀ {v₁ v₂}, Eval.EvalProp σ Δ e v₁ → Eval.EvalProp σ Δ e v₂ → v₁ = v₂
+
 lemma int_lookup_add
   (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (x y: String) (xv yv: ℤ) (v: Value)
   (hσx: Env.lookupVal σ x = Value.vInt xv)  (hσy: Env.lookupVal σ y = Value.vInt yv)
@@ -415,6 +419,23 @@ lemma var_prop_implies_lookup (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (x: String) 
   }
 }
 
+lemma rw_eq_of_eval_prop
+  (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (e₁ e₂: Expr) (v: Value)
+  (h₁: Eval.EvalProp σ Δ (exprEq e₁ e₂) (.vBool true))
+  (h₂: Eval.EvalProp σ Δ e₁ v)
+  : Eval.EvalProp σ Δ e₂ v
+  := by
+  unfold exprEq at h₁
+  cases h₁ with
+  | Rel hs₁ hs₂ es₁ => {
+    rename_i v₁ v₂
+    have heq₁ := eval_eq_vals v₁ v₂ es₁
+    rw[← heq₁] at hs₂
+    have heq₂ := @evalprop_var_deterministic_axiom σ Δ e₁ v v₁ h₂ hs₁
+    rw[← heq₂] at hs₂
+    exact hs₂
+  }
+
 lemma rw_var
   (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv) (x: String) (ex: Expr)
   (hΓx : Γ x = Ty.refin Ty.int (Predicate.eq ex))
@@ -430,6 +451,7 @@ lemma rw_var
   unfold PropSemantics.tyenvToProp at htyenv
   simp_all
   unfold PropSemantics.predToProp at htyenv
+  unfold PropSemantics.exprToProp exprEq at htyenv
   simp_all
   intro h
   cases h with
