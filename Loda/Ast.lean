@@ -110,8 +110,6 @@ end
 /-- Test for equality of two `Value`s. -/
 def valueEq : Value → Value → Bool
   | Value.vF x, Value.vF y                     => x = y
-  | Value.vF _, Value.vStar                    => true
-  | Value.vStar, Value.vF _                    => true
   | Value.vStar, Value.vStar                   => true
   | Value.vInt i₁, Value.vInt i₂               => i₁ = i₂
   | Value.vBool b₁, Value.vBool b₂             => b₁ = b₂

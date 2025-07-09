@@ -69,8 +69,11 @@ mutual
   inductive EvalProp : ValEnv → CircuitEnv → Expr → Value → Prop
     -- E‑VALUE
     | ConstF   {σ Δ v}  : EvalProp σ Δ (Expr.constF v) (Value.vF v)
-    | ConstInt {σ Δ i}    : EvalProp σ Δ (Expr.constInt i) (Value.vInt i)
-    | ConstBool{σ Δ b}    : EvalProp σ Δ (Expr.constBool b) (Value.vBool b)
+    | ConstInt {σ Δ i}  : EvalProp σ Δ (Expr.constInt i) (Value.vInt i)
+    | ConstBool{σ Δ b}  : EvalProp σ Δ (Expr.constBool b) (Value.vBool b)
+
+    -- E-NONDET
+    | NonDet {σ Δ v}    : EvalProp σ Δ (Expr.wildcard) (Value.vF v)
 
     -- E‑VAR
     | Var      {σ Δ x v}  : lookupVal σ x = v → EvalProp σ Δ (Expr.var x) v

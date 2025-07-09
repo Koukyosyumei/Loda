@@ -368,6 +368,16 @@ lemma int_refintype_implies_exists_int_value (σ: Env.ValEnv) (Δ: Env.CircuitEn
   | vInt n => simp_all
   | _ => intro hσ; simp_all
 
+lemma field_refintype_implies_exists_field_value (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv) (x: String) (e: Predicate)
+  : (Γ x = Ty.field.refin e) → PropSemantics.tyenvToProp σ Δ Γ x → ∃ (a: F), Env.lookupVal σ x = Ast.Value.vF a := by
+  intro hx
+  unfold PropSemantics.tyenvToProp
+  simp_all
+  set val := Env.lookupVal σ x
+  cases val with
+  | vF n => simp_all
+  | _ => intro hσ; simp_all
+
 lemma eval_eq_vals (v₁ v₂: Ast.Value)
   : Eval.evalRelOp RelOp.eq v₁ v₂ = some true → v₁ = v₂ := by
   intro h
