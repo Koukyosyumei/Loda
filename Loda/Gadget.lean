@@ -415,11 +415,38 @@ lemma var_prop_implies_lookup (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (x: String) 
   }
 }
 
+lemma rw_var
+  (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv) (x: String) (ex: Expr)
+  (hΓx : Γ x = Ty.refin Ty.int (Predicate.eq ex))
+  (htyenv: PropSemantics.tyenvToProp σ Δ Γ x)
+  : @Ty.SubtypeJudgment σ Δ Γ
+      (pure (Ty.refin Ty.int (Predicate.eq (Expr.var x))))
+      (pure (Ty.refin Ty.int (Predicate.eq (ex))))
+  := by
+  apply Ty.SubtypeJudgment.TSub_Refine
+  . apply Ty.SubtypeJudgment.TSub_Refl
+  intro v
+  unfold PropSemantics.predToProp PropSemantics.exprToProp exprEq
+  unfold PropSemantics.tyenvToProp at htyenv
+  simp_all
+  unfold PropSemantics.predToProp at htyenv
+  simp_all
+  intro h
+  cases h with
+  | Rel h₁ h₂ e₁ => {
+    apply Eval.EvalProp.Rel
+    exact h₁
+    sorry
+    exact e₁
+  }
+
+
+
 /-
 lemma rw_var_sub_int
   (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv) (x y: String) (ex ey: Expr)
-  (hΓx : Γ x = Ty.refin Ty.int (Predicate.const (Ast.exprEq (Expr.var x) ex)))
-  (hΓy : Γ y = Ty.refin Ty.int (Predicate.const (Ast.exprEq (Expr.var y) ey)))
+  (hΓx : Γ x = Ty.refin Ty.int (Predicate.eq ex))
+  (hΓy : Γ y = Ty.refin Ty.int (Predicate.eq ey))
   : @Ty.SubtypeJudgment σ Δ Γ
       (pure (Ty.refin Ty.int (Predicate.eq (Expr.intExpr (Expr.var x) IntegerOp.add (Expr.var y)))))
       (pure (Ty.refin Ty.int (Predicate.eq (Expr.intExpr ex IntegerOp.add ey))))
@@ -427,8 +454,7 @@ lemma rw_var_sub_int
   apply Ty.SubtypeJudgment.TSub_Refine
   . apply Ty.SubtypeJudgment.TSub_Refl
   intro v
-  have hσ_x  : Env.lookupVal σ x = (Eval.eval_with_fuel (Eval.maximumRecursion - 1) σ Δ ex) := by sorry
-  have hσ_y  : Env.lookupVal σ y = (Eval.eval_with_fuel (Eval.maximumRecursion - 1) σ Δ ey) := by sorry
   unfold PropSemantics.predToProp PropSemantics.exprToProp exprEq
   simp_all
+  sorry
 -/
