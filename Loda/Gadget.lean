@@ -409,7 +409,7 @@ lemma rw_eq_of_eval_prop
     exact hs₂
   }
 
-lemma rw_bop_int_add
+lemma rw_bop_int_add_left
   (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (e₁ e₂ e₃: Expr) (v: Value)
   (h₁: Eval.EvalProp σ Δ (exprEq e₁ e₃) (.vBool true))
   (h₂: Eval.EvalProp σ Δ (.intExpr e₁ IntegerOp.add e₂) v)
@@ -425,7 +425,35 @@ lemma rw_bop_int_add
     | IntOp ha₁ ha₂ ha₃ => {
       rename_i i₁ i₂
       have hv₁ := @evalprop_var_deterministic_axiom σ Δ e₁ v₁ (Value.vInt i₁) hs₁ ha₁
+      apply Eval.EvalProp.IntOp
+      rw[hv₁] at hs₂
+      exact hs₂
+      exact ha₂
+      exact ha₃
+    }
+  }
 
+lemma rw_bop_int_add_right
+  (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (e₁ e₂ e₃: Expr) (v: Value)
+  (h₁: Eval.EvalProp σ Δ (exprEq e₁ e₃) (.vBool true))
+  (h₂: Eval.EvalProp σ Δ (.intExpr e₁ IntegerOp.add e₂) v)
+  : Eval.EvalProp σ Δ (.intExpr e₃ IntegerOp.add e₂) v
+  := by
+  unfold exprEq at h₁
+  cases h₁ with
+  | Rel hs₁ hs₂ es₁ => {
+    rename_i v₁ v₂
+    have heq₁ := eval_eq_vals v₁ v₂ es₁
+    rw[← heq₁] at hs₂
+    cases h₂ with
+    | IntOp ha₁ ha₂ ha₃ => {
+      rename_i i₁ i₂
+      have hv₁ := @evalprop_var_deterministic_axiom σ Δ e₁ v₁ (Value.vInt i₁) hs₁ ha₁
+      apply Eval.EvalProp.IntOp
+      rw[hv₁] at hs₂
+      exact hs₂
+      exact ha₂
+      exact ha₃
     }
   }
 
