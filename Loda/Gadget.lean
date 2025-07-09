@@ -531,3 +531,45 @@ lemma rw_var_sub_int_add
     unfold Eval.evalRelOp
     simp_all
   }
+
+lemma rw_const_add
+  (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (n₁ n₂ n₃: ℤ) (v: Value)
+  (hn: n₁ + n₂ = n₃)
+  (h: Eval.EvalProp σ Δ (.intExpr (.constInt n₁) .add (.constInt n₂)) v)
+  : Eval.EvalProp σ Δ (.constInt n₃) v
+  := by
+  cases h with
+  | IntOp ih₁ ih₂ r => {
+    rename_i i₁ i₂
+    unfold Eval.evalIntegerOp at r
+    simp_all
+    cases ih₁
+    cases ih₂
+    rw[hn] at r
+    rw[← r]
+    apply Eval.EvalProp.ConstInt
+  }
+
+lemma subtype_const_add_rw
+  (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv) (n₁ n₂ n₃: ℤ)
+  (hn: n₁ + n₂ = n₃)
+  : @Ty.SubtypeJudgment σ Δ Γ
+      (pure (Ty.refin Ty.int (Predicate.eq (.intExpr (.constInt n₁) .add (.constInt n₂)))))
+      (pure (Ty.refin Ty.int (Predicate.eq (.constInt (n₃)))))
+  := by
+  apply Ty.SubtypeJudgment.TSub_Refine
+  . apply Ty.SubtypeJudgment.TSub_Refl
+  intro v
+  unfold PropSemantics.predToProp PropSemantics.exprToProp exprEq
+  simp_all
+  intro h
+  cases h with
+  | Rel ih₁ ih₂ r => {
+    rename_i v₁ v₂
+    apply Eval.EvalProp.Rel
+    exact ih₁
+    apply Eval.EvalProp.ConstInt
+    have hn₃ := @rw_const_add σ Δ n₁ n₂ n₃ v₂ hn ih₂
+    cases hn₃
+    exact r
+  }
