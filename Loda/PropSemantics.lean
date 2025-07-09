@@ -36,12 +36,12 @@ match Γ ident, Env.lookupVal σ ident with
 -- refinement types: check base-type match and predicate
 | Ast.Ty.refin baseTy pred, val =>
   (match baseTy, val with
-  | Ast.Ty.field,  Ast.Value.vF _        => True
+  | Ast.Ty.field,    Ast.Value.vF _      => True
+  | Ast.Ty.field,    Ast.Value.vStar     => True
   | Ast.Ty.int,      Ast.Value.vInt _    => True
   | Ast.Ty.bool,     Ast.Value.vBool _   => True
   | Ast.Ty.prod tys, Ast.Value.vProd vs  => vs.length = tys.length
   | Ast.Ty.arr _,    Ast.Value.vArr _    => True
-  --| _,               Ast.Value.vStar     => True
   | _,               _                   => False
   ) ∧
   predToProp σ Δ pred (Ast.Expr.var ident)
