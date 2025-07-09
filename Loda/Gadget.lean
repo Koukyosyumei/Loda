@@ -290,33 +290,6 @@ lemma mul_inv_field {p: ℕ}
   exact hxv_ne_zero
 -/
 
-lemma eval_const_int_refin (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv) (e: Ast.Expr) (n: ℕ)
-  : @Ty.TypeJudgment σ Δ Γ e (Ty.refin Ty.int (Predicate.eq (Expr.constInt n))) →
-      Eval.EvalProp σ Δ e (Ast.Value.vInt n) := by {
-  intro h
-  cases h with
-  | TE_ConstI => apply Eval.EvalProp.ConstInt
-  | TE_VarEnv x a => {
-      apply Eval.EvalProp.Var
-      sorry
-  }
-  | TE_App a b c => sorry
-  | TE_SUB h₀ ht => sorry
-  | TE_LetIn h₁ h₂ => sorry
-  }
-
-lemma eval_const_field_refin (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv) (e: Ast.Expr) (p n: ℕ)
-  : @Ty.TypeJudgment σ Δ Γ e (Ty.refin (Ty.field) (Predicate.eq (Expr.constF n))) →
-      Eval.eval σ Δ e = (some (Ast.Value.vF n)) := by {
-  intro h
-  cases h with
-  | TE_ConstF => simp_all
-  | TE_VarEnv => sorry
-  | TE_App a b c => sorry
-  | TE_SUB h₀ ht => sorry
-  | TE_LetIn h₁ h₂ => sorry
-  }
-
 lemma typed_int_expr_from_refined_vars
   (x y: String) (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv)
   (op: Ast.IntegerOp) (φ₁ φ₂: Ast.Predicate)
@@ -436,7 +409,27 @@ lemma rw_eq_of_eval_prop
     exact hs₂
   }
 
-lemma rw_var
+lemma rw_bop_int_add
+  (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (e₁ e₂ e₃: Expr) (v: Value)
+  (h₁: Eval.EvalProp σ Δ (exprEq e₁ e₃) (.vBool true))
+  (h₂: Eval.EvalProp σ Δ (.intExpr e₁ IntegerOp.add e₂) v)
+  : Eval.EvalProp σ Δ (.intExpr e₃ IntegerOp.add e₂) v
+  := by
+  unfold exprEq at h₁
+  cases h₁ with
+  | Rel hs₁ hs₂ es₁ => {
+    rename_i v₁ v₂
+    have heq₁ := eval_eq_vals v₁ v₂ es₁
+    rw[← heq₁] at hs₂
+    cases h₂ with
+    | IntOp ha₁ ha₂ ha₃ => {
+      rename_i i₁ i₂
+      have hv₁ := @evalprop_var_deterministic_axiom σ Δ e₁ v₁ (Value.vInt i₁) hs₁ ha₁
+
+    }
+  }
+
+lemma rw_var_sub_int
   (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv) (x: String) (ex: Expr)
   (hΓx : Γ x = Ty.refin Ty.int (Predicate.eq ex))
   (htyenv: PropSemantics.tyenvToProp σ Δ Γ x)
@@ -449,7 +442,6 @@ lemma rw_var
   intro v
   unfold PropSemantics.predToProp PropSemantics.exprToProp exprEq
   unfold PropSemantics.tyenvToProp at htyenv
-  simp_all
   unfold PropSemantics.predToProp at htyenv
   unfold PropSemantics.exprToProp at htyenv
   simp_all
@@ -459,17 +451,18 @@ lemma rw_var
     apply Eval.EvalProp.Rel
     exact h₁
     obtain ⟨ht₁, ht₂⟩ := htyenv
-    sorry
+    rename_i v₁ v₂
+    have h₃ := @rw_eq_of_eval_prop σ Δ (.var x) ex v₂ ht₂ h₂
+    exact h₃
     exact e₁
   }
 
-
-
-/-
-lemma rw_var_sub_int
+lemma rw_var_sub_int_add
   (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv) (x y: String) (ex ey: Expr)
   (hΓx : Γ x = Ty.refin Ty.int (Predicate.eq ex))
   (hΓy : Γ y = Ty.refin Ty.int (Predicate.eq ey))
+  (ht₁: PropSemantics.tyenvToProp σ Δ Γ x)
+  (ht₂: PropSemantics.tyenvToProp σ Δ Γ y)
   : @Ty.SubtypeJudgment σ Δ Γ
       (pure (Ty.refin Ty.int (Predicate.eq (Expr.intExpr (Expr.var x) IntegerOp.add (Expr.var y)))))
       (pure (Ty.refin Ty.int (Predicate.eq (Expr.intExpr ex IntegerOp.add ey))))
@@ -477,7 +470,22 @@ lemma rw_var_sub_int
   apply Ty.SubtypeJudgment.TSub_Refine
   . apply Ty.SubtypeJudgment.TSub_Refl
   intro v
-  unfold PropSemantics.predToProp PropSemantics.exprToProp exprEq
+  unfold PropSemantics.predToProp PropSemantics.exprToProp
   simp_all
-  sorry
--/
+  unfold PropSemantics.tyenvToProp at ht₁ ht₂
+  unfold PropSemantics.predToProp at ht₁ ht₂
+  unfold PropSemantics.exprToProp at ht₁ ht₂
+  simp_all
+  intro h
+  cases h with
+  | Rel h₁ h₂ e₁ => {
+    rename_i v₁ v₂
+    have heq₁ := eval_eq_vals v₁ v₂ e₁
+    rw[← heq₁] at h₂
+    obtain ⟨hto₁, htp₁⟩ := ht₁
+    obtain ⟨hto₂, htp₂⟩ := ht₂
+    apply Eval.EvalProp.Rel
+    exact h₁
+    sorry
+    exact e₁
+  }
