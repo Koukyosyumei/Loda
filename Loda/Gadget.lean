@@ -435,27 +435,39 @@ lemma rw_bop_int_add_left
 
 lemma rw_bop_int_add_right
   (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (e₁ e₂ e₃: Expr) (v: Value)
-  (h₁: Eval.EvalProp σ Δ (exprEq e₁ e₃) (.vBool true))
+  (h₁: Eval.EvalProp σ Δ (exprEq e₂ e₃) (.vBool true))
   (h₂: Eval.EvalProp σ Δ (.intExpr e₁ IntegerOp.add e₂) v)
-  : Eval.EvalProp σ Δ (.intExpr e₃ IntegerOp.add e₂) v
+  : Eval.EvalProp σ Δ (.intExpr e₁ IntegerOp.add e₃) v
   := by
   unfold exprEq at h₁
   cases h₁ with
-  | Rel hs₁ hs₂ es₁ => {
-    rename_i v₁ v₂
-    have heq₁ := eval_eq_vals v₁ v₂ es₁
-    rw[← heq₁] at hs₂
+  | Rel hs₂ hs₃ es => {
+    rename_i v₂ v₃
+    have heq₁ := eval_eq_vals v₂ v₃ es
+    rw[← heq₁] at hs₃
     cases h₂ with
     | IntOp ha₁ ha₂ ha₃ => {
       rename_i i₁ i₂
-      have hv₁ := @evalprop_var_deterministic_axiom σ Δ e₁ v₁ (Value.vInt i₁) hs₁ ha₁
+      have hv₂ := @evalprop_var_deterministic_axiom σ Δ e₂ v₂ (Value.vInt i₂) hs₂ ha₂
       apply Eval.EvalProp.IntOp
-      rw[hv₁] at hs₂
-      exact hs₂
-      exact ha₂
+      rw[hv₂] at hs₃
+      exact ha₁
+      rw[hv₂] at hs₃
+      exact hs₃
       exact ha₃
     }
   }
+
+lemma rw_bop_int_add
+  (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (e₁ e₂ e₃ e₄: Expr) (v: Value)
+  (h₁: Eval.EvalProp σ Δ (exprEq e₁ e₃) (.vBool true))
+  (h₂: Eval.EvalProp σ Δ (exprEq e₂ e₄) (.vBool true))
+  (h₃: Eval.EvalProp σ Δ (.intExpr e₁ IntegerOp.add e₂) v)
+  : Eval.EvalProp σ Δ (.intExpr e₃ IntegerOp.add e₄) v
+  := by
+  have htmp₁ := @rw_bop_int_add_left σ Δ e₁ e₂ e₃ v h₁ h₃
+  have htmp₂ := @rw_bop_int_add_right σ Δ e₃ e₂ e₄ v h₂ htmp₁
+  exact htmp₂
 
 lemma rw_var_sub_int
   (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv) (x: String) (ex: Expr)
@@ -514,6 +526,8 @@ lemma rw_var_sub_int_add
     obtain ⟨hto₂, htp₂⟩ := ht₂
     apply Eval.EvalProp.Rel
     exact h₁
-    sorry
-    exact e₁
+    have htmp₁ := @rw_bop_int_add σ Δ (.var x) (.var y) ex ey v₁ htp₁ htp₂ h₂
+    exact htmp₁
+    unfold Eval.evalRelOp
+    simp_all
   }
