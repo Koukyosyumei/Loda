@@ -38,9 +38,9 @@ match Γ ident, Env.lookupVal σ ident with
   (match baseTy, val with
   | Ast.Ty.field,    Ast.Value.vF _      => True
   --| Ast.Ty.field,    Ast.Value.vStar     => True
-  | Ast.Ty.int,      Ast.Value.vInt _    => True
+  --| Ast.Ty.int,      Ast.Value.vInt _    => True
   | Ast.Ty.bool,     Ast.Value.vBool _   => True
-  | Ast.Ty.prod tys, Ast.Value.vProd vs  => vs.length = tys.length
+  --| Ast.Ty.prod tys, Ast.Value.vProd vs  => vs.length = tys.length
   | Ast.Ty.arr _,    Ast.Value.vArr _    => True
   | _,               _                   => False
   ) ∧
@@ -48,7 +48,7 @@ match Γ ident, Env.lookupVal σ ident with
 -- bare field and int types
 | Ast.Ty.field, Ast.Value.vF _        => True
 --| Ast.Ty.field,    Ast.Value.vStar    => True
-| Ast.Ty.int,     Ast.Value.vInt _    => True
+--| Ast.Ty.int,     Ast.Value.vInt _    => True
 | Ast.Ty.bool,    Ast.Value.vBool _   => True
 -- any other case is false
 | _, _ => False

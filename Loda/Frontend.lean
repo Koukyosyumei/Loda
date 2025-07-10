@@ -21,9 +21,9 @@ declare_syntax_cat loda_ty
 -- Bracketed “unit” or empty‐tuple:
 syntax "Unit"                                  : loda_ty
 -- Field type with a prime: “F p”
-syntax "F"                                     : loda_ty
+syntax "Field"                                     : loda_ty
 -- Built‐in Int and Bool
-syntax "Int"                                   : loda_ty
+--syntax "Int"                                   : loda_ty
 syntax "Bool"                                  : loda_ty
 
 -- Product types: “(T1 , T2 , … , Tn)” or “()” for unit
@@ -140,7 +140,7 @@ unsafe def elaborateProp (stx : Syntax) : MetaM Ast.Expr := do
   match stx with
   | `(term| $n:num) => do
       let v := n.getNat
-      pure (Ast.Expr.constInt v)
+      pure (Ast.Expr.constF v)
 
   -- Boolean literals
   | `(term| True)  => pure (Ast.Expr.constBool True)
@@ -159,12 +159,12 @@ unsafe def elaborateProp (stx : Syntax) : MetaM Ast.Expr := do
   | `(term| $e1:term + $e2:term) => do
       let e1' ← elaborateProp e1
       let e2' ← elaborateProp e2
-      pure (Ast.Expr.intExpr e1' Ast.IntegerOp.add e2')
+      pure (Ast.Expr.fieldExpr e1' Ast.FieldOp.add e2')
 
   | `(term| $e1:term * $e2:term) => do
       let e1' ← elaborateProp e1
       let e2' ← elaborateProp e2
-      pure (Ast.Expr.intExpr e1' Ast.IntegerOp.mul e2')
+      pure (Ast.Expr.fieldExpr e1' Ast.FieldOp.mul e2')
 
   -- φ && ψ  or φ ∧ ψ
   | `(term| $φ:term && $ψ:term) => do
@@ -217,19 +217,22 @@ unsafe def elaborateType (stx : Syntax) : MetaM Ast.Ty := do
   | `(loda_ty| () )   => pure Ast.Ty.unit
 
   -- Field type “F”
-  | `(loda_ty| F) => do
-      pure (Ast.Ty.field)
+  --| `(loda_ty| Field) => do
+  --    pure (Ast.Ty.field)
 
   -- Int and Bool
-  | `(loda_ty| Int)        => pure (Ast.Ty.refin Ast.Ty.int (Ast.Predicate.const (Ast.Expr.constBool True)))
+  --| `(loda_ty| Int)        => pure (Ast.Ty.refin Ast.Ty.int (Ast.Predicate.const (Ast.Expr.constBool True)))
+  | `(loda_ty| Field)        => pure (Ast.Ty.refin Ast.Ty.field (Ast.Predicate.const (Ast.Expr.constBool True)))
   | `(loda_ty| Bool)       => pure Ast.Ty.bool
 
   -- Product types: “( T1 , T2 , … )”
+  /-
   | `(loda_ty| ( $ts,* ) ) => do
       let tys ← ts.getElems.toList.mapM fun elem => elaborateType elem
       match tys with
       | []      => pure Ast.Ty.unit
       | _       => pure (Ast.Ty.prod tys)
+   -/
 
   -- Array type: “[T]”
   | `(loda_ty| [ $t:loda_ty ]) => do
@@ -239,7 +242,8 @@ unsafe def elaborateType (stx : Syntax) : MetaM Ast.Ty := do
   -- Refinement: “{ x : T | φ }”
   | `(loda_ty| { $T:loda_ty | $φ:term } ) => do
       let T' ← match T with
-      | `(loda_ty| Int) => pure Ast.Ty.int
+      --| `(loda_ty| Int) => pure Ast.Ty.int
+      | `(loda_ty| Field) => pure Ast.Ty.field
       | `(loda_ty| Bool) => pure Ast.Ty.bool
       | _ => throwError "unsupported type syntax: {stx}"
       -- We want to turn `φ` (a Lean `term`) into an `Ast.Expr` (of Boolean sort).
@@ -261,9 +265,11 @@ unsafe def elaborateType (stx : Syntax) : MetaM Ast.Ty := do
 unsafe def elaborateExpr (stx : Syntax) : MetaM Ast.Expr := do
   match stx with
   -- Integer literal “123”: → `constInt 123`
+  /-
   | `(loda_expr| $n:num) => do
       let v := n.getNat
       pure (Ast.Expr.constInt v)
+  -/
 
   -- Field literal “p.x”   where `p` and `x` are both numeral tokens
   | `(loda_expr| $p:num . $x:num) => do
@@ -313,17 +319,17 @@ unsafe def elaborateExpr (stx : Syntax) : MetaM Ast.Expr := do
   | `(loda_expr| $e1 + $e2) => do
       let e1' ← elaborateExpr e1
       let e2' ← elaborateExpr e2
-      pure (Ast.Expr.intExpr e1' Ast.IntegerOp.add e2')
+      pure (Ast.Expr.fieldExpr e1' Ast.FieldOp.add e2')
 
   | `(loda_expr| $e1 - $e2) => do
       let e1' ← elaborateExpr e1
       let e2' ← elaborateExpr e2
-      pure (Ast.Expr.intExpr e1' Ast.IntegerOp.sub e2')
+      pure (Ast.Expr.fieldExpr e1' Ast.FieldOp.sub e2')
 
   | `(loda_expr| $e1 * $e2) => do
       let e1' ← elaborateExpr e1
       let e2' ← elaborateExpr e2
-      pure (Ast.Expr.intExpr e1' Ast.IntegerOp.mul e2')
+      pure (Ast.Expr.fieldExpr e1' Ast.FieldOp.mul e2')
 
   -- Field operations: “fadd e1 e2”, “fsub e1 e2”, “fmul e1 e2”, “fdiv e1 e2”
   | `(loda_expr| $e1 fadd $e2) => do
@@ -398,6 +404,7 @@ unsafe def elaborateExpr (stx : Syntax) : MetaM Ast.Expr := do
       pure (Ast.Expr.arrIdx a' i')
 
   -- Tuple “( )” or “( e1 , e2 , … )”
+  /-
   | `(loda_expr| ( ) ) => pure (Ast.Expr.prodCons [])   -- empty tuple
   | `(loda_expr| ( $es,* ) ) => do
       let elems ← es.getElems.toList.mapM elaborateExpr
@@ -415,6 +422,7 @@ unsafe def elaborateExpr (stx : Syntax) : MetaM Ast.Expr := do
       let e' ← elaborateExpr e
       let idx := i.getNat
       pure (Ast.Expr.prodIdx e' idx)
+  -/
 
   -- Lambda:  “lam x : T => body”
   | `(loda_expr| lam $x:ident : $T:loda_ty => $body) => do

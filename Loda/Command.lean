@@ -24,7 +24,6 @@ unsafe def elabLodaCircuitRegister : Elab.Command.CommandElab := fun stx =>
   | _ => Elab.throwUnsupportedSyntax
 
 syntax (name := loda_check) "#loda_check" ident : command
-
 @[command_elab loda_check]
 unsafe def elabLodaCircuitCheck : Elab.Command.CommandElab
   | `(command| #loda_check $cName:ident) => do
@@ -33,6 +32,7 @@ unsafe def elabLodaCircuitCheck : Elab.Command.CommandElab
     logInfo m!"Successfully elaborated circuit {repr circ}"
   | _ => Elab.throwUnsupportedSyntax
 
+/-
 syntax (name := loda_eval) "#loda_eval" ident (ident "=" loda_expr)* : command
 
 @[command_elab loda_eval]
@@ -54,9 +54,9 @@ unsafe def elabLodaEval : Elab.Command.CommandElab
     | some output => logInfo m!"→ {repr output}"
     | _ => logInfo m!"→ none"
   | _ => Elab.throwUnsupportedSyntax
+-/
 
 syntax (name := loda_prove) "#loda_prove" ident ":=" "by" tacticSeq: command
-
 
 @[command_elab loda_prove]
 unsafe def elabLodaProve : Elab.Command.CommandElab

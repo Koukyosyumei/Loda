@@ -4,17 +4,17 @@ import Loda.Gadget
 @[simp]
 def mulCircuit : Ast.Circuit := {
   name   := "mul",
-  inputs := ("x", Ast.Ty.refin Ast.Ty.int (Ast.Predicate.const (Ast.Expr.constBool true))),
-  output := ("out", Ast.Ty.refin (Ast.Ty.int) (Ast.Predicate.eq (Ast.Expr.intExpr (Ast.Expr.constInt 2) Ast.IntegerOp.mul (Ast.Expr.var "x")))),
-  body   := (Ast.Expr.letIn "out" (Ast.Expr.intExpr (Ast.Expr.var "x") Ast.IntegerOp.add (Ast.Expr.var "x")) (Ast.Expr.var "out"))
+  inputs := ("x", Ast.Ty.refin Ast.Ty.field (Ast.Predicate.const (Ast.Expr.constBool true))),
+  output := ("out", Ast.Ty.refin (Ast.Ty.field) (Ast.Predicate.eq (Ast.Expr.fieldExpr (Ast.Expr.constF 2) Ast.FieldOp.mul (Ast.Expr.var "x")))),
+  body   := (Ast.Expr.letIn "out" (Ast.Expr.fieldExpr (Ast.Expr.var "x") Ast.FieldOp.add (Ast.Expr.var "x")) (Ast.Expr.var "out"))
 }
 
 @[simp]
 def addOneCircuit : Ast.Circuit := {
   name   := "assert1",
-  inputs := ("x", Ast.Ty.refin (Ast.Ty.int) (Ast.Predicate.eq (Ast.Expr.constInt 1))),
-  output := ("out", Ast.Ty.refin (Ast.Ty.int) (Ast.Predicate.eq (Ast.Expr.intExpr (Ast.Expr.constInt 1) Ast.IntegerOp.add (Ast.Expr.constInt 1)))),
-  body   := (Ast.Expr.letIn "out" (Ast.Expr.intExpr (Ast.Expr.var "x") Ast.IntegerOp.add (Ast.Expr.var "x")) (Ast.Expr.var "out"))
+  inputs := ("x", Ast.Ty.refin (Ast.Ty.field) (Ast.Predicate.eq (Ast.Expr.constF 1))),
+  output := ("out", Ast.Ty.refin (Ast.Ty.field) (Ast.Predicate.eq (Ast.Expr.fieldExpr (Ast.Expr.constF 1) Ast.FieldOp.add (Ast.Expr.constF 1)))),
+  body   := (Ast.Expr.letIn "out" (Ast.Expr.fieldExpr (Ast.Expr.var "x") Ast.FieldOp.add (Ast.Expr.var "x")) (Ast.Expr.var "out"))
 }
 
 def Δ : Env.CircuitEnv := [("mul", mulCircuit), ("addOne", addOneCircuit)]
@@ -27,17 +27,16 @@ theorem mulCircuit_correct : (Ty.circuitCorrect Δ mulCircuit) := by
   set envs := Ty.makeEnvs mulCircuit x
   set σ := envs.1
   set Γ := envs.2
-  have hΓ : Γ "x" = (Ast.Ty.int.refin (Ast.Predicate.const (Ast.Expr.constBool true))) := rfl
-  have h_body := @let_binding_int_op_type_preservation "x" "x" "out" σ Δ Γ
-              Ast.IntegerOp.add (Ast.Predicate.const (Ast.Expr.constBool true))
+  have hΓ : Γ "x" = (Ast.Ty.field.refin (Ast.Predicate.const (Ast.Expr.constBool true))) := rfl
+  have h_body := @let_binding_field_op_type_preservation "x" "x" "out" σ Δ Γ
+              Ast.FieldOp.add (Ast.Predicate.const (Ast.Expr.constBool true))
                                 (Ast.Predicate.const (Ast.Expr.constBool true)) hΓ hΓ
-  obtain ⟨vv, hv_eq⟩ := int_refintype_implies_exists_int_value σ Δ Γ "x" (Ast.Predicate.const (Ast.Expr.constBool true)) hΓ hσ
-  have h_sub := two_mul_int σ Δ Γ "x" vv hv_eq
+  obtain ⟨vv, hv_eq⟩ := field_refintype_implies_exists_field_value σ Δ Γ "x" (Ast.Predicate.const (Ast.Expr.constBool true)) hΓ hσ
+  have h_sub := two_mul_field σ Δ Γ "x" vv hv_eq
   exact Ty.TypeJudgment.TE_SUB h_sub h_body
 
-def σ : Env.ValEnv := [("x", Ast.Value.vInt 5)]
-def Γ : Env.TyEnv := fun _ => Ast.Ty.refin Ast.Ty.int (Ast.Predicate.eq (Ast.Expr.constBool true))
-#eval Eval.eval σ Δ mulCircuit.body
+def σ : Env.ValEnv := [("x", Ast.Value.vF 5)]
+def Γ : Env.TyEnv := fun _ => Ast.Ty.refin Ast.Ty.field (Ast.Predicate.eq (Ast.Expr.constBool true))
 
 theorem addOneCircuit_correct : (Ty.circuitCorrect Δ addOneCircuit) := by
   unfold Ty.circuitCorrect
@@ -47,9 +46,9 @@ theorem addOneCircuit_correct : (Ty.circuitCorrect Δ addOneCircuit) := by
   set envs := Ty.makeEnvs addOneCircuit x
   set σ := envs.1
   set Γ := envs.2
-  have hΓ : Γ "x" = Ast.Ty.refin (Ast.Ty.int) (Ast.Predicate.eq (Ast.Expr.constInt 1)) := rfl
-  have h_body := @let_binding_int_op_type_preservation "x" "x" "out" σ Δ Γ
-              Ast.IntegerOp.add (Ast.Predicate.eq (Ast.Expr.constInt 1))
-                                (Ast.Predicate.eq (Ast.Expr.constInt 1)) hΓ hΓ
-  have h_sub := @rw_var_sub_int_add σ Δ Γ "x" "x" (.constInt 1) (.constInt 1) hΓ hΓ hσ hσ
+  have hΓ : Γ "x" = Ast.Ty.refin (Ast.Ty.field) (Ast.Predicate.eq (Ast.Expr.constF 1)) := rfl
+  have h_body := @let_binding_field_op_type_preservation "x" "x" "out" σ Δ Γ
+              Ast.FieldOp.add (Ast.Predicate.eq (Ast.Expr.constF 1))
+                                (Ast.Predicate.eq (Ast.Expr.constF 1)) hΓ hΓ
+  have h_sub := @rw_var_sub_int_add σ Δ Γ "x" "x" (.constF 1) (.constF 1) hΓ hΓ hσ hσ
   exact Ty.TypeJudgment.TE_SUB h_sub h_body

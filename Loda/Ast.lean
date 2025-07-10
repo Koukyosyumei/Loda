@@ -54,13 +54,13 @@ mutual
   /-- Core expressions syntax for Loda. -/
   inductive Expr where
     | constF      : (x : F) → Expr                            -- field constant
-    | constInt    : (n: ℤ) → Expr                                      -- integer constant
+    --| constInt    : (n: ℤ) → Expr                                      -- integer constant
     | constBool   : (b: Bool) → Expr                                     -- boolean constant
     | var         : (name: String) → Expr                                -- variable x
     | wildcard    : Expr                                                 -- ⋆
     | assertE     : (lhs: Expr) → (rhs: Expr) → Expr                     -- assert e₁ = e₂
     | boolExpr    : (lhs: Expr) → (op: BooleanOp) → (rhs: Expr) → Expr
-    | intExpr     : (lhs: Expr) → (op: IntegerOp) → (rhs: Expr) → Expr
+    --| intExpr     : (lhs: Expr) → (op: IntegerOp) → (rhs: Expr) → Expr
     | fieldExpr   : (lhs: Expr) → (op: FieldOp) → (rhs: Expr) → Expr
     | binRel      : (lhs: Expr) → (op: RelOp) → (rhs: Expr) → Expr       -- e₁ ⊘ e₂
     | circRef     : (name: String) → (arg: Expr) → Expr                  -- #C e₁ ... eₙ
@@ -68,9 +68,9 @@ mutual
     | arrMap      : (f: Expr) → (arr: Expr) → Expr                       -- map e₁ e₂
     | arrLen      : (arr: Expr) → Expr                                   -- length e
     | arrIdx      : (arr: Expr) → (idx: Expr) → Expr                     -- e₁[e₂]
-    | prodCons    : (items: List Expr) → Expr                            -- (e₁, ..., eₙ)
-    | prodMatch   : Expr → List String → Expr → Expr                     -- match e with (x₁,...,xₙ)→e
-    | prodIdx     : (tuple: Expr) → (idx: Nat) → Expr                    -- e.i
+    --| prodCons    : (items: List Expr) → Expr                            -- (e₁, ..., eₙ)
+    --| prodMatch   : Expr → List String → Expr → Expr                     -- match e with (x₁,...,xₙ)→e
+    --| prodIdx     : (tuple: Expr) → (idx: Nat) → Expr                    -- e.i
     | lam         : (param: String) → (τ: Ty) → (body: Expr) → Expr      -- λx : τ. e
     | app         : (f: Expr) → (arg: Expr) → Expr                       -- e₁ e₂
     | letIn       : (name: String) → (val: Expr) → (body: Expr) → Expr   -- let x = e₁ in e₂
@@ -81,9 +81,9 @@ mutual
   inductive Value where
     | vF       : (x: F) → Value
     | vStar    : Value
-    | vInt     : (n: ℤ) → Value
+    --| vInt     : (n: ℤ) → Value
     | vBool    : (b: Bool) → Value
-    | vProd    : (elems: List Value) → Value
+    --| vProd    : (elems: List Value) → Value
     | vArr     : (elems: List Value) → Value
     | vClosure : (param: String) → (body: Expr) → (σ: List (String × Value)) → Value
     deriving Lean.ToExpr
@@ -97,9 +97,9 @@ mutual
   inductive Ty where
     | unit     : Ty
     | field    : Ty                                      -- F p
-    | int      : Ty                                               -- Int
+    --| int      : Ty                                               -- Int
     | bool     : Ty                                               -- Bool
-    | prod     : (tys: List Ty) → Ty                              -- T₁ × ... × Tₙ (unit is prod [])
+    --| prod     : (tys: List Ty) → Ty                              -- T₁ × ... × Tₙ (unit is prod [])
     | arr      : (ty: Ty) → Ty                                    -- [T]
     | refin    : (ty: Ty) → (prop: Predicate) → Ty                -- {ν : T | ϕ}
     | func     : (param: String) → (dom: Ty) → (cond: Ty) → Ty    -- x: τ₁ → τ₂
@@ -111,9 +111,9 @@ end
 def valueEq : Value → Value → Bool
   | Value.vF x, Value.vF y                     => x = y
   | Value.vStar, Value.vStar                   => true
-  | Value.vInt i₁, Value.vInt i₂               => i₁ = i₂
+  --| Value.vInt i₁, Value.vInt i₂               => i₁ = i₂
   | Value.vBool b₁, Value.vBool b₂             => b₁ = b₂
-  | Value.vProd vs₁, Value.vProd vs₂           => false -- vs₁.zip vs₂ |>.all fun (u, v) => valueEq u v
+  --| Value.vProd vs₁, Value.vProd vs₂           => false -- vs₁.zip vs₂ |>.all fun (u, v) => valueEq u v
   | Value.vArr vs₁, Value.vArr vs₂             => false -- vs₁.zip vs₂ |>.all fun (u, v) => valueEq u v
   --| Value.vClosure _ _ _, Value.vClosure _ _ _ => false -- closures not comparable
   | _, _                                       => false
@@ -161,13 +161,13 @@ instance : Repr RelOp where
 mutual
   partial def exprToString : Expr → String
     | Expr.constF x        => s!"F {x.val}"
-    | Expr.constInt n        => toString n
+    --| Expr.constInt n        => toString n
     | Expr.constBool b       => toString b
     | Expr.var name          => name
     | Expr.wildcard          => "⋆"
     | Expr.assertE l r       => s!"assert {exprToString l} = {exprToString r}"
     | Expr.boolExpr l op r   => s!"({exprToString l} {repr op} {exprToString r})"
-    | Expr.intExpr l op r    => s!"({exprToString l} {repr op} {exprToString r})"
+    --| Expr.intExpr l op r    => s!"({exprToString l} {repr op} {exprToString r})"
     | Expr.fieldExpr l op r  => s!"({exprToString l} {repr op} {exprToString r})"
     | Expr.binRel l op r     => s!"({exprToString l} {repr op} {exprToString r})"
     | Expr.circRef name arg  => s!"#{name} {exprToString arg}"
@@ -175,13 +175,13 @@ mutual
     | Expr.arrMap f a        => s!"map {exprToString f} {exprToString a}"
     | Expr.arrLen a          => s!"length {exprToString a}"
     | Expr.arrIdx a i        => s!"{exprToString a}[{exprToString i}]"
-    | Expr.prodCons items    =>
-        let strs := items.map exprToString
-        s!"({String.intercalate ", " strs})"
-    | Expr.prodMatch e names body =>
-        let pat := "(" ++ String.intercalate ", " names ++ ")"
-        s!"match {exprToString e} with {pat} → {exprToString body}"
-    | Expr.prodIdx t i       => s!"{exprToString t}.{i}"
+    --| Expr.prodCons items    =>
+    --    let strs := items.map exprToString
+    --    s!"({String.intercalate ", " strs})"
+    --| Expr.prodMatch e names body =>
+    --    let pat := "(" ++ String.intercalate ", " names ++ ")"
+    --    s!"match {exprToString e} with {pat} → {exprToString body}"
+    --| Expr.prodIdx t i       => s!"{exprToString t}.{i}"
     | Expr.lam param τ body  => s!"λ{param} : {tyToString τ}. {exprToString body}"
     | Expr.app f arg         => s!"{exprToString f} {exprToString arg}"
     | Expr.letIn n v b       => s!"let {n} = {exprToString v} in {exprToString b}"
@@ -195,13 +195,13 @@ mutual
   partial def tyToString : Ty → String
     | Ty.unit           => "unit"
     | Ty.field          => s!"F"
-    | Ty.int            => "Int"
+    --| Ty.int            => "Int"
     | Ty.bool           => "Bool"
-    | Ty.prod tys       =>
-        match tys with
-        | [] => "unit"
-        | [t] => tyToString t
-        | _ => "(" ++ String.intercalate " × " (tys.map tyToString) ++ ")"
+    --| Ty.prod tys       =>
+    --    match tys with
+    --    | [] => "unit"
+    --    | [t] => tyToString t
+    --    | _ => "(" ++ String.intercalate " × " (tys.map tyToString) ++ ")"
     | Ty.arr t          => s!"[{tyToString t}]"
     | Ty.refin t p      => s!"{tyToString t} | {predicateToString p}"
     | Ty.func x d c     => s!"({x} : {tyToString d}) → {tyToString c}"
@@ -217,11 +217,11 @@ instance : Repr Ty where
 def valueToString : Value → String
   | Value.vF x      => s!"F {x.val}"
   | Value.vStar       => "*"
-  | Value.vInt i      => toString i
+  --| Value.vInt i      => toString i
   | Value.vBool b     => toString b
-  | Value.vProd vs    =>
-    let elems := vs.map valueToString
-    s!"({String.intercalate ", " elems})"
+  --| Value.vProd vs    =>
+  --  let elems := vs.map valueToString
+  --  s!"({String.intercalate ", " elems})"
   | Value.vArr vs     =>
     let elems := vs.map valueToString
     s!"[{String.intercalate ", " elems}]"
