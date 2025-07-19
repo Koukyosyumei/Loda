@@ -49,6 +49,22 @@ lemma field_lookup_add
     simp_all
   }
 
+lemma field_lookup_mul
+  (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (x y: String) (xv yv: F) (v: Value)
+  (hσx: Env.lookupVal σ x = Value.vF xv)  (hσy: Env.lookupVal σ y = Value.vF yv)
+  (hee: Eval.EvalProp σ Δ (Expr.fieldExpr (Expr.var x) FieldOp.mul (Expr.var y)) v):
+  v = Value.vF (xv * yv) := by
+  cases hee with
+  | @FBinOp _ _ _ _ _ i₁ i₂ hi₁ hi₂ hi₃ r₂ => {
+    apply Eval.EvalProp.Var at hσx
+    apply Eval.EvalProp.Var at hσy
+    have ieq₁ := @evalprop_var_deterministic σ Δ x (Value.vF i₁) (Value.vF xv) hi₂ hσx
+    have ieq₂ := @evalprop_var_deterministic σ Δ y (Value.vF i₂) (Value.vF yv) hi₃ hσy
+    rw[ieq₁, ieq₂] at r₂
+    unfold Eval.evalFieldOp at r₂
+    simp_all
+  }
+
 lemma two_mul_field
   (σ: Env.ValEnv) (Δ: Env.CircuitEnv)
   (Γ: Env.TyEnv) (x: String) (xv: F) (hσx : Env.lookupVal σ x = Value.vF xv)
@@ -125,6 +141,33 @@ lemma bool_and_comm
       simp_all
       exact xv
     simp_all
+  }
+
+lemma mul_comm_field
+  (σ: Env.ValEnv) (Δ: Env.CircuitEnv)
+  (Γ: Env.TyEnv) (x y: String) (xv yv: ℕ) (hσx : Env.lookupVal σ x = Value.vF xv) (hσy : Env.lookupVal σ y = Value.vF yv)
+  : @Ty.SubtypeJudgment σ Δ Γ
+      (pure (Ty.refin (Ty.field) (Predicate.eq (Expr.fieldExpr (Expr.var x) FieldOp.mul (Expr.var y)))))
+      (pure (Ty.refin (Ty.field) (Predicate.eq (Expr.fieldExpr (Expr.var y) FieldOp.mul (Expr.var x)))))
+  := by
+  apply Ty.SubtypeJudgment.TSub_Refine Ty.SubtypeJudgment.TSub_Refl
+  intro v h
+  dsimp [PropSemantics.predToProp, PropSemantics.exprToProp] at h ⊢
+  cases h with
+  | @Rel σ Δ v _ RelOp.eq v₁ v₂ _ ih₁ ih₂ r₁ => {
+    have hv2 : v₂ = Value.vF (xv * yv) := @field_lookup_mul σ Δ x y xv yv v₂ hσx hσy ih₂
+    rw [← mul_comm] at hv2
+    unfold exprEq
+    apply Eval.EvalProp.Rel
+    . exact ih₁
+    . apply Eval.EvalProp.FBinOp
+      apply Eval.EvalProp.Var
+      exact hσy
+      apply Eval.EvalProp.Var
+      exact hσx
+      simp_all
+      rw[← hv2]
+    exact r₁
   }
 
 /-
