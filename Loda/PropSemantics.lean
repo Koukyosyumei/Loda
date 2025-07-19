@@ -53,4 +53,7 @@ match Γ ident, Env.lookupVal σ ident with
 -- any other case is false
 | _, _ => False
 
+--def multi_tyenvToProp (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv) (idents: List String): Prop :=
+--  (idents.map (fun ident ↦ tyenvToProp σ Δ Γ ident)).foldl (fun φ₁ φ₂ ↦ φ₁ ∧ φ₂) True
+
 end PropSemantics

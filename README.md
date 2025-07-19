@@ -30,3 +30,24 @@ TBD
   exact Ty.TypeJudgment.TE_SUB h_sub h_body
 }
 ```
+
+## Memo
+
+```
+let assert (x == 10) in x
+
+
+u: {v | x = 10}
+x: {v | v = x}
+
+Encode(Env) => x == 10 \land v = x 
+\phi: 
+```
+
+```
+  -- TE-LETIN
+  | TE_LetIn {Γ: Env.TyEnv} {x : String} {e₁ e₂ : Ast.Expr} {τ₁ τ₂ : Ast.Ty}
+    (h₁: @TypeJudgment σ δ Γ e₁ τ₁)
+    (h₂: @TypeJudgment σ δ (Env.updateTy Γ x τ₁) e₂ τ₂):
+    TypeJudgment Γ (Ast.Expr.letIn x e₁ e₂) τ₂
+```
