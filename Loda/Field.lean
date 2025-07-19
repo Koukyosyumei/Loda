@@ -13,19 +13,23 @@ addition, multiplication, negation, inversion (via Fermat's little theorem),
 and exponentiation.
 -/
 
-/-- `Fp p` is the prime field of order `p`, assuming `p` is prime. -/
-abbrev F p := ZMod p
-instance (p : ℕ) [Fact p.Prime]: Field (F p) := ZMod.instField p
-instance (p : ℕ) [Fact p.Prime] : Fintype (F p) := ZMod.fintype p
-instance (p : ℕ) [Fact p.Prime] : Inhabited (F p) := ⟨0⟩
-instance (p : ℕ) : CommRing (F p) := ZMod.commRing p
-instance (p : ℕ) [Fact p.Prime] : Repr (F p) where
-  reprPrec x _ := "F" ++ toString p ++ ".mk " ++ toString x.val
+@[inline]
+def p : Nat := 21888242871839275222246405745257275088548364400416034343698204186575808495617
 
-instance (p : ℕ) : Lean.ToExpr (F p) where
-  toExpr x :=
-    let fpType := Lean.mkApp (Lean.mkConst ``F) (Lean.toExpr p)
-    let natVal := Lean.toExpr x.val
-    Lean.mkApp3 (Lean.mkConst ``OfNat.ofNat) fpType natVal
-      (Lean.mkApp (Lean.mkConst ``instOfNat) natVal)
+instance : NeZero p := ⟨by
+  rw[p]
+  simp_all
+⟩
+
+/-- `F` is the prime field of order `p`, assuming `p` is prime. -/
+abbrev F := ZMod p
+instance [Fact p.Prime] : Field F := ZMod.instField p
+instance [Fact p.Prime] : Fintype F := ZMod.fintype p
+instance [Fact p.Prime] : Inhabited F := ⟨0⟩
+instance : CommRing F := ZMod.commRing p
+instance : Repr F where
+  reprPrec x _ := "F " ++ toString x.val
+
+instance : Lean.ToExpr F where
+  toExpr x := Lean.toExpr x.val
   toTypeExpr := Lean.mkApp (Lean.mkConst ``F) (Lean.toExpr p)

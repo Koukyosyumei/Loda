@@ -52,12 +52,14 @@ inductive SubtypeJudgment {σ : Env.ValEnv} {δ: Env.CircuitEnv} {Γ: Env.TyEnv}
       SubtypeJudgment (pure T₁) (pure T₂) →
       SubtypeJudgment (pure (Ast.Ty.arr T₁)) (pure (Ast.Ty.arr T₂))
 
+  /-
   /-- TSUB-PRODUCT: Product subtyping -/
   | TSub_Product {Ts₁ Ts₂ : List Ast.Ty} :
       Ts₁.length = Ts₂.length →
       --PairwiseProd (SubtypeJudgment σ Γ) (List.zip Ts₁ Ts₂) →
       (∀ i, i < Ts₁.length → SubtypeJudgment Ts₁[i]? Ts₂[i]?) →
       SubtypeJudgment (pure (Ast.Ty.prod Ts₁)) (pure (Ast.Ty.prod Ts₂))
+  -/
 
 /--
   Typing judgment `Γ ⊢ e : τ`: expression `e` has type `τ`
@@ -80,34 +82,28 @@ inductive TypeJudgment {σ: Env.ValEnv} {δ: Env.CircuitEnv}:
       TypeJudgment Γ (Ast.Expr.var f) (Ast.Ty.func x τ₁ τ₂)
 
   -- TE-NONDET
-  | TE_Nondet {Γ: Env.TyEnv} {p: ℕ}:
-    TypeJudgment Γ Ast.Expr.wildcard (Ast.Ty.refin (Ast.Ty.field p) (Ast.Predicate.const (Ast.Expr.constBool true)))
+  | TE_Nondet {Γ: Env.TyEnv}:
+    TypeJudgment Γ Ast.Expr.wildcard (Ast.Ty.refin (Ast.Ty.field) (Ast.Predicate.const (Ast.Expr.constBool true)))
 
   -- TE-CONSTI
-  | TE_ConstI {Γ: Env.TyEnv} {n: ℕ}:
-    TypeJudgment Γ (Ast.Expr.constInt n) (Ast.Ty.refin (Ast.Ty.int) (Ast.Predicate.eq (Ast.Expr.constInt n)))
+  --| TE_ConstI {Γ: Env.TyEnv} {n: ℕ}:
+  --  TypeJudgment Γ (Ast.Expr.constInt n) (Ast.Ty.refin (Ast.Ty.int) (Ast.Predicate.eq (Ast.Expr.constInt n)))
 
   -- TE-CONSTF
-  | TE_ConstF {Γ: Env.TyEnv} {p: ℕ} {f: F p} :
-    TypeJudgment Γ (Ast.Expr.constF p f) (Ast.Ty.refin (Ast.Ty.field p) (Ast.Predicate.eq (Ast.Expr.constF p f)))
+  | TE_ConstF {Γ: Env.TyEnv} {f: F} :
+    TypeJudgment Γ (Ast.Expr.constF f) (Ast.Ty.refin (Ast.Ty.field) (Ast.Predicate.eq (Ast.Expr.constF f)))
 
   -- TE-ASSERT
-  | TE_Assert {Γ: Env.TyEnv} {e₁ e₂ φ₁ φ₂: Ast.Expr} {φ₁ φ₂: Ast.Predicate} {p: ℕ}:
-    TypeJudgment Γ e₁ (Ast.Ty.refin (Ast.Ty.field p) φ₁) →
-    TypeJudgment Γ e₂ (Ast.Ty.refin (Ast.Ty.field p) φ₂) →
+  | TE_Assert {Γ: Env.TyEnv} {e₁ e₂ φ₁ φ₂: Ast.Expr} {φ₁ φ₂: Ast.Predicate}:
+    TypeJudgment Γ e₁ (Ast.Ty.refin (Ast.Ty.field) φ₁) →
+    TypeJudgment Γ e₂ (Ast.Ty.refin (Ast.Ty.field) φ₂) →
     TypeJudgment Γ (Ast.Expr.assertE e₁ e₂) (Ast.Ty.refin Ast.Ty.unit (Ast.Predicate.const (Ast.exprEq e₁ e₂)))
 
   -- TE-BINOPFIELD
-  | TE_BinOpField {Γ: Env.TyEnv} {e₁ e₂: Ast.Expr} {φ₁ φ₂: Ast.Predicate} {op: Ast.FieldOp} {p: ℕ}:
-    TypeJudgment Γ e₁ (Ast.Ty.refin (Ast.Ty.field p) φ₁) →
-    TypeJudgment Γ e₂ (Ast.Ty.refin (Ast.Ty.field p) φ₂) →
-    TypeJudgment Γ (Ast.Expr.fieldExpr e₁ op e₂) ((Ast.Ty.refin (Ast.Ty.field p) (Ast.Predicate.eq (Ast.Expr.fieldExpr e₁ op e₂))))
-
-  -- TE-BINOPINT
-  | TE_BinOpInt {Γ: Env.TyEnv} {e₁ e₂: Ast.Expr} {op: Ast.IntegerOp}:
-    TypeJudgment Γ e₁ (Ast.Ty.refin Ast.Ty.int _) →
-    TypeJudgment Γ e₂ (Ast.Ty.refin Ast.Ty.int _) →
-    TypeJudgment Γ (Ast.Expr.intExpr e₁ op e₂) ((Ast.Ty.refin (Ast.Ty.int) (Ast.Predicate.eq (Ast.Expr.intExpr e₁ op e₂))))
+  | TE_BinOpField {Γ: Env.TyEnv} {e₁ e₂: Ast.Expr} {φ₁ φ₂: Ast.Predicate} {op: Ast.FieldOp}:
+    TypeJudgment Γ e₁ (Ast.Ty.refin (Ast.Ty.field) φ₁) →
+    TypeJudgment Γ e₂ (Ast.Ty.refin (Ast.Ty.field) φ₂) →
+    TypeJudgment Γ (Ast.Expr.fieldExpr e₁ op e₂) ((Ast.Ty.refin (Ast.Ty.field) (Ast.Predicate.eq (Ast.Expr.fieldExpr e₁ op e₂))))
 
   -- TE-ABS (function abstraction)
   | TE_Abs {Γ: Env.TyEnv} {x: String} {τ₁ τ₂: Ast.Ty} {e: Ast.Expr}:
@@ -117,7 +113,7 @@ inductive TypeJudgment {σ: Env.ValEnv} {δ: Env.CircuitEnv}:
   -- TE-APP
   | TE_App {Γ: Env.TyEnv} {x₁ x₂: Ast.Expr} {s: String} {τ₁ τ₂: Ast.Ty} {v: Ast.Value}:
     TypeJudgment Γ x₁ (Ast.Ty.func s τ₁ τ₂) →
-    Eval.eval σ δ x₂ = some v →
+    Eval.EvalProp σ δ x₂ v →
     TypeJudgment Γ x₂ τ₁ →
     TypeJudgment Γ (Ast.Expr.app x₁ x₂) τ₂
 
@@ -132,26 +128,6 @@ inductive TypeJudgment {σ: Env.ValEnv} {δ: Env.CircuitEnv}:
     (h₁: @TypeJudgment σ δ Γ e₁ τ₁)
     (h₂: @TypeJudgment σ δ (Env.updateTy Γ x τ₁) e₂ τ₂):
     TypeJudgment Γ (Ast.Expr.letIn x e₁ e₂) τ₂
-
-axiom exprIntVSound :
-  ∀ (a b : Ast.Expr) (op : Ast.IntegerOp) (σ : Env.ValEnv) (δ : Env.CircuitEnv) (e: Ast.Expr),
-  PropSemantics.exprToProp σ δ (Ast.exprEq e (Ast.Expr.intExpr a op b)) →
-  ∃ vv, Eval.eval σ δ e = some (Ast.Value.vInt vv)
-
-axiom exprBoolVSound :
-  ∀ (a b : Ast.Expr) (op : Ast.BooleanOp) (σ : Env.ValEnv) (δ : Env.CircuitEnv) (e: Ast.Expr),
-  PropSemantics.exprToProp σ δ (Ast.exprEq e (Ast.Expr.boolExpr a op b)) →
-  ∃ vv, Eval.eval σ δ e = some (Ast.Value.vBool vv)
-
-axiom exprRelVSound :
-  ∀ (a b : Ast.Expr) (op : Ast.RelOp) (σ : Env.ValEnv) (δ : Env.CircuitEnv) (e: Ast.Expr),
-  PropSemantics.exprToProp σ δ (Ast.exprEq e (Ast.Expr.binRel a op b)) →
-  ∃ vv, Eval.eval σ δ e = some (Ast.Value.vBool vv)
-
-axiom exprFielVdSound {p : ℕ} :
-  ∀ (a b : Ast.Expr) (op : Ast.FieldOp) (σ : Env.ValEnv) (δ : Env.CircuitEnv) (e: Ast.Expr),
-  PropSemantics.exprToProp σ δ (Ast.exprEq e (Ast.Expr.fieldExpr a op b)) →
-  ∃ vv, Eval.eval σ δ e = some (Ast.Value.vF p vv)
 
 /--
 If an expression `e` is typed as the refinement `{ v : τ | φ }`,
