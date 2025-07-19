@@ -57,3 +57,13 @@ theorem addOneCircuit_correct : (Ty.circuitCorrect Δ addOneCircuit) := by
                                 (Ast.Predicate.eq (Ast.Expr.constF 1)) hΓ hΓ
   have h_sub := @rw_var_sub_int_add σ Δ Γ "x" "x" (.constF 1) (.constF 1) hΓ hΓ hσ hσ
   exact Ty.TypeJudgment.TE_SUB h_sub h_body
+
+theorem identityCircuit_correct : (Ty.circuitCorrect Δ identityCircuit) := by
+  unfold Ty.circuitCorrect
+  unfold identityCircuit
+  simp_all
+  intro x hs hσ
+  set envs := Ty.makeEnvs identityCircuit x
+  set σ := envs.1
+  set Γ := envs.2
+  apply Ty.TypeJudgment.TE_Var
