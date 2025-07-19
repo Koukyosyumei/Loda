@@ -21,6 +21,5 @@ open Env
   have h_sub := two_mul_field σ Δ Γ "x" vv hv_eq
   simp [h_delta, Γ, Ast.v] at h_sub h_body
   exact Ty.TypeJudgment.TE_SUB h_sub h_body
-  rfl
 }
 #print Adder_correct

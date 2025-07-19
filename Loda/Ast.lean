@@ -194,7 +194,7 @@ mutual
 
   partial def tyToString : Ty → String
     | Ty.unit           => "unit"
-    | Ty.field          => s!"F"
+    | Ty.field          => "F"
     --| Ty.int            => "Int"
     | Ty.bool           => "Bool"
     --| Ty.prod tys       =>

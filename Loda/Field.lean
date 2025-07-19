@@ -31,9 +31,5 @@ instance : Repr F where
   reprPrec x _ := "F " ++ toString x.val
 
 instance : Lean.ToExpr F where
-  toExpr x :=
-    let fpType := Lean.mkApp (Lean.mkConst ``F) (Lean.toExpr p)
-    let natVal := Lean.toExpr x.val
-    Lean.mkApp3 (Lean.mkConst ``OfNat.ofNat) fpType natVal
-      (Lean.mkApp (Lean.mkConst ``instOfNat) natVal)
+  toExpr x := Lean.toExpr x.val
   toTypeExpr := Lean.mkApp (Lean.mkConst ``F) (Lean.toExpr p)
