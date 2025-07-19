@@ -2,7 +2,7 @@ import Loda.Typing
 import Loda.Gadget
 
 @[simp]
-def mulCircuit : Ast.Circuit := {
+def adderCircuit : Ast.Circuit := {
   name   := "mul",
   inputs := ("x", Ast.Ty.refin Ast.Ty.field (Ast.Predicate.const (Ast.Expr.constBool true))),
   output := ("out", Ast.Ty.refin (Ast.Ty.field) (Ast.Predicate.eq (Ast.Expr.fieldExpr (Ast.Expr.constF 2) Ast.FieldOp.mul (Ast.Expr.var "x")))),
@@ -17,14 +17,14 @@ def addOneCircuit : Ast.Circuit := {
   body   := (Ast.Expr.letIn "out" (Ast.Expr.fieldExpr (Ast.Expr.var "x") Ast.FieldOp.add (Ast.Expr.var "x")) (Ast.Expr.var "out"))
 }
 
-def Δ : Env.CircuitEnv := [("mul", mulCircuit), ("addOne", addOneCircuit)]
+def Δ : Env.CircuitEnv := [("mul", adderCircuit), ("addOne", addOneCircuit)]
 
-theorem mulCircuit_correct : (Ty.circuitCorrect Δ mulCircuit) := by
+theorem adderCircuit_correct : (Ty.circuitCorrect Δ adderCircuit) := by
   unfold Ty.circuitCorrect
-  unfold mulCircuit
+  unfold adderCircuit
   simp_all
   intro x hs hσ
-  set envs := Ty.makeEnvs mulCircuit x
+  set envs := Ty.makeEnvs adderCircuit x
   set σ := envs.1
   set Γ := envs.2
   have hΓ : Γ "x" = (Ast.Ty.field.refin (Ast.Predicate.const (Ast.Expr.constBool true))) := rfl
