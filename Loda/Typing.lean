@@ -69,16 +69,16 @@ inductive TypeJudgment {σ: Env.ValEnv} {δ: Env.CircuitEnv}:
   Env.TyEnv → Ast.Expr → Ast.Ty → Prop where
   -- TE-VAR
   | TE_Var {Γ: Env.TyEnv} {x : String} {T: Ast.Ty}:
-    ∀ φ: Ast.Predicate, Γ x = (Ast.Ty.refin T φ) →
+    ∀ φ: Ast.Predicate, Env.lookupTy Γ x = (Ast.Ty.refin T φ) →
     TypeJudgment Γ (Ast.Expr.var x) (Ast.Ty.refin T (Ast.Predicate.eq (Ast.Expr.var x)))
 
   | TE_VarEnv {Γ: Env.TyEnv} {x : String} {T: Ast.Ty}:
-    ∀ φ: Ast.Predicate, Γ x = (Ast.Ty.refin T φ) →
+    ∀ φ: Ast.Predicate, Env.lookupTy Γ x = (Ast.Ty.refin T φ) →
     TypeJudgment Γ (Ast.Expr.var x) (Ast.Ty.refin T φ)
 
   -- TE-VAR-FUNC
   | TE_VarFunc {Γ: Env.TyEnv} {f x : String} {τ₁ τ₂: Ast.Ty}:
-      Γ f = (Ast.Ty.func x τ₁ τ₂) →
+      Env.lookupTy Γ f = (Ast.Ty.func x τ₁ τ₂) →
       TypeJudgment Γ (Ast.Expr.var f) (Ast.Ty.func x τ₁ τ₂)
 
   -- TE-NONDET
@@ -140,7 +140,7 @@ axiom typeJudgmentRefinementSound {σ : Env.ValEnv} {δ : Env.CircuitEnv}
 
 def makeEnvs (c : Ast.Circuit) (x : Ast.Value) : Env.ValEnv × Env.TyEnv :=
   let σ: Env.ValEnv := Env.updateVal [] c.inputs.fst x
-  let Γ: Env.TyEnv := Env.updateTy (fun _ => Ast.Ty.unit) c.inputs.fst c.inputs.snd
+  let Γ: Env.TyEnv := Env.updateTy [] c.inputs.fst c.inputs.snd
   (σ, Γ)
 
 /--

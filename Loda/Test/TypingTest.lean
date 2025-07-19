@@ -35,7 +35,7 @@ theorem adderCircuit_correct : (Ty.circuitCorrect Δ adderCircuit) := by
   set envs := Ty.makeEnvs adderCircuit x
   set σ := envs.1
   set Γ := envs.2
-  have hΓ : Γ "x" = (Ast.Ty.field.refin (Ast.Predicate.const (Ast.Expr.constBool true))) := rfl
+  have hΓ : Env.lookupTy Γ "x" = (Ast.Ty.field.refin (Ast.Predicate.const (Ast.Expr.constBool true))) := rfl
   have h_body := @let_binding_field_op_type_preservation "x" "x" "out" σ Δ Γ
               Ast.FieldOp.add (Ast.Predicate.const (Ast.Expr.constBool true))
                                 (Ast.Predicate.const (Ast.Expr.constBool true)) hΓ hΓ
@@ -51,7 +51,7 @@ theorem addOneCircuit_correct : (Ty.circuitCorrect Δ addOneCircuit) := by
   set envs := Ty.makeEnvs addOneCircuit x
   set σ := envs.1
   set Γ := envs.2
-  have hΓ : Γ "x" = Ast.Ty.refin (Ast.Ty.field) (Ast.Predicate.eq (Ast.Expr.constF 1)) := rfl
+  have hΓ : Env.lookupTy Γ "x" = Ast.Ty.refin (Ast.Ty.field) (Ast.Predicate.eq (Ast.Expr.constF 1)) := rfl
   have h_body := @let_binding_field_op_type_preservation "x" "x" "out" σ Δ Γ
               Ast.FieldOp.add (Ast.Predicate.eq (Ast.Expr.constF 1))
                                 (Ast.Predicate.eq (Ast.Expr.constF 1)) hΓ hΓ
@@ -66,4 +66,10 @@ theorem identityCircuit_correct : (Ty.circuitCorrect Δ identityCircuit) := by
   set envs := Ty.makeEnvs identityCircuit x
   set σ := envs.1
   set Γ := envs.2
-  apply Ty.TypeJudgment.TE_Var
+  apply let_binding_identity
+  unfold Ty.makeEnvs
+  simp_all
+  unfold Env.updateTy
+  unfold Env.lookupTy
+  simp_all
+  rfl

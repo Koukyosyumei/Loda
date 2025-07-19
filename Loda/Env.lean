@@ -79,7 +79,7 @@ def getCircuitFromEnv (name : String) : Lean.CoreM (Option Ast.Circuit) := do
   return lookupCircuit (circuitExt.getState env) name
 
 /-- A type environment: maps variable names to Loda `Ty`s. -/
-def TyEnv := String -> Ast.Ty
+def TyEnv := List (String × Ast.Ty)
 
 /--
   Extend `Γ` by binding `ident` to `τ`.
@@ -87,6 +87,12 @@ def TyEnv := String -> Ast.Ty
 -/
 @[inline]
 def updateTy (Γ: TyEnv) (ident: String) (τ: Ast.Ty) : TyEnv :=
-  fun y => if y = ident then τ else Γ y
+  (ident, τ) :: Γ
+
+@[inline]
+def lookupTy (Γ : TyEnv) (ident : String) : Ast.Ty :=
+  match Γ.find? (·.1 = ident) with
+  | some (_, τ) => τ
+  | none        => Ast.Ty.unit
 
 end Env

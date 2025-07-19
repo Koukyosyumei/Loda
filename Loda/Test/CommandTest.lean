@@ -12,7 +12,7 @@ open Env
 
 #loda_prove Adder := by {
   rename_i Δ h_delta x hs envs σ Γ hσ
-  have hΓ : Γ "x" = (Ast.Ty.field.refin (Ast.Predicate.const (Ast.Expr.constBool True))) := rfl
+  have hΓ : Env.lookupTy Γ "x" = (Ast.Ty.field.refin (Ast.Predicate.const (Ast.Expr.constBool True))) := rfl
   have h_body := @let_binding_field_op_type_preservation "x" "x" "out" σ Δ Γ
               Ast.FieldOp.add (Ast.Predicate.const (Ast.Expr.constBool True))
                                 (Ast.Predicate.const (Ast.Expr.constBool True)) hΓ hΓ
