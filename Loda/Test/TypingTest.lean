@@ -17,6 +17,14 @@ def addOneCircuit : Ast.Circuit := {
   body   := (Ast.Expr.letIn "out" (Ast.Expr.fieldExpr (Ast.Expr.var "x") Ast.FieldOp.add (Ast.Expr.var "x")) (Ast.Expr.var "out"))
 }
 
+@[simp]
+def identityCircuit : Ast.Circuit := {
+  name   := "identity",
+  inputs := ("x", Ast.Ty.refin (Ast.Ty.field) (Ast.Predicate.const (Ast.Expr.constBool true))),
+  output := ("out", Ast.Ty.refin (Ast.Ty.field) (Ast.Predicate.eq (Ast.Expr.var "x"))),
+  body   := (Ast.Expr.letIn "out" (Ast.Expr.var "x") (Ast.Expr.var "out"))
+}
+
 def Δ : Env.CircuitEnv := [("mul", adderCircuit), ("addOne", addOneCircuit)]
 
 theorem adderCircuit_correct : (Ty.circuitCorrect Δ adderCircuit) := by
@@ -34,9 +42,6 @@ theorem adderCircuit_correct : (Ty.circuitCorrect Δ adderCircuit) := by
   obtain ⟨vv, hv_eq⟩ := field_refintype_implies_exists_field_value σ Δ Γ "x" (Ast.Predicate.const (Ast.Expr.constBool true)) hΓ hσ
   have h_sub := two_mul_field σ Δ Γ "x" vv hv_eq
   exact Ty.TypeJudgment.TE_SUB h_sub h_body
-
-def σ : Env.ValEnv := [("x", Ast.Value.vF 5)]
-def Γ : Env.TyEnv := fun _ => Ast.Ty.refin Ast.Ty.field (Ast.Predicate.eq (Ast.Expr.constBool true))
 
 theorem addOneCircuit_correct : (Ty.circuitCorrect Δ addOneCircuit) := by
   unfold Ty.circuitCorrect
