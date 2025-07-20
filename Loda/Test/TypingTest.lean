@@ -40,7 +40,7 @@ theorem adderCircuit_correct : (Ty.circuitCorrect Δ adderCircuit) := by
               Ast.FieldOp.add (Ast.Predicate.const (Ast.Expr.constBool true))
                                 (Ast.Predicate.const (Ast.Expr.constBool true)) hΓ hΓ
   obtain ⟨vv, hv_eq⟩ := field_refintype_implies_exists_field_value σ Δ Γ "x" (Ast.Predicate.const (Ast.Expr.constBool true)) hΓ hσ
-  have h_sub := two_mul_field σ Δ Γ "x" vv hv_eq
+  have h_sub := two_mul_field σ Δ Γ "x" vv hv_eq hσ
   exact Ty.TypeJudgment.TE_SUB h_sub h_body
 
 theorem addOneCircuit_correct : (Ty.circuitCorrect Δ addOneCircuit) := by
@@ -55,7 +55,7 @@ theorem addOneCircuit_correct : (Ty.circuitCorrect Δ addOneCircuit) := by
   have h_body := @let_binding_field_op_type_preservation "x" "x" "out" σ Δ Γ
               Ast.FieldOp.add (Ast.Predicate.eq (Ast.Expr.constF 1))
                                 (Ast.Predicate.eq (Ast.Expr.constF 1)) hΓ hΓ
-  have h_sub := @rw_var_sub_int_add σ Δ Γ "x" "x" (.constF 1) (.constF 1) hΓ hΓ hσ hσ
+  have h_sub := @rw_var_sub_int_add σ Δ Γ "x" "x" (.constF 1) (.constF 1) hΓ hΓ hσ
   exact Ty.TypeJudgment.TE_SUB h_sub h_body
 
 theorem identityCircuit_correct : (Ty.circuitCorrect Δ identityCircuit) := by

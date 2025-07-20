@@ -18,7 +18,7 @@ open Env
                                 (Ast.Predicate.const (Ast.Expr.constBool True)) hΓ hΓ
   rw[← h_delta] at hσ
   obtain ⟨vv, hv_eq⟩ := field_refintype_implies_exists_field_value σ Δ Γ "x" (Ast.Predicate.const (Ast.Expr.constBool True))  hΓ hσ
-  have h_sub := two_mul_field σ Δ Γ "x" vv hv_eq
+  have h_sub := two_mul_field σ Δ Γ "x" vv hv_eq hσ
   simp [h_delta, Γ, Ast.v] at h_sub h_body
   exact Ty.TypeJudgment.TE_SUB h_sub h_body
 }

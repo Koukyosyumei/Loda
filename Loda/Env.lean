@@ -93,6 +93,6 @@ def updateTy (Γ: TyEnv) (ident: String) (τ: Ast.Ty) : TyEnv :=
 def lookupTy (Γ : TyEnv) (ident : String) : Ast.Ty :=
   match Γ.find? (·.1 = ident) with
   | some (_, τ) => τ
-  | none        => Ast.Ty.unit
+  | none        => Ast.Ty.unknown
 
 end Env

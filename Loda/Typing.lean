@@ -1,3 +1,5 @@
+import Init.Data.List.Basic
+
 import Loda.Ast
 import Loda.Env
 import Loda.Eval
@@ -36,6 +38,7 @@ inductive SubtypeJudgment {σ : Env.ValEnv} {δ: Env.CircuitEnv} {Γ: Env.TyEnv}
   /-- TSUB-REFINE: Refinement subtyping -/
   | TSub_Refine {T₁ T₂ : Ast.Ty} {φ₁ φ₂ : Ast.Predicate} :
       SubtypeJudgment (pure T₁) (pure T₂) →
+      PropSemantics.tyenvToProp σ δ Γ →
       (∀ v: Ast.Expr, (PropSemantics.predToProp σ δ φ₁ v → PropSemantics.predToProp σ δ φ₂ v)) →
       SubtypeJudgment (pure (Ast.Ty.refin T₁ φ₁)) (pure (Ast.Ty.refin T₂ φ₂))
 
@@ -152,8 +155,40 @@ def circuitCorrect (δ : Env.CircuitEnv) (c : Ast.Circuit) : Prop :=
   ∀ (x : Ast.Value),
     x != Ast.Value.vStar →
     let (σ, Γ) := makeEnvs c x
-    PropSemantics.tyenvToProp σ δ Γ c.inputs.fst →
+    PropSemantics.tyenvToProp σ δ Γ →
     @TypeJudgment σ δ Γ c.body c.output.snd
+
+/-
+  (hΓx : Env.lookupTy Γ x = Ty.refin Ty.field (Predicate.eq ex))
+  (htyenv: PropSemantics.tyenvToProp σ Δ Γ x)
+  (hmt : PropSemantics.multi_tyenvToProp σ Δ Γ)
+-/
+
+lemma lookupTy_mem (Γ: List (String × Ast.Ty)) (x: String) (τ :Ast.Ty) (φ: Ast.Predicate)
+  (h : Env.lookupTy Γ x = Ast.Ty.refin τ φ) :
+  (x, Ast.Ty.refin τ φ) ∈ Γ := by
+  by_contra hn
+  dsimp [Env.lookupTy] at h
+  cases h₁ : Γ.find? (·.1 = x) with
+  | none => {
+    simp_all
+  }
+  | some p  => {
+    simp_all
+    sorry
+  }
+
+lemma tyenvToProp_implies_varToProp
+  (σ : Env.ValEnv) (Δ : Env.CircuitEnv) (Γ : List (String × Ast.Ty))
+  (x : String) (τ : Ast.Ty) (φ : Ast.Predicate)
+  (hΓx : Env.lookupTy Γ x = Ast.Ty.refin τ φ)
+  (hmt : PropSemantics.tyenvToProp σ Δ Γ) :
+  PropSemantics.varToProp σ Δ Γ x := by
+  dsimp [PropSemantics.tyenvToProp] at hmt
+  have hmem : (x, Ast.Ty.refin τ φ) ∈ Γ := lookupTy_mem Γ x τ φ hΓx
+  apply hmt at hmem
+  simp at hmem
+  exact hmem
 
 end Ty
 
