@@ -79,7 +79,7 @@ def getCircuitFromEnv (name : String) : Lean.CoreM (Option Ast.Circuit) := do
   return lookupCircuit (circuitExt.getState env) name
 
 /-- A type environment: maps variable names to Loda `Ty`s. -/
-def TyEnv := List (String × Ast.Ty)
+abbrev TyEnv := List (String × Ast.Ty)
 
 /--
   Extend `Γ` by binding `ident` to `τ`.

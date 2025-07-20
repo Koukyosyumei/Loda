@@ -53,7 +53,7 @@ match Env.lookupTy Γ ident, Env.lookupVal σ ident with
 -- any other case is false
 | _, _ => False
 
-def tyenvToProp (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: List (String × Ast.Ty)): Prop :=
+def tyenvToProp (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv): Prop :=
   ∀ e ∈ Γ, varToProp σ Δ Γ e.1
 
 end PropSemantics

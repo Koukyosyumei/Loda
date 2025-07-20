@@ -158,13 +158,7 @@ def circuitCorrect (δ : Env.CircuitEnv) (c : Ast.Circuit) : Prop :=
     PropSemantics.tyenvToProp σ δ Γ →
     @TypeJudgment σ δ Γ c.body c.output.snd
 
-/-
-  (hΓx : Env.lookupTy Γ x = Ty.refin Ty.field (Predicate.eq ex))
-  (htyenv: PropSemantics.tyenvToProp σ Δ Γ x)
-  (hmt : PropSemantics.multi_tyenvToProp σ Δ Γ)
--/
-
-lemma lookupTy_mem (Γ: List (String × Ast.Ty)) (x: String) (τ :Ast.Ty) (φ: Ast.Predicate)
+lemma lookupTy_mem (Γ: Env.TyEnv) (x: String) (τ :Ast.Ty) (φ: Ast.Predicate)
   (h : Env.lookupTy Γ x = Ast.Ty.refin τ φ) :
   (x, Ast.Ty.refin τ φ) ∈ Γ := by
   by_contra hn
@@ -179,7 +173,7 @@ lemma lookupTy_mem (Γ: List (String × Ast.Ty)) (x: String) (τ :Ast.Ty) (φ: A
   }
 
 lemma tyenvToProp_implies_varToProp
-  (σ : Env.ValEnv) (Δ : Env.CircuitEnv) (Γ : List (String × Ast.Ty))
+  (σ : Env.ValEnv) (Δ : Env.CircuitEnv) (Γ : Env.TyEnv)
   (x : String) (τ : Ast.Ty) (φ : Ast.Predicate)
   (hΓx : Env.lookupTy Γ x = Ast.Ty.refin τ φ)
   (hmt : PropSemantics.tyenvToProp σ Δ Γ) :
