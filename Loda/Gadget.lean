@@ -301,18 +301,21 @@ lemma let_binding_identity
   unfold Env.lookupTy
   simp_all
 
-lemma field_refintype_implies_exists_field_value (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv) (x: String) (e: Predicate)
-  : (Env.lookupTy Γ x = Ty.field.refin e) → PropSemantics.tyenvToProp σ Δ Γ → ∃ (a: F), Env.lookupVal σ x = Ast.Value.vF a := by
-  intro hx hy
-  have hv := Ty.tyenvToProp_implies_varToProp σ Δ Γ x Ast.Ty.field e hx hy
-  unfold PropSemantics.varToProp at hv
+lemma field_refintype_implies_exists_field_value' (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv) (x: String) (e: Predicate)
+  : (Env.lookupTy Γ x = Ty.field.refin e) → PropSemantics.varToProp σ Δ Γ x → ∃ (a: F), Env.lookupVal σ x = Ast.Value.vF a := by
+  intro hx
+  unfold PropSemantics.varToProp
   simp_all
   set val := Env.lookupVal σ x
   cases val with
   | vF n => simp_all
-  | _ => {
-    sorry
-  }
+  | _ => intro hσ; simp_all
+
+lemma field_refintype_implies_exists_field_value (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv) (x: String) (e: Predicate)
+  : (Env.lookupTy Γ x = Ty.field.refin e) → PropSemantics.tyenvToProp σ Δ Γ → ∃ (a: F), Env.lookupVal σ x = Ast.Value.vF a := by
+  intro hx hy
+  have hv := Ty.tyenvToProp_implies_varToProp σ Δ Γ x Ast.Ty.field e hx hy
+  exact field_refintype_implies_exists_field_value' σ Δ Γ x e hx hv
 
 lemma eval_eq_vals (v₁ v₂: Ast.Value)
   : Eval.evalRelOp RelOp.eq v₁ v₂ = some true → v₁ = v₂ := by
