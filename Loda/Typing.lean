@@ -1,4 +1,6 @@
 import Init.Data.List.Basic
+import Init.Data.List.Find
+import Mathlib.Data.List.Basic
 
 import Loda.Ast
 import Loda.Env
@@ -161,16 +163,21 @@ def circuitCorrect (δ : Env.CircuitEnv) (c : Ast.Circuit) : Prop :=
 lemma lookupTy_mem (Γ: Env.TyEnv) (x: String) (τ :Ast.Ty) (φ: Ast.Predicate)
   (h : Env.lookupTy Γ x = Ast.Ty.refin τ φ) :
   (x, Ast.Ty.refin τ φ) ∈ Γ := by
-  by_contra hn
   dsimp [Env.lookupTy] at h
-  cases h₁ : Γ.find? (·.1 = x) with
-  | none => {
-    simp_all
-  }
-  | some p  => {
-    simp_all
-    sorry
-  }
+  cases hfind : Γ.find? (·.1 = x) with
+  | none =>
+    simp [hfind] at h
+  | some p =>
+    -- Now `lookupTy Γ x = p.2`, so `p.2 = Ty.refin τ φ`
+    simp [hfind] at h
+    -- And from `find?` we know `p ∈ Γ`
+    have eq_p := List.find?_some hfind
+    have p_1_eq_x : p.1 = x := by simp_all
+    have mem_p : p ∈ Γ := List.mem_of_find?_eq_some hfind
+    -- Destructure `p` into `(y, τ')`
+    cases p with
+    | mk y τ' =>
+      simp_all
 
 lemma tyenvToProp_implies_varToProp
   (σ : Env.ValEnv) (Δ : Env.CircuitEnv) (Γ : Env.TyEnv)
