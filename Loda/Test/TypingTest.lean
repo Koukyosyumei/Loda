@@ -91,23 +91,10 @@ theorem assertCircuit_correct : (Ty.circuitCorrect Δ assertCircuit) := by
   set envs := Ty.makeEnvs identityCircuit x
   set σ := envs.1
   set Γ := envs.2
-  apply Ty.TypeJudgment.TE_LetIn
-  sorry
-  sorry
-  sorry
-
-  /-
-  inputs := ("x", Ast.Ty.refin (Ast.Ty.field) (Ast.Predicate.const (Ast.Expr.constBool true))),
-  output := ("x", Ast.Ty.refin (Ast.Ty.field) (Ast.Predicate.eq (Ast.Expr.constF 1))),
-  body   := (Ast.Expr.letIn "u" (Ast.Expr.assertE (Ast.Expr.var "x") (Ast.Expr.constF 1)) (Ast.Expr.var "x"))
-
-    apply Ty.TypeJudgment.TE_LetIn
-  apply Ty.TypeJudgment.TE_Var
-  exact hΓx
-  apply Ty.TypeJudgment.TE_VarEnv
+  apply let_binding_assert_const
+  unfold Ty.makeEnvs
   unfold Env.updateTy
   unfold Env.lookupTy
   simp_all
-
-
-  -/
+  rfl
+  simp_all
