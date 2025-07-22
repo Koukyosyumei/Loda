@@ -293,20 +293,28 @@ lemma let_binding_identity
   unfold Env.lookupTy
   simp_all
 
+lemma lookupTy_updateTy_of_ne {Γ : Env.TyEnv} {x y : String} {τ₁ τ₂ : Ast.Ty}
+  (h : Env.lookupTy Γ x = τ₁) (hxy : y ≠ x) :
+  Env.lookupTy (Env.updateTy Γ y τ₂) x = τ₁ := by
+  dsimp [Env.updateTy, Env.lookupTy]
+  simp [hxy]
+  exact h
+
 lemma let_binding_assert_const
   (x y: String) (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv)
-  (τ : Ast.Ty) (φ: Ast.Predicate) (n: F)
-  (hΓx: Env.lookupTy Γ x = Ast.Ty.refin Ast.Ty.field φ):
+  (φ: Ast.Predicate) (n: F)
+  (hΓx: Env.lookupTy Γ x = Ast.Ty.refin Ast.Ty.field φ)
+  (hxy : y ≠ x):
   @Ty.TypeJudgment σ Δ Γ
     (Ast.Expr.letIn y (Ast.Expr.assertE (Ast.Expr.var x) (Ast.Expr.constF n)) (Ast.Expr.var x))
-    (Ty.refin τ (Ast.Predicate.eq (Ast.Expr.constF n))) := by
+    (Ty.refin Ast.Ty.field (Ast.Predicate.eq (Ast.Expr.constF n))) := by
     apply Ty.TypeJudgment.TE_LetIn
     apply Ty.TypeJudgment.TE_Assert
     apply Ty.TypeJudgment.TE_Var
     exact hΓx
     apply Ty.TypeJudgment.TE_ConstF
     have h_sub : @Ty.SubtypeJudgment σ Δ (Env.updateTy Γ y (Ty.unit.refin (Predicate.const (exprEq (Expr.var x) (Expr.constF n)))))
-      (some (.refin τ (.eq (.var x)))) (some (.refin τ (.eq (.constF n)))) := by {
+      (some (.refin Ast.Ty.field (.eq (.var x)))) (some (.refin Ast.Ty.field (.eq (.constF n)))) := by {
       apply Ty.SubtypeJudgment.TSub_Refine
       apply Ty.SubtypeJudgment.TSub_Refl
       intro v h
@@ -327,8 +335,7 @@ lemma let_binding_assert_const
     apply Ty.TypeJudgment.TE_SUB
     exact h_sub
     apply Ty.TypeJudgment.TE_Var
-    sorry
-    exact φ
+    exact @lookupTy_updateTy_of_ne Γ x y (Ty.field.refin φ) (Ty.unit.refin (Predicate.const (exprEq (Expr.var x) (Expr.constF n)))) hΓx hxy
 
 lemma field_refintype_implies_exists_field_value' (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv) (x: String) (e: Predicate)
   : (Env.lookupTy Γ x = Ty.field.refin e) → PropSemantics.varToProp σ Δ Γ x → ∃ (a: F), Env.lookupVal σ x = Ast.Value.vF a := by
