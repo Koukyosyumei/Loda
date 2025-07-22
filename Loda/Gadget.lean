@@ -310,12 +310,25 @@ lemma let_binding_assert_const
       apply Ty.SubtypeJudgment.TSub_Refine
       apply Ty.SubtypeJudgment.TSub_Refl
       intro v h
-      unfold PropSemantics.predToProp at h ⊢
+      unfold PropSemantics.tyenvToProp at h
+      unfold PropSemantics.predToProp at ⊢
       simp_all
-      --unfold PropSemantics.exprToProp at h ⊢
-      sorry
+      unfold PropSemantics.exprToProp at ⊢
+      have h_mem : (y, (Ty.unit.refin (Predicate.const (exprEq (Expr.var x) (Expr.constF n))))) ∈ Env.updateTy Γ y (Ty.unit.refin (Predicate.const (exprEq (Expr.var x) (Expr.constF n)))) := by {
+        unfold Env.updateTy
+        simp_all
+      }
+      apply h at h_mem
+      unfold PropSemantics.varToProp at h_mem
+      unfold Env.lookupTy at h_mem
+      unfold Env.updateTy at h_mem
+      simp_all
     }
+    apply Ty.TypeJudgment.TE_SUB
+    exact h_sub
+    apply Ty.TypeJudgment.TE_Var
     sorry
+    exact φ
 
 lemma field_refintype_implies_exists_field_value' (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv) (x: String) (e: Predicate)
   : (Env.lookupTy Γ x = Ty.field.refin e) → PropSemantics.varToProp σ Δ Γ x → ∃ (a: F), Env.lookupVal σ x = Ast.Value.vF a := by
