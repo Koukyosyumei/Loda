@@ -95,9 +95,10 @@ mutual
 
   /-- Basic Types in CODA. -/
   inductive Ty where
+    | unknown  : Ty
     | unit     : Ty
-    | field    : Ty                                      -- F p
-    --| int      : Ty                                               -- Int
+    | field    : Ty                                               -- F p
+    --| int      : Ty                                             -- Int
     | bool     : Ty                                               -- Bool
     --| prod     : (tys: List Ty) → Ty                              -- T₁ × ... × Tₙ (unit is prod [])
     | arr      : (ty: Ty) → Ty                                    -- [T]
@@ -193,6 +194,7 @@ mutual
     | Predicate.eq    e => s!"v = {exprToString e}"
 
   partial def tyToString : Ty → String
+    | Ty.unknown        => "unknown"
     | Ty.unit           => "unit"
     | Ty.field          => "F"
     --| Ty.int            => "Int"

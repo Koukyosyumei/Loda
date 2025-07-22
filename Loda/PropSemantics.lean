@@ -31,8 +31,8 @@ def predToProp (σ: Env.ValEnv) (Δ: Env.CircuitEnv): Ast.Predicate → (Ast.Exp
 | Ast.Predicate.const e => fun _ => exprToProp σ Δ e
 | Ast.Predicate.eq e    => fun v => exprToProp σ Δ (Ast.exprEq v e)
 
-def tyenvToProp (σ : Env.ValEnv) (Δ : Env.CircuitEnv) (Γ : Env.TyEnv) (ident : String): Prop :=
-match Γ ident, Env.lookupVal σ ident with
+def varToProp (σ : Env.ValEnv) (Δ : Env.CircuitEnv) (Γ : Env.TyEnv) (ident : String): Prop :=
+match Env.lookupTy Γ ident, Env.lookupVal σ ident with
 -- refinement types: check base-type match and predicate
 | Ast.Ty.refin baseTy pred, val =>
   (match baseTy, val with
@@ -52,5 +52,8 @@ match Γ ident, Env.lookupVal σ ident with
 | Ast.Ty.bool,    Ast.Value.vBool _   => True
 -- any other case is false
 | _, _ => False
+
+def tyenvToProp (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv): Prop :=
+  ∀ e ∈ Γ, varToProp σ Δ Γ e.1
 
 end PropSemantics
