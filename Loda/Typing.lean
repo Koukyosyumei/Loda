@@ -40,8 +40,8 @@ inductive SubtypeJudgment {σ : Env.ValEnv} {δ: Env.CircuitEnv} {Γ: Env.TyEnv}
   /-- TSUB-REFINE: Refinement subtyping -/
   | TSub_Refine {T₁ T₂ : Ast.Ty} {φ₁ φ₂ : Ast.Predicate} :
       SubtypeJudgment (pure T₁) (pure T₂) →
-      PropSemantics.tyenvToProp σ δ Γ →
-      (∀ v: Ast.Expr, (PropSemantics.predToProp σ δ φ₁ v → PropSemantics.predToProp σ δ φ₂ v)) →
+      --PropSemantics.tyenvToProp σ δ Γ →
+      (∀ v: Ast.Expr, PropSemantics.tyenvToProp σ δ Γ → (PropSemantics.predToProp σ δ φ₁ v → PropSemantics.predToProp σ δ φ₂ v)) →
       SubtypeJudgment (pure (Ast.Ty.refin T₁ φ₁)) (pure (Ast.Ty.refin T₂ φ₂))
 
   /-- TSUB-FUN: Function subtyping -/
@@ -99,7 +99,7 @@ inductive TypeJudgment {σ: Env.ValEnv} {δ: Env.CircuitEnv}:
     TypeJudgment Γ (Ast.Expr.constF f) (Ast.Ty.refin (Ast.Ty.field) (Ast.Predicate.eq (Ast.Expr.constF f)))
 
   -- TE-ASSERT
-  | TE_Assert {Γ: Env.TyEnv} {e₁ e₂ φ₁ φ₂: Ast.Expr} {φ₁ φ₂: Ast.Predicate}:
+  | TE_Assert {Γ: Env.TyEnv} {e₁ e₂: Ast.Expr} {φ₁ φ₂: Ast.Predicate}:
     TypeJudgment Γ e₁ (Ast.Ty.refin (Ast.Ty.field) φ₁) →
     TypeJudgment Γ e₂ (Ast.Ty.refin (Ast.Ty.field) φ₂) →
     TypeJudgment Γ (Ast.Expr.assertE e₁ e₂) (Ast.Ty.refin Ast.Ty.unit (Ast.Predicate.const (Ast.exprEq e₁ e₂)))
@@ -168,13 +168,10 @@ lemma lookupTy_mem (Γ: Env.TyEnv) (x: String) (τ :Ast.Ty) (φ: Ast.Predicate)
   | none =>
     simp [hfind] at h
   | some p =>
-    -- Now `lookupTy Γ x = p.2`, so `p.2 = Ty.refin τ φ`
     simp [hfind] at h
-    -- And from `find?` we know `p ∈ Γ`
     have eq_p := List.find?_some hfind
     have p_1_eq_x : p.1 = x := by simp_all
     have mem_p : p ∈ Γ := List.mem_of_find?_eq_some hfind
-    -- Destructure `p` into `(y, τ')`
     cases p with
     | mk y τ' =>
       simp_all
