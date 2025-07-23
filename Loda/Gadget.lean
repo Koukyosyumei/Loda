@@ -322,6 +322,9 @@ lemma let_binding_assert_const
 
 lemma iszero (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv) (φ₁ φ₂: Ast.Predicate)
   (x y inv u: String)
+  (hxy: x ≠ y)
+  (hxu: x ≠ u)
+  (hyu: y ≠ u)
   (hx: Env.lookupTy Γ x = (Ast.Ty.refin Ty.field φ₁))
   (hinv: Env.lookupTy Γ inv = (Ast.Ty.refin Ty.field φ₁))
   :
@@ -335,7 +338,21 @@ lemma iszero (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv) (φ₁ φ₂:
   apply Ty.TypeJudgment.TE_ConstF
   apply Ty.TypeJudgment.TE_Var
   exact hx
-
+  apply Ty.TypeJudgment.TE_Var
+  exact hinv
+  apply Ty.TypeJudgment.TE_ConstF
+  apply Ty.TypeJudgment.TE_LetIn
+  apply Ty.TypeJudgment.TE_Assert
+  apply Ty.TypeJudgment.TE_BinOpField
+  apply Ty.TypeJudgment.TE_Var
+  sorry
+  exact φ₁
+  apply Ty.TypeJudgment.TE_Var
+  unfold Env.lookupTy
+  unfold Env.updateTy
+  simp_all
+  rfl
+  apply Ty.TypeJudgment.TE_ConstF
   sorry
 }
 
