@@ -93,7 +93,7 @@ inductive TypeJudgment {σ: Env.ValEnv} {Δ: Env.CircuitEnv}:
   | TE_Assert {Γ: Env.TyEnv} {e₁ e₂: Ast.Expr} {φ₁ φ₂: Ast.Predicate}:
     TypeJudgment Γ e₁ (Ast.Ty.refin (Ast.Ty.field) φ₁) →
     TypeJudgment Γ e₂ (Ast.Ty.refin (Ast.Ty.field) φ₂) →
-    TypeJudgment Γ (Ast.Expr.assertE e₁ e₂) (Ast.Ty.refin Ast.Ty.unit (Ast.Predicate.const (Ast.exprEq e₁ e₂)))
+    TypeJudgment Γ (Ast.Expr.assertE e₁ e₂) (Ast.Ty.refin Ast.Ty.bool (Ast.Predicate.const (Ast.exprEq e₁ e₂)))
 
   -- TE-BINOPFIELD
   | TE_BinOpField {Γ: Env.TyEnv} {e₁ e₂: Ast.Expr} {φ₁ φ₂: Ast.Predicate} {op: Ast.FieldOp}:
@@ -139,6 +139,19 @@ def makeEnvs (c : Ast.Circuit) (x : Ast.Value) : Env.ValEnv × Env.TyEnv :=
   let Γ: Env.TyEnv := Env.updateTy [] c.inputs.fst c.inputs.snd
   (σ, Γ)
 
+def checkInputsTypes (c : Ast.Circuit) (x: Ast.Value) : Prop :=
+  match c.inputs.snd, x with
+  | Ast.Ty.field, Ast.Value.vF _ => True
+  | Ast.Ty.bool, Ast.Value.vBool _ => True
+  | Ast.Ty.refin baseTy _, val =>
+    match baseTy, val with
+    | Ast.Ty.field,    Ast.Value.vF _      => True
+    | Ast.Ty.bool,     Ast.Value.vBool _   => True
+    | Ast.Ty.arr _,    Ast.Value.vArr _    => True
+    | _,               _                   => False
+  | Ast.Ty.arr _,    Ast.Value.vArr _    => True
+  | _, _ => False
+
 /--
   Correctness of a circuit `c`:
   if the input satisfies its refinement, then evaluating `c.body`
@@ -148,6 +161,7 @@ def circuitCorrect (Δ : Env.CircuitEnv) (c : Ast.Circuit) : Prop :=
   ∀ (x : Ast.Value),
     x != Ast.Value.vStar →
     let (σ, Γ) := makeEnvs c x
+    checkInputsTypes c x →
     PropSemantics.tyenvToProp σ Δ Γ →
     @TypeJudgment σ Δ Γ c.body c.output.snd
 

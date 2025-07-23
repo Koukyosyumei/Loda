@@ -375,7 +375,7 @@ lemma let_binding_assert_const
     apply Ty.TypeJudgment.TE_Var
     exact hΓx
     apply Ty.TypeJudgment.TE_ConstF
-    have h_sub : @Ty.SubtypeJudgment σ Δ (Env.updateTy Γ y (Ty.unit.refin (Predicate.const (exprEq (Expr.var x) (Expr.constF n)))))
+    have h_sub : @Ty.SubtypeJudgment σ Δ (Env.updateTy Γ y (Ty.bool.refin (Predicate.const (exprEq (Expr.var x) (Expr.constF n)))))
       (some (.refin Ast.Ty.field (.eq (.var x)))) (some (.refin Ast.Ty.field (.eq (.constF n)))) := by {
       apply Ty.SubtypeJudgment.TSub_Refine
       apply Ty.SubtypeJudgment.TSub_Refl
@@ -384,7 +384,7 @@ lemma let_binding_assert_const
       unfold PropSemantics.predToProp at ⊢
       simp_all
       unfold PropSemantics.exprToProp at ⊢
-      have h_mem : (y, (Ty.unit.refin (Predicate.const (exprEq (Expr.var x) (Expr.constF n))))) ∈ Env.updateTy Γ y (Ty.unit.refin (Predicate.const (exprEq (Expr.var x) (Expr.constF n)))) := by {
+      have h_mem : (y, (Ty.bool.refin (Predicate.const (exprEq (Expr.var x) (Expr.constF n))))) ∈ Env.updateTy Γ y (Ty.bool.refin (Predicate.const (exprEq (Expr.var x) (Expr.constF n)))) := by {
         unfold Env.updateTy
         simp_all
       }
@@ -392,6 +392,7 @@ lemma let_binding_assert_const
       unfold PropSemantics.varToProp at h_mem
       unfold Env.lookupTy at h_mem
       unfold Env.updateTy at h_mem
+      simp_all
       have hp : PropSemantics.predToProp σ Δ (Predicate.const (exprEq (Expr.var x) (Expr.constF n))) (Expr.var y) := by {
         simp_all
       }
@@ -404,7 +405,7 @@ lemma let_binding_assert_const
     apply Ty.TypeJudgment.TE_SUB
     exact h_sub
     apply Ty.TypeJudgment.TE_Var
-    exact @lookupTy_updateTy_of_ne Γ x y (Ty.field.refin φ) (Ty.unit.refin (Predicate.const (exprEq (Expr.var x) (Expr.constF n)))) hΓx hxy
+    exact @lookupTy_updateTy_of_ne Γ x y (Ty.field.refin φ) (Ty.bool.refin (Predicate.const (exprEq (Expr.var x) (Expr.constF n)))) hΓx hxy
 
 lemma left_ne_zero_of_mul_eq_zero {x y : F}
   (h₁ : x ≠ 0)
@@ -432,6 +433,25 @@ lemma left_ne_zero_of_mul_eq_zero {x y : F}
     simp at h₇
     simp_all
 }
+
+/-
+ih₁₃ : Eval.EvalProp σ Δ (Expr.var x) (Value.vF x_val)
+h₁ : i₆ = x_val
+y_val : F := i₁₂
+ih₁₄ : Eval.EvalProp σ Δ (Expr.var y) (Value.vF y_val)
+ih₁ : Eval.EvalProp σ Δ v (Value.vF y_val)
+r₁ : xv₁ = y_val
+r₅ : xv₃ = y_val
+h₂ : xv₂ = y_val
+h₃ : xv₄ = y_val
+r₇ : x_val = 0 ∨ y_val = 0
+inv_val : F := i₄
+r₂ : -x_val * inv_val + 1 = y_val
+ih₆ : Eval.EvalProp σ Δ (Expr.var inv) (Value.vF inv_val)
+r₃ : -x_val * inv_val = i₁
+⊢ Eval.EvalProp σ Δ (exprEq v (((Expr.var x).binRel RelOp.eq (Expr.constF 0)).branch (Expr.constF 1) (Expr.constF 0)))
+  (Value.vBool true)
+-/
 
 lemma iszero_field {x y inv: F}
   (h₁: y = -x * inv + 1)
@@ -494,7 +514,12 @@ lemma iszero_evalprop {x y inv: String} {v: Ast.Expr} {σ: Env.ValEnv} {Δ: Env.
                             set inv_val := i₄
                             rw[← r₄] at r₃
                             rw[← r₃] at r₂
+                            unfold Ast.exprEq
+                            apply Eval.EvalProp.Rel
+                            exact ih₁
 
+                            sorry
+                            sorry
                             sorry
                           }
                           | _ => simp_all
@@ -565,7 +590,7 @@ lemma iszero (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv) (φ₁ φ₂:
         (Predicate.eq
           ((((Expr.constF 0).fieldExpr FieldOp.sub (Expr.var x)).fieldExpr FieldOp.mul (Expr.var inv)).fieldExpr
             FieldOp.add (Expr.constF 1)))))
-    u (Ty.unit.refin (Predicate.const (exprEq ((Expr.var x).fieldExpr FieldOp.mul (Expr.var y)) (Expr.constF 0)))))
+    u (Ty.bool.refin (Predicate.const (exprEq ((Expr.var x).fieldExpr FieldOp.mul (Expr.var y)) (Expr.constF 0)))))
     (some (.refin Ast.Ty.field (.eq (.var y)))) (Ty.field.refin
     (Predicate.eq (((Expr.var x).binRel RelOp.eq (Expr.constF 0)).branch (Expr.constF 1) (Expr.constF 0)))) := by {
       apply Ty.SubtypeJudgment.TSub_Refine
@@ -584,17 +609,17 @@ lemma iszero (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv) (φ₁ φ₂:
             (Predicate.eq
               ((((Expr.constF 0).fieldExpr FieldOp.sub (Expr.var x)).fieldExpr FieldOp.mul (Expr.var inv)).fieldExpr
                 FieldOp.add (Expr.constF 1)))))
-        u (Ty.unit.refin (Predicate.const (exprEq ((Expr.var x).fieldExpr FieldOp.mul (Expr.var y)) (Expr.constF 0)))) := by {
+        u (Ty.bool.refin (Predicate.const (exprEq ((Expr.var x).fieldExpr FieldOp.mul (Expr.var y)) (Expr.constF 0)))) := by {
           unfold Env.updateTy
           simp_all
         }
-      have h_mem₂ : (u, (Ty.unit.refin (Predicate.const (exprEq ((Expr.var x).fieldExpr FieldOp.mul (Expr.var y)) (Expr.constF 0))))) ∈ Env.updateTy
+      have h_mem₂ : (u, (Ty.bool.refin (Predicate.const (exprEq ((Expr.var x).fieldExpr FieldOp.mul (Expr.var y)) (Expr.constF 0))))) ∈ Env.updateTy
         (Env.updateTy Γ y
           (Ty.field.refin
             (Predicate.eq
               ((((Expr.constF 0).fieldExpr FieldOp.sub (Expr.var x)).fieldExpr FieldOp.mul (Expr.var inv)).fieldExpr
                 FieldOp.add (Expr.constF 1)))))
-        u (Ty.unit.refin (Predicate.const (exprEq ((Expr.var x).fieldExpr FieldOp.mul (Expr.var y)) (Expr.constF 0)))) := by {
+        u (Ty.bool.refin (Predicate.const (exprEq ((Expr.var x).fieldExpr FieldOp.mul (Expr.var y)) (Expr.constF 0)))) := by {
           unfold Env.updateTy
           simp_all
         }
@@ -604,6 +629,7 @@ lemma iszero (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv) (φ₁ φ₂:
       unfold Env.lookupTy at h_mem₁ h_mem₂
       unfold Env.updateTy at h_mem₁ h_mem₂
       simp_all
+      sorry
     }
   apply Ty.TypeJudgment.TE_SUB
   exact h_sub
@@ -611,23 +637,6 @@ lemma iszero (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv) (φ₁ φ₂:
   sorry
   exact φ₁
 }
-
-
-lemma field_refintype_implies_exists_field_value' (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv) (x: String) (e: Predicate)
-  : (Env.lookupTy Γ x = Ty.field.refin e) → PropSemantics.varToProp σ Δ Γ x → ∃ (a: F), Env.lookupVal σ x = Ast.Value.vF a := by
-  intro hx
-  unfold PropSemantics.varToProp
-  simp_all
-  set val := Env.lookupVal σ x
-  cases val with
-  | vF n => simp_all
-  | _ => intro hσ; simp_all
-
-lemma field_refintype_implies_exists_field_value (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv) (x: String) (e: Predicate)
-  : (Env.lookupTy Γ x = Ty.field.refin e) → PropSemantics.tyenvToProp σ Δ Γ → ∃ (a: F), Env.lookupVal σ x = Ast.Value.vF a := by
-  intro hx hy
-  have hv := Ty.tyenvToProp_implies_varToProp σ Δ Γ x Ast.Ty.field e hx hy
-  exact field_refintype_implies_exists_field_value' σ Δ Γ x e hx hv
 
 lemma eval_eq_vals (v₁ v₂: Ast.Value)
   : Eval.evalRelOp RelOp.eq v₁ v₂ = some true → v₁ = v₂ := by
@@ -749,9 +758,8 @@ lemma rw_var_sub_int
   | Rel h₁ h₂ e₁ => {
     apply Eval.EvalProp.Rel
     exact h₁
-    obtain ⟨ht₁, ht₂⟩ := htyenv
     rename_i v₁ v₂
-    have h₃ := @rw_eq_of_eval_prop σ Δ (.var x) ex v₂ ht₂ h₂
+    have h₃ := @rw_eq_of_eval_prop σ Δ (.var x) ex v₂ htyenv h₂
     exact h₃
     exact e₁
   }
@@ -781,11 +789,9 @@ lemma rw_var_sub_int_add
     rename_i v₁ v₂
     have heq₁ := eval_eq_vals v₁ v₂ e₁
     rw[← heq₁] at h₂
-    obtain ⟨hto₁, htp₁⟩ := ht₁
-    obtain ⟨hto₂, htp₂⟩ := ht₂
+    have htmp₁ := @rw_bop_int_add σ Δ (.var x) (.var y) ex ey v₁ ht₁ ht₂ h₂
     apply Eval.EvalProp.Rel
     exact h₁
-    have htmp₁ := @rw_bop_int_add σ Δ (.var x) (.var y) ex ey v₁ htp₁ htp₂ h₂
     exact htmp₁
     unfold Eval.evalRelOp
     simp_all
