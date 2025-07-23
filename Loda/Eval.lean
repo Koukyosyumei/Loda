@@ -89,11 +89,15 @@ mutual
         EvalProp σ Δ (Expr.boolExpr e₁ op e₂) (Value.vBool b)
 
     -- E-BRANCH
-    | Branch {σ Δ c e₁ e₂ b v₁ v₂}
-        (ihc : EvalProp σ Δ c (Value.vBool b))
-        (ih₁ : EvalProp σ Δ e₁ v₁)
-        (ih₂ : EvalProp σ Δ e₂ v₂) :
-        EvalProp σ Δ (Expr.branch c e₁ e₂) (if b then v₁ else v₂)
+    | IfTrue {σ Δ c e₁ e₂ v₁}
+        (ihc : EvalProp σ Δ c (Value.vBool true))
+        (ih₁ : EvalProp σ Δ e₁ v₁):
+        EvalProp σ Δ (Expr.branch c e₁ e₂) (v₁)
+
+    | IfFalse {σ Δ c e₁ e₂ v₂}
+        (ihc : EvalProp σ Δ c (Value.vBool false))
+        (ih₁ : EvalProp σ Δ e₂ v₂):
+        EvalProp σ Δ (Expr.branch c e₁ e₂) (v₂)
 
     -- E‑ASSERT
     | Assert   {σ Δ e₁ e₂ v₁ v₂ b}
