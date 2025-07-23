@@ -485,6 +485,16 @@ lemma iszero_evalprop {x y inv: String} {v: Ast.Expr} {σ: Env.ValEnv} {Δ: Env.
                           cases i₉ with
                           | vF xv₅ => {
                             simp_all
+                            have h₁ := evalprop_var_deterministic_axiom ih₈ ih₁₃
+                            have h₂ := evalprop_var_deterministic_axiom ih₁ ih₉
+                            have h₃ := evalprop_var_deterministic_axiom ih₁₀ ih₁₄
+                            simp_all
+                            set x_val := i₁₁
+                            set y_val := i₁₂
+                            set inv_val := i₄
+                            rw[← r₄] at r₃
+                            rw[← r₃] at r₂
+
                             sorry
                           }
                           | _ => simp_all
