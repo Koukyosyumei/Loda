@@ -37,20 +37,14 @@ match Env.lookupTy Γ ident, Env.lookupVal σ ident with
 | Ast.Ty.refin baseTy pred, val =>
   (match baseTy, val with
   | Ast.Ty.field,    Ast.Value.vF _      => True
-  --| Ast.Ty.field,    Ast.Value.vStar     => True
-  --| Ast.Ty.int,      Ast.Value.vInt _    => True
   | Ast.Ty.bool,     Ast.Value.vBool _   => True
-  --| Ast.Ty.prod tys, Ast.Value.vProd vs  => vs.length = tys.length
   | Ast.Ty.arr _,    Ast.Value.vArr _    => True
   | _,               _                   => False
   ) ∧
   predToProp σ Δ pred (Ast.Expr.var ident)
--- bare field and int types
+-- bare field and boolean types
 | Ast.Ty.field, Ast.Value.vF _        => True
---| Ast.Ty.field,    Ast.Value.vStar    => True
---| Ast.Ty.int,     Ast.Value.vInt _    => True
-| Ast.Ty.bool,    Ast.Value.vBool _   => True
--- any other case is false
+| Ast.Ty.bool,  Ast.Value.vBool _     => True
 | _, _ => False
 
 def tyenvToProp (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv): Prop :=

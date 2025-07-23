@@ -63,7 +63,6 @@ mutual
     | binRel      : (lhs: Expr) → (op: RelOp) → (rhs: Expr) → Expr       -- e₁ ⊘ e₂
     | circRef     : (name: String) → (arg: Expr) → Expr                  -- #C e₁ ... eₙ
     | arrCons     : (head: Expr) → (tail: Expr) → Expr                   -- e₁ :: e₂
-    | arrMap      : (f: Expr) → (arr: Expr) → Expr                       -- map e₁ e₂
     | arrLen      : (arr: Expr) → Expr                                   -- length e
     | arrIdx      : (arr: Expr) → (idx: Expr) → Expr                     -- e₁[e₂]
     | branch      : (cond: Expr) → (th: Expr) → (els: Expr) → Expr       -- if cond then e₁ else e₂
@@ -157,7 +156,6 @@ mutual
     | Expr.binRel l op r     => s!"({exprToString l} {repr op} {exprToString r})"
     | Expr.circRef name arg  => s!"#{name} {exprToString arg}"
     | Expr.arrCons h t       => s!"{exprToString h} :: {exprToString t}"
-    | Expr.arrMap f a        => s!"map {exprToString f} {exprToString a}"
     | Expr.arrLen a          => s!"length {exprToString a}"
     | Expr.arrIdx a i        => s!"{exprToString a}[{exprToString i}]"
     | Expr.branch c e₁ e₂    => s!"if {exprToString c} then {exprToString e₁} else {exprToString e₂}"

@@ -174,23 +174,6 @@ lemma mul_comm_field
   }
 
 /-
-
-lemma add_assoc_int
-  (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv)
-  (x y z: String) (xv yv zv: ℤ)
-  (hσx : Env.lookupVal σ x = Value.vInt xv)
-  (hσy : Env.lookupVal σ y = Value.vInt yv)
-  (hσz : Env.lookupVal σ z = Value.vInt zv)
-  : @Ty.SubtypeJudgment σ Δ Γ
-      (pure (Ty.refin Ty.int (Predicate.eq (Expr.intExpr (Expr.intExpr (Expr.var x) IntegerOp.add (Expr.var y)) IntegerOp.mul (Expr.var z)))))
-      (pure (Ty.refin Ty.int (Predicate.eq (Expr.intExpr (Expr.intExpr (Expr.var x) IntegerOp.mul (Expr.var z)) IntegerOp.add (Expr.intExpr (Expr.var y) IntegerOp.mul (Expr.var z))))))
-  := by
-  apply Ty.SubtypeJudgment.TSub_Refine
-  · apply Ty.SubtypeJudgment.TSub_Refl
-  intro h
-  dsimp [PropSemantics.predToProp, Eval.eval, exprEq, decide_eq_true] at h ⊢
-  simp[PropSemantics.exprToProp, hσx, hσy, hσz, Eval.maximumRecursion, add_mul]
-
 lemma mul_one_field {p: ℕ}
   (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv)
   (x: String) (xv: ℕ) (hσx : Env.lookupVal σ x = Value.vF p xv)

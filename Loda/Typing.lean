@@ -23,54 +23,43 @@ namespace Ty
 
 /--
   Subtyping judgment between two optional types `τ₁ → τ₂`
-  under valuation `σ`, circuits `δ`, type env `Γ`, and fuel.
+  under valuation `σ`, circuits `Δ`, type env `Γ`, and fuel.
 -/
-inductive SubtypeJudgment {σ : Env.ValEnv} {δ: Env.CircuitEnv} {Γ: Env.TyEnv} :
-  Option Ast.Ty → Option Ast.Ty → Prop where
+inductive SubtypeJudgment :
+  Env.ValEnv → Env.CircuitEnv → Env.TyEnv → Option Ast.Ty → Option Ast.Ty → Prop where
   /-- TSUB-REFL: Reflexivity -/
-  | TSub_Refl {τ : Ast.Ty} :
-      SubtypeJudgment (pure τ) (pure τ)
+  | TSub_Refl {σ: Env.ValEnv} {Δ: Env.CircuitEnv} {Γ: Env.TyEnv} {τ : Ast.Ty} :
+      SubtypeJudgment σ Δ Γ (pure τ) (pure τ)
 
   /-- TSUB-TRANS: Transitivity -/
-  | TSub_Trans {τ₁ τ₂ τ₃ : Ast.Ty} :
-      SubtypeJudgment (pure τ₁) (pure τ₂) →
-      SubtypeJudgment (pure τ₂) (pure τ₃) →
-      SubtypeJudgment (pure τ₁) (pure τ₃)
+  | TSub_Trans {σ: Env.ValEnv} {Δ: Env.CircuitEnv} {Γ: Env.TyEnv} {τ₁ τ₂ τ₃ : Ast.Ty} :
+      SubtypeJudgment σ Δ Γ (pure τ₁) (pure τ₂) →
+      SubtypeJudgment σ Δ Γ (pure τ₂) (pure τ₃) →
+      SubtypeJudgment σ Δ Γ (pure τ₁) (pure τ₃)
 
   /-- TSUB-REFINE: Refinement subtyping -/
-  | TSub_Refine {T₁ T₂ : Ast.Ty} {φ₁ φ₂ : Ast.Predicate} :
-      SubtypeJudgment (pure T₁) (pure T₂) →
-      --PropSemantics.tyenvToProp σ δ Γ →
-      (∀ v: Ast.Expr, PropSemantics.tyenvToProp σ δ Γ → (PropSemantics.predToProp σ δ φ₁ v → PropSemantics.predToProp σ δ φ₂ v)) →
-      SubtypeJudgment (pure (Ast.Ty.refin T₁ φ₁)) (pure (Ast.Ty.refin T₂ φ₂))
+  | TSub_Refine {σ: Env.ValEnv} {Δ: Env.CircuitEnv} {Γ: Env.TyEnv} {T₁ T₂ : Ast.Ty} {φ₁ φ₂ : Ast.Predicate} :
+      SubtypeJudgment σ Δ Γ (pure T₁) (pure T₂) →
+      (∀ v: Ast.Expr, PropSemantics.tyenvToProp σ Δ Γ → (PropSemantics.predToProp σ Δ φ₁ v → PropSemantics.predToProp σ Δ φ₂ v)) →
+      SubtypeJudgment σ Δ Γ (pure (Ast.Ty.refin T₁ φ₁)) (pure (Ast.Ty.refin T₂ φ₂))
 
   /-- TSUB-FUN: Function subtyping -/
-  | TSub_Fun {x y : String} {z : Ast.Value} {τx τy τr τs : Ast.Ty} :
-      SubtypeJudgment (pure τy) (pure τx) →
+  | TSub_Fun {σ: Env.ValEnv} {Δ: Env.CircuitEnv} {Γ: Env.TyEnv} {x y : String} {z : Ast.Value} {τx τy τr τs : Ast.Ty} :
+      SubtypeJudgment σ Δ Γ (pure τy) (pure τx) →
       -- Using a fresh variable z to avoid capture
-      -- SubtypeJudgment (update (update σ x z) y z) Γ τr τs →
-      SubtypeJudgment (pure τr) (pure τs) →
-      SubtypeJudgment (pure (Ast.Ty.func x τx τr)) (pure (Ast.Ty.func y τy τs))
+      SubtypeJudgment (Env.updateVal (Env.updateVal σ x z) y z) Δ Γ (pure τr) (pure τs) →
+      SubtypeJudgment σ Δ Γ (pure (Ast.Ty.func x τx τr)) (pure (Ast.Ty.func y τy τs))
 
   /-- TSUB-ARR: Array subtyping -/
-  | TSub_Arr {T₁ T₂ : Ast.Ty} :
-      SubtypeJudgment (pure T₁) (pure T₂) →
-      SubtypeJudgment (pure (Ast.Ty.arr T₁)) (pure (Ast.Ty.arr T₂))
-
-  /-
-  /-- TSUB-PRODUCT: Product subtyping -/
-  | TSub_Product {Ts₁ Ts₂ : List Ast.Ty} :
-      Ts₁.length = Ts₂.length →
-      --PairwiseProd (SubtypeJudgment σ Γ) (List.zip Ts₁ Ts₂) →
-      (∀ i, i < Ts₁.length → SubtypeJudgment Ts₁[i]? Ts₂[i]?) →
-      SubtypeJudgment (pure (Ast.Ty.prod Ts₁)) (pure (Ast.Ty.prod Ts₂))
-  -/
+  | TSub_Arr {σ: Env.ValEnv} {Δ: Env.CircuitEnv} {Γ: Env.TyEnv} {T₁ T₂ : Ast.Ty} :
+      SubtypeJudgment σ Δ Γ (pure T₁) (pure T₂) →
+      SubtypeJudgment σ Δ Γ (pure (Ast.Ty.arr T₁)) (pure (Ast.Ty.arr T₂))
 
 /--
   Typing judgment `Γ ⊢ e : τ`: expression `e` has type `τ`
-  under type environment `Γ`, valuation `σ`, circuits `δ`, and fuel.
+  under type environment `Γ`, valuation `σ`, circuits `Δ`, and fuel.
 -/
-inductive TypeJudgment {σ: Env.ValEnv} {δ: Env.CircuitEnv}:
+inductive TypeJudgment {σ: Env.ValEnv} {Δ: Env.CircuitEnv}:
   Env.TyEnv → Ast.Expr → Ast.Ty → Prop where
   -- TE-VAR
   | TE_Var {Γ: Env.TyEnv} {x : String} {T: Ast.Ty}:
@@ -83,16 +72,18 @@ inductive TypeJudgment {σ: Env.ValEnv} {δ: Env.CircuitEnv}:
 
   -- TE-VAR-FUNC
   | TE_VarFunc {Γ: Env.TyEnv} {f x : String} {τ₁ τ₂: Ast.Ty}:
-      Env.lookupTy Γ f = (Ast.Ty.func x τ₁ τ₂) →
-      TypeJudgment Γ (Ast.Expr.var f) (Ast.Ty.func x τ₁ τ₂)
+    Env.lookupTy Γ f = (Ast.Ty.func x τ₁ τ₂) →
+    TypeJudgment Γ (Ast.Expr.var f) (Ast.Ty.func x τ₁ τ₂)
+
+  -- TE-BRANCH
+  | TE_Branch {Γ: Env.TyEnv} {c e₁ e₂: Ast.Expr} {τ: Ast.Ty}:
+    TypeJudgment Γ e₁ τ →
+    TypeJudgment Γ e₂ τ →
+    TypeJudgment Γ (Ast.Expr.branch c e₁ e₂) τ
 
   -- TE-NONDET
   | TE_Nondet {Γ: Env.TyEnv}:
     TypeJudgment Γ Ast.Expr.wildcard (Ast.Ty.refin (Ast.Ty.field) (Ast.Predicate.const (Ast.Expr.constBool true)))
-
-  -- TE-CONSTI
-  --| TE_ConstI {Γ: Env.TyEnv} {n: ℕ}:
-  --  TypeJudgment Γ (Ast.Expr.constInt n) (Ast.Ty.refin (Ast.Ty.int) (Ast.Predicate.eq (Ast.Expr.constInt n)))
 
   -- TE-CONSTF
   | TE_ConstF {Γ: Env.TyEnv} {f: F} :
@@ -118,20 +109,20 @@ inductive TypeJudgment {σ: Env.ValEnv} {δ: Env.CircuitEnv}:
   -- TE-APP
   | TE_App {Γ: Env.TyEnv} {x₁ x₂: Ast.Expr} {s: String} {τ₁ τ₂: Ast.Ty} {v: Ast.Value}:
     TypeJudgment Γ x₁ (Ast.Ty.func s τ₁ τ₂) →
-    Eval.EvalProp σ δ x₂ v →
+    Eval.EvalProp σ Δ x₂ v →
     TypeJudgment Γ x₂ τ₁ →
     TypeJudgment Γ (Ast.Expr.app x₁ x₂) τ₂
 
   -- TE_SUB
   | TE_SUB {Γ: Env.TyEnv} {e: Ast.Expr} {τ₁ τ₂: Ast.Ty}
-    (h₀ : @SubtypeJudgment σ δ Γ (some τ₁) (some τ₂))
-    (ht : @TypeJudgment σ δ Γ e τ₁) :
+    (h₀ : @SubtypeJudgment σ Δ Γ (some τ₁) (some τ₂))
+    (ht : @TypeJudgment σ Δ Γ e τ₁) :
     TypeJudgment Γ e τ₂
 
   -- TE-LETIN
   | TE_LetIn {Γ: Env.TyEnv} {x : String} {e₁ e₂ : Ast.Expr} {τ₁ τ₂ : Ast.Ty}
-    (h₁: @TypeJudgment σ δ Γ e₁ τ₁)
-    (h₂: @TypeJudgment σ δ (Env.updateTy Γ x τ₁) e₂ τ₂):
+    (h₁: @TypeJudgment σ Δ Γ e₁ τ₁)
+    (h₂: @TypeJudgment σ Δ (Env.updateTy Γ x τ₁) e₂ τ₂):
     TypeJudgment Γ (Ast.Expr.letIn x e₁ e₂) τ₂
 
 /--
@@ -139,9 +130,9 @@ If an expression `e` is typed as the refinement `{ v : τ | φ }`,
 then the predicate `φ` holds under `exprToProp`.
 (TODO: this is the soundness theorem that we can prove)
 -/
-axiom typeJudgmentRefinementSound {σ : Env.ValEnv} {δ : Env.CircuitEnv}
+axiom typeJudgmentRefinementSound {σ : Env.ValEnv} {Δ : Env.CircuitEnv}
  (Γ : Env.TyEnv) (τ : Ast.Ty) (e: Ast.Expr) (φ: Ast.Predicate):
-  @Ty.TypeJudgment σ δ Γ e (Ast.Ty.refin τ φ) → PropSemantics.predToProp σ δ φ e
+  @Ty.TypeJudgment σ Δ Γ e (Ast.Ty.refin τ φ) → PropSemantics.predToProp σ Δ φ e
 
 def makeEnvs (c : Ast.Circuit) (x : Ast.Value) : Env.ValEnv × Env.TyEnv :=
   let σ: Env.ValEnv := Env.updateVal [] c.inputs.fst x
@@ -153,12 +144,12 @@ def makeEnvs (c : Ast.Circuit) (x : Ast.Value) : Env.ValEnv × Env.TyEnv :=
   if the input satisfies its refinement, then evaluating `c.body`
   yields a value satisfying the output refinement.
 -/
-def circuitCorrect (δ : Env.CircuitEnv) (c : Ast.Circuit) : Prop :=
+def circuitCorrect (Δ : Env.CircuitEnv) (c : Ast.Circuit) : Prop :=
   ∀ (x : Ast.Value),
     x != Ast.Value.vStar →
     let (σ, Γ) := makeEnvs c x
-    PropSemantics.tyenvToProp σ δ Γ →
-    @TypeJudgment σ δ Γ c.body c.output.snd
+    PropSemantics.tyenvToProp σ Δ Γ →
+    @TypeJudgment σ Δ Γ c.body c.output.snd
 
 lemma lookupTy_mem (Γ: Env.TyEnv) (x: String) (τ :Ast.Ty) (φ: Ast.Predicate)
   (h : Env.lookupTy Γ x = Ast.Ty.refin τ φ) :
