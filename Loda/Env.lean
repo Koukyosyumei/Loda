@@ -22,14 +22,6 @@ namespace Env
 /-- A valuation environment: maps variable names to runtime `Value`s. -/
 abbrev ValEnv := List (String × Ast.Value)
 
-/--
-  Extend `σ` by binding `ident` to `val`.
-  When you lookup `ident`, you get `val`; otherwise you delegate to the old `σ`.
--/
---@[inline]
---def updateVal (σ: ValEnv) (ident: String) (val: Ast.Value) : ValEnv :=
---  fun y => if y = ident then val else σ y
-
 @[inline]
 def lookupVal (σ : ValEnv) (ident : String) : Ast.Value :=
   match σ.find? (·.1 = ident) with
@@ -50,10 +42,6 @@ def lookupCircuit (Δ : CircuitEnv) (ident : String) : Ast.Circuit :=
   | some (_, v) => v
   | none        => Ast.DefaultCircuit
 
-/--
-  Extend `δ` by binding `ident` to `circuit`.
-  When you lookup `ident`, you get `circuit`; otherwise you delegate to the old `δ`.
--/
 @[inline]
 def updateCircuit (Δ: CircuitEnv) (ident: String) (circuit: Ast.Circuit) : CircuitEnv :=
   (ident, circuit) :: Δ
@@ -81,10 +69,6 @@ def getCircuitFromEnv (name : String) : Lean.CoreM (Option Ast.Circuit) := do
 /-- A type environment: maps variable names to Loda `Ty`s. -/
 abbrev TyEnv := List (String × Ast.Ty)
 
-/--
-  Extend `Γ` by binding `ident` to `τ`.
-  When you lookup `ident`, you get `τ`; otherwise you delegate to the old `Γ`.
--/
 @[inline]
 def updateTy (Γ: TyEnv) (ident: String) (τ: Ast.Ty) : TyEnv :=
   (ident, τ) :: Γ

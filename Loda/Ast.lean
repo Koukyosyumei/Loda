@@ -66,7 +66,7 @@ mutual
     | arrMap      : (f: Expr) → (arr: Expr) → Expr                       -- map e₁ e₂
     | arrLen      : (arr: Expr) → Expr                                   -- length e
     | arrIdx      : (arr: Expr) → (idx: Expr) → Expr                     -- e₁[e₂]
-    | ifelse      : (cond: Expr) → (th: Expr) → (els: Expr) → Expr       -- if cond then e₁ else e₂
+    | branch      : (cond: Expr) → (th: Expr) → (els: Expr) → Expr       -- if cond then e₁ else e₂
     | lam         : (param: String) → (τ: Ty) → (body: Expr) → Expr      -- λx : τ. e
     | app         : (f: Expr) → (arg: Expr) → Expr                       -- e₁ e₂
     | letIn       : (name: String) → (val: Expr) → (body: Expr) → Expr   -- let x = e₁ in e₂
@@ -160,7 +160,7 @@ mutual
     | Expr.arrMap f a        => s!"map {exprToString f} {exprToString a}"
     | Expr.arrLen a          => s!"length {exprToString a}"
     | Expr.arrIdx a i        => s!"{exprToString a}[{exprToString i}]"
-    | Expr.ifelse c e₁ e₂    => s!"if {exprToString c} then {exprToString e₁} else {exprToString e₂}"
+    | Expr.branch c e₁ e₂    => s!"if {exprToString c} then {exprToString e₁} else {exprToString e₂}"
     | Expr.lam param τ body  => s!"λ{param} : {tyToString τ}. {exprToString body}"
     | Expr.app f arg         => s!"{exprToString f} {exprToString arg}"
     | Expr.letIn n v b       => s!"let {n} = {exprToString v} in {exprToString b}"
