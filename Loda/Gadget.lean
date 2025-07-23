@@ -320,6 +320,26 @@ lemma let_binding_assert_const
     apply Ty.TypeJudgment.TE_Var
     exact @lookupTy_updateTy_of_ne Γ x y (Ty.field.refin φ) (Ty.unit.refin (Predicate.const (exprEq (Expr.var x) (Expr.constF n)))) hΓx hxy
 
+lemma iszero (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv) (φ₁ φ₂: Ast.Predicate)
+  (x y inv u: String)
+  (hx: Env.lookupTy Γ x = (Ast.Ty.refin Ty.field φ₁))
+  (hinv: Env.lookupTy Γ inv = (Ast.Ty.refin Ty.field φ₁))
+  :
+  @Ty.TypeJudgment σ Δ Γ
+    (Ast.Expr.letIn y (.fieldExpr (.fieldExpr (.fieldExpr (.constF 0) .sub (.var x)) .mul (.var inv)) (.add) (.constF 1)) (Ast.Expr.letIn u (.assertE (.fieldExpr (.var x) .mul (.var y)) (.constF 0)) (.var y)))
+    (Ty.refin Ast.Ty.field (Ast.Predicate.eq (.branch (.binRel (.var x) (.eq) (.constF 0)) (.constF 1) (.constF 0)))) := by {
+  apply Ty.TypeJudgment.TE_LetIn
+  apply Ty.TypeJudgment.TE_BinOpField
+  apply Ty.TypeJudgment.TE_BinOpField
+  apply Ty.TypeJudgment.TE_BinOpField
+  apply Ty.TypeJudgment.TE_ConstF
+  apply Ty.TypeJudgment.TE_Var
+  exact hx
+
+  sorry
+}
+
+
 lemma field_refintype_implies_exists_field_value' (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv) (x: String) (e: Predicate)
   : (Env.lookupTy Γ x = Ty.field.refin e) → PropSemantics.varToProp σ Δ Γ x → ∃ (a: F), Env.lookupVal σ x = Ast.Value.vF a := by
   intro hx
