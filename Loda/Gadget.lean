@@ -434,7 +434,7 @@ lemma left_ne_zero_of_mul_eq_zero {x y : F}
     simp_all
 }
 
-lemma isZero_spec_from_mul {x y inv: F}
+lemma isZero_arith_soundness {x y inv: F}
   (h₁: y = -x * inv + 1)
   (h₂: x * y = 0):
   if x = 0 then y = 1 else y = 0 := by {
@@ -443,7 +443,7 @@ lemma isZero_spec_from_mul {x y inv: F}
     . simp_all
 }
 
-lemma isZero_evalprop_correct {x y inv: String} {σ: Env.ValEnv} {Δ: Env.CircuitEnv}
+lemma isZero_eval_eq_branch_semantics {x y inv: String} {σ: Env.ValEnv} {Δ: Env.CircuitEnv}
   (h₁: Eval.EvalProp σ Δ (exprEq (Expr.var y) ((((Expr.constF 0).fieldExpr FieldOp.sub (Expr.var x)).fieldExpr FieldOp.mul (Expr.var inv)).fieldExpr
                   FieldOp.add (Expr.constF 1))) (Value.vBool true))
   (h₂: Eval.EvalProp σ Δ (exprEq ((Expr.var x).fieldExpr FieldOp.mul (Expr.var y)) (Expr.constF 0)) (Value.vBool true)) :
@@ -537,7 +537,7 @@ lemma isZero_evalprop_correct {x y inv: String} {σ: Env.ValEnv} {Δ: Env.Circui
     }
   }
 
-lemma iszero (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv) (φ₁: Ast.Predicate)
+lemma isZero_typing_soundness (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv) (φ₁: Ast.Predicate)
   (x y inv u: String)
   (hxy: y ≠ x)
   (hyu: u ≠ y)
@@ -618,7 +618,7 @@ lemma iszero (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv) (φ₁: Ast.P
       unfold PropSemantics.predToProp at h_mem₁ h_mem₂
       simp_all
       unfold PropSemantics.exprToProp at h_mem₁ h_mem₂
-      have h_iszero := isZero_evalprop_correct h_mem₁ h_mem₂
+      have h_iszero := isZero_eval_eq_branch_semantics h_mem₁ h_mem₂
       intro hv
       exact evalProp_exprEq_trans2 hv h_iszero
     }
