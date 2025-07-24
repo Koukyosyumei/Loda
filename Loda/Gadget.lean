@@ -462,12 +462,11 @@ lemma iszero_field {x y inv: F}
     . simp_all
 }
 
-lemma iszero_evalprop {x y inv: String} {v: Ast.Expr} {σ: Env.ValEnv} {Δ: Env.CircuitEnv}
-  (h₁: Eval.EvalProp σ Δ (exprEq v ((((Expr.constF 0).fieldExpr FieldOp.sub (Expr.var x)).fieldExpr FieldOp.mul (Expr.var inv)).fieldExpr
+lemma iszero_evalprop {x y inv: String} {σ: Env.ValEnv} {Δ: Env.CircuitEnv}
+  (h₁: Eval.EvalProp σ Δ (exprEq (Expr.var y) ((((Expr.constF 0).fieldExpr FieldOp.sub (Expr.var x)).fieldExpr FieldOp.mul (Expr.var inv)).fieldExpr
                   FieldOp.add (Expr.constF 1))) (Value.vBool true))
-  (h₂: Eval.EvalProp σ Δ (exprEq v (Expr.var y)) (Value.vBool true))
-  (h₃: Eval.EvalProp σ Δ (exprEq ((Expr.var x).fieldExpr FieldOp.mul (Expr.var y)) (Expr.constF 0)) (Value.vBool true)) :
-  Eval.EvalProp σ Δ (exprEq v (((Expr.var x).binRel RelOp.eq (Expr.constF 0)).branch (Expr.constF 1) (Expr.constF 0))) (Value.vBool true) := by {
+  (h₂: Eval.EvalProp σ Δ (exprEq ((Expr.var x).fieldExpr FieldOp.mul (Expr.var y)) (Expr.constF 0)) (Value.vBool true)) :
+  Eval.EvalProp σ Δ (exprEq (.var y) (.branch ((Expr.var x).binRel RelOp.eq (Expr.constF 0)) (Expr.constF 1) (Expr.constF 0))) (Value.vBool true) := by {
     cases h₁ with
     | Rel ih₁ ih₂ r₁ => {
       rename_i v₁ v₂
@@ -483,55 +482,63 @@ lemma iszero_evalprop {x y inv: String} {v: Ast.Expr} {σ: Env.ValEnv} {Δ: Env.
             cases h₂ with
             | Rel ih₉ ih₁₀ r₅ => {
               rename_i i₇ i₈
-              cases h₃ with
-              | Rel ih₁₁ ih₁₂ r₆ => {
+              cases ih₄
+              cases ih₇
+              cases ih₁₀
+              cases ih₉ with
+              | FBinOp ih₁₁ ih₁₂ r₆ => {
                 rename_i i₉ i₁₀
-                cases ih₄
-                cases ih₇
-                cases ih₁₂
-                cases ih₁₁ with
-                | FBinOp ih₁₃ ih₁₄ r₇ => {
-                  rename_i i₁₁ i₁₂
-                  unfold Eval.evalFieldOp at r₂ r₃ r₄ r₇
-                  simp_all
-                  cases v₁ with
-                  | vF xv₁ => {
-                    cases v₂ with
-                    | vF xv₂ => {
-                      cases i₇ with
-                      | vF xv₃ => {
-                        cases i₈ with
-                        | vF xv₄ => {
-                          cases i₉ with
-                          | vF xv₅ => {
-                            simp_all
-                            have h₁ := evalprop_var_deterministic_axiom ih₈ ih₁₃
-                            have h₂ := evalprop_var_deterministic_axiom ih₁ ih₉
-                            have h₃ := evalprop_var_deterministic_axiom ih₁₀ ih₁₄
-                            simp_all
-                            set x_val := i₁₁
-                            set y_val := i₁₂
-                            set inv_val := i₄
-                            rw[← r₄] at r₃
-                            rw[← r₃] at r₂
-                            unfold Ast.exprEq
-                            apply Eval.EvalProp.Rel
-                            exact ih₁
-
-                            sorry
-                            sorry
-                            sorry
-                          }
-                          | _ => simp_all
-                          }
-                        | _ => simp_all
-                       }
-                      | _ => simp_all
+                unfold Eval.evalFieldOp at r₂ r₃ r₄ r₆
+                simp_all
+                cases v₁ with
+                | vF xv₁ => {
+                  cases v₂ with
+                  | vF xv₂ => {
+                    cases i₇ with
+                    | vF xv₃ => {
+                      simp at r₁ r₅
+                      simp_all
+                      have h₁ := evalprop_var_deterministic_axiom ih₈ ih₁₁
+                      have h₂ := evalprop_var_deterministic_axiom ih₁ ih₁₂
+                      simp_all
+                      set inv_val := i₄
+                      set x_val := i₉
+                      set y_val := i₁₀
+                      rw[← r₄] at r₃
+                      rw[← r₃] at r₂
+                      unfold exprEq
+                      apply Eval.EvalProp.Rel
+                      exact ih₁₂
+                      have h₃: x_val = 0 → Eval.EvalProp σ Δ (((Expr.var x).binRel RelOp.eq (Expr.constF 0)).branch (Expr.constF 1) (Expr.constF 0)) (Value.vF 1) := by {
+                        intro h
+                        apply Eval.EvalProp.IfTrue
+                        apply Eval.EvalProp.Rel
+                        exact ih₁₁
+                        apply Eval.EvalProp.ConstF
+                        unfold Eval.evalRelOp
+                        simp_all
+                        apply Eval.EvalProp.ConstF
+                      }
+                      have h₄: x_val ≠ 0 → Eval.EvalProp σ Δ (((Expr.var x).binRel RelOp.eq (Expr.constF 0)).branch (Expr.constF 1) (Expr.constF 0)) (Value.vF 0) := by {
+                        intro h
+                        apply Eval.EvalProp.IfFalse
+                        apply Eval.EvalProp.Rel
+                        exact ih₁₁
+                        apply Eval.EvalProp.ConstF
+                        unfold Eval.evalRelOp
+                        simp_all
+                        apply Eval.EvalProp.ConstF
+                      }
+                      by_cases hz : x_val = 0
+                      . exact h₃ hz
+                      . sorry
+                      sorry
                     }
                     | _ => simp_all
                   }
                   | _ => simp_all
                 }
+                | _ => simp_all
               }
             }
           }
@@ -539,15 +546,6 @@ lemma iszero_evalprop {x y inv: String} {v: Ast.Expr} {σ: Env.ValEnv} {Δ: Env.
       }
     }
   }
-
--- y := ((((Expr.constF 0).fieldExpr FieldOp.sub (Expr.var x)).fieldExpr FieldOp.mul (Expr.var inv)).fieldExpr
---                  FieldOp.add (Expr.constF 1))
-
-/-
-Eval.EvalProp σ Δ (exprEq v (Expr.var y)) (Value.vBool true) →
-  Eval.EvalProp σ Δ (exprEq v (((Expr.var x).binRel RelOp.eq (Expr.constF 0)).branch (Expr.constF 1) (Expr.constF 0)))
-    (Value.vBool true)
--/
 
 lemma iszero (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv) (φ₁ φ₂: Ast.Predicate)
   (x y inv u: String)
