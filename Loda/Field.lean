@@ -16,6 +16,11 @@ and exponentiation.
 @[inline]
 def p : Nat := 21888242871839275222246405745257275088548364400416034343698204186575808495617
 
+-- TODO: prove this statement as a theorem
+axiom p_is_prime: Nat.Prime p
+
+instance : Fact p.Prime := ⟨p_is_prime⟩
+
 instance : NeZero p := ⟨by
   rw[p]
   simp_all

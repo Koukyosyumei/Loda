@@ -9,7 +9,7 @@ import Loda.PropSemantics
 -- tests
 
 def σ₀ : Env.ValEnv := []
-def δ₀ : Env.CircuitEnv := []
+def Δ₀ : Env.CircuitEnv := []
 
 -- --------------------------------------------------
 -- beq tests
@@ -29,17 +29,17 @@ example : Eval.evalRelOp Ast.RelOp.lt (Ast.Value.vBool true) (Ast.Value.vBool fa
 -- --------------------------------------------------
 -- eval on basic constants & var/let
 -- --------------------------------------------------
-example: Eval.EvalProp σ₀ δ₀ (.constF 42) (.vF 42) := Eval.EvalProp.ConstF
-example: Eval.EvalProp σ₀ δ₀ (.constBool false) (.vBool false) := Eval.EvalProp.ConstBool
+example: Eval.EvalProp σ₀ Δ₀ (.constF 42) (.vF 42) := Eval.EvalProp.ConstF
+example: Eval.EvalProp σ₀ Δ₀ (.constBool false) (.vBool false) := Eval.EvalProp.ConstBool
 
 def σ₁ := Env.updateVal σ₀ "y" (Ast.Value.vF 99)
-example: Eval.EvalProp σ₁ δ₀ (.var "y") (.vF 99) := by
+example: Eval.EvalProp σ₁ Δ₀ (.var "y") (.vF 99) := by
   apply Eval.EvalProp.Var
   simp [σ₁]
   unfold Env.updateVal Env.lookupVal
   simp_all
 
-example: Eval.EvalProp σ₀ δ₀
+example: Eval.EvalProp σ₀ Δ₀
         (.letIn "z" (.constF 7) (.fieldExpr (Ast.Expr.var "z") .mul (.constF 3))) (.vF 21) := by
   apply Eval.EvalProp.Let
   apply Eval.EvalProp.ConstF
@@ -53,13 +53,18 @@ example: Eval.EvalProp σ₀ δ₀
   simp_all
   rfl
 
-example: Eval.EvalProp σ₀ δ₀ (.binRel (.constF 3) .le (.constF 7)) (.vBool true) := by
+example: Eval.EvalProp σ₀ Δ₀ (.binRel (.constF 3) .le (.constF 7)) (.vBool true) := by
   apply Eval.EvalProp.Rel
   apply Eval.EvalProp.ConstF
   apply Eval.EvalProp.ConstF
   unfold Eval.evalRelOp
   simp_all
   norm_cast
+
+example: Eval.EvalProp σ₀ Δ₀ (.branch (.constBool true) (.constF 3) (.constF 7)) (.vF 3) := by
+  apply Eval.EvalProp.IfTrue
+  apply Eval.EvalProp.ConstBool
+  apply Eval.EvalProp.ConstF
 
 -- --------------------------------------------------
 -- iter: sum from 0 to 4 with accumulator starting at 0
@@ -75,7 +80,7 @@ def sumIter : Ast.Expr :=
         Ast.Expr.fieldExpr (Ast.Expr.var "acc") Ast.FieldOp.add (Ast.Expr.var "i"))
     (Ast.Expr.constF 0)  -- initial accumulator
 
-example: Eval.EvalProp σ₀ δ₀ sumIter (.vF 6) := by
+example: Eval.EvalProp σ₀ Δ₀ sumIter (.vF 6) := by
   rw[sumIter]
   apply Eval.EvalProp.Iter
   apply Eval.EvalProp.ConstF

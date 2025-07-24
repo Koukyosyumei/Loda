@@ -7,6 +7,8 @@
     <img src="./img/logo-wide.png" alt="Loda Logo" height="126">
 </p>
 
+`Loda` is a domain-specific language for writing Zero-Knowledge circuits. It allows programmers to formally specify the expected behavior of circuits using refinement types, and to verify their correctness through theorem proving in Lean.
+
 ## Install
 
 TBD

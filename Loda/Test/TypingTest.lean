@@ -40,7 +40,7 @@ theorem adderCircuit_correct : (Ty.circuitCorrect Δ adderCircuit) := by
   unfold Ty.circuitCorrect
   unfold adderCircuit
   simp_all
-  intro x hs hσ
+  intro x hs hi hσ
   set envs := Ty.makeEnvs adderCircuit x
   set σ := envs.1
   set Γ := envs.2
@@ -48,7 +48,25 @@ theorem adderCircuit_correct : (Ty.circuitCorrect Δ adderCircuit) := by
   have h_body := @let_binding_field_op_type_preservation "x" "x" "out" σ Δ Γ
               Ast.FieldOp.add (Ast.Predicate.const (Ast.Expr.constBool true))
                                 (Ast.Predicate.const (Ast.Expr.constBool true)) hΓ hΓ
-  obtain ⟨vv, hv_eq⟩ := field_refintype_implies_exists_field_value σ Δ Γ "x" (Ast.Predicate.const (Ast.Expr.constBool true)) hΓ hσ
+  have hv : ∃ v: F, Env.lookupVal σ "x" = Ast.Value.vF v := by {
+    unfold Ty.checkInputsTypes at hi
+    simp at hi
+    cases x with
+    | vF xv => {
+      simp_all
+      unfold σ
+      unfold envs
+      unfold Ty.makeEnvs
+      unfold Env.updateVal
+      simp_all
+      unfold Env.lookupVal
+      simp_all
+    }
+    | _ => {
+      simp_all
+    }
+  }
+  obtain ⟨vv, hv_eq⟩ := hv
   have h_sub := two_mul_field σ Δ Γ "x" vv hv_eq
   exact Ty.TypeJudgment.TE_SUB h_sub h_body
 
@@ -56,7 +74,7 @@ theorem addOneCircuit_correct : (Ty.circuitCorrect Δ addOneCircuit) := by
   unfold Ty.circuitCorrect
   unfold addOneCircuit
   simp_all
-  intro x hs hσ
+  intro x hs himp_compl_comm hσ
   set envs := Ty.makeEnvs addOneCircuit x
   set σ := envs.1
   set Γ := envs.2
@@ -71,7 +89,7 @@ theorem identityCircuit_correct : (Ty.circuitCorrect Δ identityCircuit) := by
   unfold Ty.circuitCorrect
   unfold identityCircuit
   simp_all
-  intro x hs hσ
+  intro x hs hi hσ
   set envs := Ty.makeEnvs identityCircuit x
   set σ := envs.1
   set Γ := envs.2
@@ -87,7 +105,7 @@ theorem assertCircuit_correct : (Ty.circuitCorrect Δ assertCircuit) := by
   unfold Ty.circuitCorrect
   unfold assertCircuit
   simp_all
-  intro x hs hσ
+  intro x hs hi hσ
   set envs := Ty.makeEnvs identityCircuit x
   set σ := envs.1
   set Γ := envs.2

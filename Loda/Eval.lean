@@ -49,17 +49,17 @@ def evalBoolOp (op : BooleanOp) : Value → Value → Option Bool
 mutual
   inductive EvalProp : ValEnv → CircuitEnv → Expr → Value → Prop
     -- E‑VALUE
-    | ConstF   {σ Δ v}  : EvalProp σ Δ (Expr.constF v) (Value.vF v)
-    | ConstBool{σ Δ b}  : EvalProp σ Δ (Expr.constBool b) (Value.vBool b)
+    | ConstF        {σ Δ v} : EvalProp σ Δ (Expr.constF v) (Value.vF v)
+    | ConstBool     {σ Δ b} : EvalProp σ Δ (Expr.constBool b) (Value.vBool b)
 
     -- E-NONDET
-    | NonDet {σ Δ v}    : EvalProp σ Δ (Expr.wildcard) (Value.vF v)
+    | NonDet        {σ Δ v} : EvalProp σ Δ (Expr.wildcard) (Value.vF v)
 
     -- E‑VAR
-    | Var      {σ Δ x v}  : lookupVal σ x = v → EvalProp σ Δ (Expr.var x) v
+    | Var         {σ Δ x v} : lookupVal σ x = v → EvalProp σ Δ (Expr.var x) v
 
     -- E‑LAM
-    | Lam      {σ Δ x τ body}  : EvalProp σ Δ (Expr.lam x τ body) (Value.vClosure x body σ)
+    | Lam    {σ Δ x τ body} : EvalProp σ Δ (Expr.lam x τ body) (Value.vClosure x body σ)
 
     -- E‑LET
     | Let      {σ Δ x e₁ e₂ v₁ v₂}
@@ -88,6 +88,17 @@ mutual
         (bv  : evalBoolOp op (Value.vBool b₁) (Value.vBool b₂) = some b) :
         EvalProp σ Δ (Expr.boolExpr e₁ op e₂) (Value.vBool b)
 
+    -- E-BRANCH
+    | IfTrue {σ Δ c e₁ e₂ v₁}
+        (ihc : EvalProp σ Δ c (Value.vBool true))
+        (ih₁ : EvalProp σ Δ e₁ v₁):
+        EvalProp σ Δ (Expr.branch c e₁ e₂) (v₁)
+
+    | IfFalse {σ Δ c e₁ e₂ v₂}
+        (ihc : EvalProp σ Δ c (Value.vBool false))
+        (ih₁ : EvalProp σ Δ e₂ v₂):
+        EvalProp σ Δ (Expr.branch c e₁ e₂) (v₂)
+
     -- E‑ASSERT
     | Assert   {σ Δ e₁ e₂ v₁ v₂ b}
         (ih₁ : EvalProp σ Δ e₁ v₁)
@@ -102,11 +113,6 @@ mutual
         (r   : evalRelOp op v₁ v₂ = some b) :
         EvalProp σ Δ (Expr.binRel e₁ op e₂) (Value.vBool b)
 
-    -- E‑PRODCONS
-    --| ProdCons {σ Δ es vs}
-    --    (ihs : List.Forall₂ (fun e v => EvalProp σ Δ e v) es vs) :
-    --    EvalProp σ Δ (Expr.prodCons es) (Value.vProd vs)
-
     -- E‑ARRCONS
     | ArrConsArr {σ Δ h t vh vs}
         (ihh : EvalProp σ Δ h vh)
@@ -119,16 +125,8 @@ mutual
         (ne   : ¬ ∃ vs, vt = Value.vArr vs) :
         EvalProp σ Δ (Expr.arrCons h t) (Value.vArr [vh, vt])
 
-
-    /-
-    | ArrCons2  {σ Δ h t vh vt}
-        (ihh : EvalProp σ Δ h vh)
-        (iht : EvalProp σ Δ t vt):
-        EvalProp σ Δ (Expr.arrCons h t) (Value.vArr [vh, vt])
-    -/
-
     -- E‑ARRIDX
-    | ArrIdx   {σ Δ a i vs j v}
+    | ArrIdx {σ Δ a i vs j v}
         (iha : EvalProp σ Δ a (Value.vArr vs))
         (ihi : EvalProp σ Δ i (Value.vF j))
         (idx : vs[j.toNat]? = some v) :

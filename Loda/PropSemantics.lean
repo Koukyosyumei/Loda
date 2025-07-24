@@ -32,26 +32,14 @@ def predToProp (σ: Env.ValEnv) (Δ: Env.CircuitEnv): Ast.Predicate → (Ast.Exp
 | Ast.Predicate.eq e    => fun v => exprToProp σ Δ (Ast.exprEq v e)
 
 def varToProp (σ : Env.ValEnv) (Δ : Env.CircuitEnv) (Γ : Env.TyEnv) (ident : String): Prop :=
-match Env.lookupTy Γ ident, Env.lookupVal σ ident with
+match Env.lookupTy Γ ident with
 -- refinement types: check base-type match and predicate
-| Ast.Ty.refin baseTy pred, val =>
-  (match baseTy, val with
-  | Ast.Ty.field,    Ast.Value.vF _      => True
-  --| Ast.Ty.field,    Ast.Value.vStar     => True
-  --| Ast.Ty.int,      Ast.Value.vInt _    => True
-  | Ast.Ty.bool,     Ast.Value.vBool _   => True
-  --| Ast.Ty.prod tys, Ast.Value.vProd vs  => vs.length = tys.length
-  | Ast.Ty.arr _,    Ast.Value.vArr _    => True
-  | _,               _                   => False
-  ) ∧
+| Ast.Ty.refin _ pred =>
   predToProp σ Δ pred (Ast.Expr.var ident)
--- bare field and int types
-| Ast.Ty.field, Ast.Value.vF _        => True
---| Ast.Ty.field,    Ast.Value.vStar    => True
---| Ast.Ty.int,     Ast.Value.vInt _    => True
-| Ast.Ty.bool,    Ast.Value.vBool _   => True
--- any other case is false
-| _, _ => False
+-- bare field and boolean types
+| Ast.Ty.field        => True
+| Ast.Ty.bool         => True
+| _ => False
 
 def tyenvToProp (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv): Prop :=
   ∀ e ∈ Γ, varToProp σ Δ Γ e.1
