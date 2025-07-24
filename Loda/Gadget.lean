@@ -434,26 +434,7 @@ lemma left_ne_zero_of_mul_eq_zero {x y : F}
     simp_all
 }
 
-/-
-ih₁₃ : Eval.EvalProp σ Δ (Expr.var x) (Value.vF x_val)
-h₁ : i₆ = x_val
-y_val : F := i₁₂
-ih₁₄ : Eval.EvalProp σ Δ (Expr.var y) (Value.vF y_val)
-ih₁ : Eval.EvalProp σ Δ v (Value.vF y_val)
-r₁ : xv₁ = y_val
-r₅ : xv₃ = y_val
-h₂ : xv₂ = y_val
-h₃ : xv₄ = y_val
-r₇ : x_val = 0 ∨ y_val = 0
-inv_val : F := i₄
-r₂ : -x_val * inv_val + 1 = y_val
-ih₆ : Eval.EvalProp σ Δ (Expr.var inv) (Value.vF inv_val)
-r₃ : -x_val * inv_val = i₁
-⊢ Eval.EvalProp σ Δ (exprEq v (((Expr.var x).binRel RelOp.eq (Expr.constF 0)).branch (Expr.constF 1) (Expr.constF 0)))
-  (Value.vBool true)
--/
-
-lemma iszero_field {x y inv: F}
+lemma isZero_spec_from_mul {x y inv: F}
   (h₁: y = -x * inv + 1)
   (h₂: x * y = 0):
   if x = 0 then y = 1 else y = 0 := by {
@@ -462,7 +443,7 @@ lemma iszero_field {x y inv: F}
     . simp_all
 }
 
-lemma iszero_evalprop {x y inv: String} {σ: Env.ValEnv} {Δ: Env.CircuitEnv}
+lemma isZero_evalprop_correct {x y inv: String} {σ: Env.ValEnv} {Δ: Env.CircuitEnv}
   (h₁: Eval.EvalProp σ Δ (exprEq (Expr.var y) ((((Expr.constF 0).fieldExpr FieldOp.sub (Expr.var x)).fieldExpr FieldOp.mul (Expr.var inv)).fieldExpr
                   FieldOp.add (Expr.constF 1))) (Value.vBool true))
   (h₂: Eval.EvalProp σ Δ (exprEq ((Expr.var x).fieldExpr FieldOp.mul (Expr.var y)) (Expr.constF 0)) (Value.vBool true)) :
@@ -556,12 +537,10 @@ lemma iszero_evalprop {x y inv: String} {σ: Env.ValEnv} {Δ: Env.CircuitEnv}
     }
   }
 
-lemma iszero (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv) (φ₁ φ₂: Ast.Predicate)
+lemma iszero (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv) (φ₁: Ast.Predicate)
   (x y inv u: String)
-  (yv: F)
   (hxy: y ≠ x)
-  (hxu: x ≠ u)
-  (hyu: y ≠ u)
+  (hyu: u ≠ y)
   (hx: Env.lookupTy Γ x = (Ast.Ty.refin Ty.field φ₁))
   (hinv: Env.lookupTy Γ inv = (Ast.Ty.refin Ty.field φ₁))
   :
@@ -636,13 +615,20 @@ lemma iszero (σ: Env.ValEnv) (Δ: Env.CircuitEnv) (Γ: Env.TyEnv) (φ₁ φ₂:
       unfold Env.lookupTy at h_mem₁ h_mem₂
       unfold Env.updateTy at h_mem₁ h_mem₂
       simp_all
-      sorry
+      unfold PropSemantics.predToProp at h_mem₁ h_mem₂
+      simp_all
+      unfold PropSemantics.exprToProp at h_mem₁ h_mem₂
+      have h_iszero := isZero_evalprop_correct h_mem₁ h_mem₂
+      intro hv
+      exact evalProp_exprEq_trans2 hv h_iszero
     }
   apply Ty.TypeJudgment.TE_SUB
   exact h_sub
   apply Ty.TypeJudgment.TE_Var
-  sorry
-  exact φ₁
+  unfold Env.lookupTy
+  unfold Env.updateTy
+  simp_all
+  rfl
 }
 
 lemma eval_eq_vals (v₁ v₂: Ast.Value)
