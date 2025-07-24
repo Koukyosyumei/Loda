@@ -529,10 +529,19 @@ lemma iszero_evalprop {x y inv: String} {σ: Env.ValEnv} {Δ: Env.CircuitEnv}
                         simp_all
                         apply Eval.EvalProp.ConstF
                       }
-                      by_cases hz : x_val = 0
-                      . exact h₃ hz
-                      . sorry
-                      sorry
+                      have h₅: Eval.EvalProp σ Δ (((Expr.var x).binRel RelOp.eq (Expr.constF 0)).branch (Expr.constF 1) (Expr.constF 0)) (if x_val = 0 then (Value.vF 1) else (Value.vF 0)) := by {
+                        by_cases hz : x_val = 0
+                        . simp_all
+                        . simp_all
+                      }
+                      exact h₅
+                      by_cases hz: x_val = 0
+                      . simp_all
+                        rw[← r₃] at r₄
+                        rw[← r₄] at r₂
+                        rw [neg_zero, zero_mul, zero_add] at r₂
+                        rw[r₂]
+                      . simp_all
                     }
                     | _ => simp_all
                   }
